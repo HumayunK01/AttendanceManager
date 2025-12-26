@@ -8,8 +8,19 @@ import { swaggerUi, swaggerSpec } from './config/swagger.js'
 
 const app = express()
 
+const allowedOrigins = [
+  'http://localhost:8080',
+  'https://manageattendance.vercel.app'
+];
+
 app.use(cors({
-  origin: 'http://localhost:8080',
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }))
 app.use(express.json())
