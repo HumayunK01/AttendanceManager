@@ -1,4 +1,5 @@
 import { sql } from '../config/db.js'
+import bcrypt from 'bcryptjs'
 
 export const createSubject = async (req, res) => {
   const { name, institutionId } = req.body
@@ -88,6 +89,28 @@ export const deactivateStudent = async (req, res) => {
 
   await sql`
     UPDATE students SET is_active = false WHERE id = ${id}
+  `
+
+  res.json({ success: true })
+}
+
+export const createFaculty = async (req, res) => {
+  const { name, email, password } = req.body
+
+  if (!name || !email || !password) {
+    return res.status(400).json({ error: 'name, email, password required' })
+  }
+
+  const exists = await sql`SELECT id FROM users WHERE email = ${email}`
+  if (exists.length) {
+    return res.status(400).json({ error: 'Email already exists' })
+  }
+
+  const hash = await bcrypt.hash(password, 10)
+
+  await sql`
+    INSERT INTO users (name, email, password_hash, role)
+    VALUES (${name}, ${email}, ${hash}, 'FACULTY')
   `
 
   res.json({ success: true })
