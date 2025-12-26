@@ -1,517 +1,287 @@
-# Attendance Manager – College Attendance System (Full Stack)
+# 🎓 Attendance Manager – College Attendance System
 
-A production-grade attendance management system designed for colleges, supporting faculty-driven attendance, timetable-bound sessions, audit logging, and session locking to prevent data tampering.
-
----
-
-## 🔧 Tech Stack
-
-| Layer     | Technology                   |
-| --------- | ---------------------------- |
-| Backend   | Node.js, Express             |
-| Database  | PostgreSQL (Neon Serverless) |
-| ORM       | Drizzle ORM                  |
-| DB Client | @neondatabase/serverless     |
-| Auth      | JWT (planned)                |
-| Frontend  | Pending                      |
-| Hosting   | Neon + Local API             |
+A production-grade, full-stack attendance management system designed for colleges and educational institutions. Built with modern technologies and enterprise-level features including role-based access control, audit logging, session locking, and comprehensive reporting.
 
 ---
 
-## 📁 Monorepo Structure
+## ✨ Key Features
+
+### 🔐 **Authentication & Authorization**
+- JWT-based authentication with bcrypt password hashing
+- Role-based access control (RBAC) for ADMIN, FACULTY, and STUDENT roles
+- Protected API endpoints with middleware guards
+- Secure token verification and session management
+
+### 📚 **Academic Management**
+- **Institution Management**: Multi-institution support
+- **Class Management**: Create and manage classes
+- **Subject Management**: Define subjects and curricula
+- **Faculty Assignment**: Map faculty to subjects and classes
+- **Student Enrollment**: Active student tracking with soft delete support
+
+### 📅 **Timetable System**
+- Create and manage timetable slots
+- Day-of-week based scheduling
+- Faculty-subject-class binding
+- Collision detection to prevent scheduling conflicts
+- One session per slot per day enforcement
+
+### ✅ **Attendance Tracking**
+- **Timetable-bound Sessions**: Every attendance session is linked to a timetable slot
+- **Real-time Marking**: Faculty can mark attendance (Present/Absent/Late)
+- **Edit Window**: 10-minute grace period for corrections
+- **Session Locking**: Lock sessions to prevent further modifications
+- **Archival System**: Archive old sessions for historical records
+- **Active Student Enforcement**: Only active students can be marked
+
+### 📊 **Comprehensive Reporting**
+- **Student Reports**: Individual attendance percentage by subject
+- **Defaulter Detection**: Identify students below 75% attendance
+- **Class Analytics**: Monthly class-wise attendance summaries
+- **Abuse Detection**: Track excessive attendance edits (Admin only)
+- **Subject-wise Analysis**: Detailed subject attendance breakdowns
+
+### 🛡️ **Data Integrity & Protection**
+- **Audit Logging**: Complete audit trail for every attendance change
+- **Edit Count Tracking**: Monitor and flag suspicious editing patterns
+- **Immutable Archives**: Archived sessions cannot be modified
+- **Soft Deletes**: Deactivated students excluded from active marking
+- **Zod Validation**: Payload validation for all API requests
+- **SQL Integrity**: Database-level constraints and foreign keys
+
+### 🔒 **Security Features**
+- Password hashing with bcrypt
+- JWT token-based authentication
+- Protected routes with role verification
+- Input sanitization and validation
+- Secure database connections (SSL)
+
+---
+
+## 🏗️ Architecture
+
+### **Monorepo Structure**
 
 ```
 attendancemanager/
- ├─ frontend/                 # Frontend app (to be added)
- ├─ backend/
+ ├─ frontend/                 # Next.js frontend application
  │   ├─ src/
- │   │   ├─ config/           # DB config
+ │   ├─ public/
+ │   └─ package.json
+ │
+ ├─ backend/                  # Node.js + Express API
+ │   ├─ src/
+ │   │   ├─ config/           # Database configuration
  │   │   ├─ controllers/      # Business logic
  │   │   ├─ middleware/       # Auth & guards
- │   │   ├─ models/           # Drizzle schema
+ │   │   ├─ models/           # Drizzle ORM schema
  │   │   ├─ routes/           # API routes
- │   │   ├─ util/             # Helpers
+ │   │   ├─ util/             # Helper functions
  │   │   └─ server.js         # Entry point
- │   ├─ drizzle/              # DB migrations
- │   ├─ drizzle.config.js
+ │   ├─ drizzle/              # Database migrations
  │   ├─ package.json
- └─ .gitignore
+ │   └─ README.md             # Backend documentation
+ │
+ └─ README.md                 # This file
 ```
 
 ---
 
-## 🧱 Database Architecture
+## 🔧 Technology Stack
 
-Core entities:
-
-* institutions
-* users (ADMIN | FACULTY | STUDENT)
-* classes
-* subjects
-* faculty_subject_map
-* students
-* timetable_slots
-* attendance_sessions
-* attendance_records
-* attendance_audit_logs
-
-Every lecture is bound to a timetable slot.
-Every attendance change is audited.
-Locked sessions cannot be edited.
+| Component      | Technology                   |
+| -------------- | ---------------------------- |
+| **Frontend**   | Next.js, React               |
+| **Backend**    | Node.js, Express             |
+| **Database**   | PostgreSQL (Neon Serverless) |
+| **ORM**        | Drizzle ORM                  |
+| **Auth**       | JWT, bcrypt                  |
+| **Validation** | Zod                          |
+| **Hosting**    | Neon (Database) + Vercel     |
 
 ---
 
-## 🚀 Setup Instructions
+## 🚀 Quick Start
 
-### 1️⃣ Clone repository
+### Prerequisites
+- Node.js (v16 or higher)
+- PostgreSQL database (or Neon account)
+- npm or yarn
 
-```bash
-git clone https://github.com/HumayunK01/AttendanceManager.git
-cd AttendanceManager
-```
+### Installation
 
----
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/HumayunK01/AttendanceManager.git
+   cd AttendanceManager
+   ```
 
-### 🔹 Backend Setup
+2. **Backend Setup**
+   ```bash
+   cd backend
+   npm install
+   
+   # Create .env file with your database URL
+   echo "DATABASE_URL=your_postgresql_url" > .env
+   echo "JWT_SECRET=your_jwt_secret" > .env
+   
+   # Run migrations
+   npx drizzle-kit generate
+   npx drizzle-kit push
+   
+   # Start backend server
+   npm run dev
+   ```
+   Backend runs on: `http://localhost:5000`
 
-#### 2️⃣ Navigate to backend
-
-```bash
-cd backend
-```
-
-#### 3️⃣ Install dependencies
-
-```bash
-npm install
-```
-
-#### 4️⃣ Configure environment
-
-Create `.env` inside `/backend`:
-
-```
-DATABASE_URL=postgresql://USER:PASSWORD@HOST/neondb?sslmode=require
-```
-
-#### 5️⃣ Run migrations
-
-```bash
-npx drizzle-kit generate
-npx drizzle-kit push
-```
-
-#### 6️⃣ Start backend server
-
-```bash
-npm run dev
-```
-
-Backend will run on: `http://localhost:5000`
-
-Health check: `http://localhost:5000/health`
+3. **Frontend Setup**
+   ```bash
+   cd ../frontend
+   npm install
+   
+   # Create .env.local with backend URL
+   echo "NEXT_PUBLIC_API_URL=http://localhost:5000" > .env.local
+   
+   # Start frontend
+   npm run dev
+   ```
+   Frontend runs on: `http://localhost:3000`
 
 ---
 
-### 🔹 Frontend Setup
+## 📖 Documentation
 
-**Status:** Frontend is not yet implemented.
-
-When ready, the frontend will be initialized in the `/frontend` directory and will consume the backend API.
-
----
-
-## 🏁 Final Backend Status — After Phase 6
-
-**You now have a hardened academic attendance platform backend.**
+- **Backend API Documentation**: See [backend/README.md](./backend/README.md)
+- **API Endpoints**: Detailed endpoint documentation in backend README
+- **Database Schema**: Defined in `backend/src/models/`
 
 ---
 
-## 🔐 Phase 1 — Authentication & RBAC (DONE)
+## 🎯 Use Cases
 
-* JWT login with bcrypt
-* Token verification middleware
-* Role-based access (ADMIN / FACULTY / STUDENT)
+### For Administrators
+- Create and manage classes, subjects, and faculty assignments
+- Configure timetables for the entire institution
+- Monitor attendance patterns and detect anomalies
+- Generate institution-wide reports
+- Manage student enrollment and deactivation
 
----
+### For Faculty
+- View daily timetable
+- Create attendance sessions for scheduled lectures
+- Mark student attendance (Present/Absent/Late)
+- Lock sessions after verification
+- Generate student and class reports
+- Track defaulters in their subjects
 
-## 🧠 Core Attendance Engine (DONE)
-
-* Timetable-bound sessions
-* One session per slot per day
-* Active-student enforcement
-* Mark / update attendance
-* Audit trail for every change
-* Session locking & archival protection
-
----
-
-## 🛠 Phase 2 — Admin APIs (DONE)
-
-* Create subject
-* Create class
-* Map faculty → subject → class
-* Create timetable slots
-* Deactivate students
+### For Students
+- View personal attendance records
+- Check subject-wise attendance percentages
+- Monitor attendance status across all subjects
+- Access historical attendance data
 
 ---
 
-## 📊 Phase 3 — Reporting (DONE)
+## 🏆 What Makes This Different
 
-* Student-wise attendance %
-* Defaulter list (<75%)
-* Monthly class subject summary
-* Abuse detection
+This is **not a simple CRUD application**. It's a **policy-driven academic system** that:
 
----
-
-## 🧯 Phase 4 — Integrity Controls (DONE)
-
-* 10-minute edit window
-* `edit_count` abuse tracking
-* Auto-blocking after lock/archive
+✅ **Enforces Real-World Rules**: Timetable constraints, edit windows, session locking  
+✅ **Maintains Complete History**: Every change is logged and auditable  
+✅ **Prevents Data Tampering**: Locked and archived sessions are immutable  
+✅ **Detects Abuse**: Tracks suspicious editing patterns  
+✅ **Protects Integrity**: Database constraints + application-level validation  
+✅ **Production-Ready**: Built with security, scalability, and maintainability in mind  
 
 ---
 
-## 🗃 Phase 5 — Soft Deletes & Archival (DONE)
+## 📈 Development Phases
 
-* Deactivated students excluded
-* Archived sessions are immutable history
+### ✅ Phase 1 — Authentication & RBAC
+- JWT authentication system
+- Role-based access control
+- Protected API endpoints
 
----
+### ✅ Phase 2 — Admin Management
+- Class and subject creation
+- Faculty-subject-class mapping
+- Timetable slot management
 
-## 🛡 Phase 6 — Data Protection (DONE)
+### ✅ Phase 3 — Reporting Engine
+- Student attendance reports
+- Defaulter detection
+- Monthly analytics
+- Abuse detection
 
-* Zod payload validation
-* Timetable collision detection
-* Duplicate mapping prevention
-* SQL integrity hardening
+### ✅ Phase 4 — Integrity Controls
+- 10-minute edit window
+- Edit count tracking
+- Session locking
 
----
+### ✅ Phase 5 — Soft Deletes & Archival
+- Student deactivation
+- Session archival
+- Historical data preservation
 
-## 📡 API Endpoints Reference
-
-### Authentication
-
-**Login**
-```
-POST /api/auth/login
-```
-Body:
-```json
-{
-  "email": "faculty@example.com",
-  "password": "password123"
-}
-```
-Response:
-```json
-{
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-}
-```
+### ✅ Phase 6 — Data Protection
+- Zod validation
+- Collision detection
+- Duplicate prevention
+- SQL integrity hardening
 
 ---
 
-### Admin Operations (Protected: ADMIN)
+## 🔮 Future Enhancements
 
-**Create Subject**
-```
-POST /api/admin/subject
-Headers: Authorization: Bearer <token>
-```
-Body:
-```json
-{
-  "name": "Data Structures",
-  "institutionId": 1
-}
-```
-
-**Create Class**
-```
-POST /api/admin/class
-Headers: Authorization: Bearer <token>
-```
-Body:
-```json
-{
-  "name": "CS-3A",
-  "institutionId": 1
-}
-```
-
-**Map Faculty to Subject & Class**
-```
-POST /api/admin/map
-Headers: Authorization: Bearer <token>
-```
-Body:
-```json
-{
-  "facultyId": 2,
-  "subjectId": 1,
-  "classId": 1
-}
-```
-
-**Create Timetable Slot**
-```
-POST /api/admin/timetable
-Headers: Authorization: Bearer <token>
-```
-Body:
-```json
-{
-  "facultySubjectMapId": 1,
-  "dayOfWeek": 1,
-  "startTime": "09:00",
-  "endTime": "10:00"
-}
-```
-
-**Deactivate Student (Soft Delete)**
-```
-POST /api/admin/student/:id/deactivate
-Headers: Authorization: Bearer <token>
-```
-Response:
-```json
-{
-  "success": true
-}
-```
-
-**Archive Attendance Session**
-```
-POST /api/attendance/session/:id/archive
-Headers: Authorization: Bearer <token>
-```
-Response:
-```json
-{
-  "archived": true
-}
-```
+- [ ] Real-time notifications for low attendance
+- [ ] Biometric integration for automated marking
+- [ ] Mobile app for students and faculty
+- [ ] Advanced analytics and visualizations
+- [ ] Export reports to PDF/Excel
+- [ ] Parent portal for attendance monitoring
+- [ ] SMS/Email alerts for defaulters
+- [ ] Multi-language support
 
 ---
 
-### Reporting Operations (Protected: FACULTY, ADMIN)
+## 🤝 Contributing
 
-**Get Student Attendance Report**
-```
-GET /api/reports/student/:studentId
-Headers: Authorization: Bearer <token>
-```
-Response:
-```json
-[
-  {
-    "subject": "Data Structures",
-    "present": 18,
-    "total": 20,
-    "percentage": 90.00
-  },
-  {
-    "subject": "Operating Systems",
-    "present": 14,
-    "total": 20,
-    "percentage": 70.00
-  }
-]
-```
+Contributions are welcome! Please follow these guidelines:
 
-**Get Defaulters List (Students <75%)**
-```
-GET /api/reports/defaulters/:classId
-Headers: Authorization: Bearer <token>
-```
-Response:
-```json
-[
-  {
-    "student": "John Doe",
-    "percentage": 68.50
-  },
-  {
-    "student": "Jane Smith",
-    "percentage": 72.30
-  }
-]
-```
-
-**Get Monthly Class Report**
-```
-GET /api/reports/class/:classId/month/:year/:month
-Headers: Authorization: Bearer <token>
-```
-Example: `GET /api/reports/class/1/month/2024/12`
-
-Response:
-```json
-[
-  {
-    "subject": "Data Structures",
-    "total_sessions": 15,
-    "total_present": 270
-  },
-  {
-    "subject": "Operating Systems",
-    "total_sessions": 12,
-    "total_present": 216
-  }
-]
-```
-
-**Get Abuse Detection Report** (Protected: ADMIN)
-```
-GET /api/reports/abuse
-Headers: Authorization: Bearer <token>
-```
-Response:
-```json
-[
-  {
-    "student": "John Doe",
-    "edit_count": 5
-  },
-  {
-    "student": "Jane Smith",
-    "edit_count": 4
-  }
-]
-```
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
 ---
 
+## 📄 License
 
-### Faculty Operations
-
-**Get Today's Timetable** (Protected: FACULTY)
-```
-GET /api/faculty/:facultyId/today-timetable
-Headers: Authorization: Bearer <token>
-```
+This project is licensed under the MIT License.
 
 ---
 
-### Attendance Management
+## 👨‍💻 Author
 
-**Create Attendance Session** (Protected: FACULTY)
-```
-POST /api/attendance/session
-Headers: Authorization: Bearer <token>
-```
-Body:
-```json
-{ "timetableSlotId": 1 }
-```
-
-**Fetch Students of Session** (Protected: FACULTY)
-```
-GET /api/attendance/session/:sessionId/students
-Headers: Authorization: Bearer <token>
-```
-
-**Mark Attendance** (Protected: FACULTY)
-```
-POST /api/attendance/mark
-Headers: Authorization: Bearer <token>
-```
-Body:
-```json
-{
-  "sessionId": 1,
-  "studentId": 1,
-  "status": "P",
-  "editedBy": 2,
-  "reason": "Initial marking"
-}
-```
-
-**Lock Session** (Protected: FACULTY)
-```
-POST /api/attendance/session/:id/lock
-Headers: Authorization: Bearer <token>
-```
-
-After locking, all marking attempts are rejected.
+**Humayun Khan**
+- GitHub: [@HumayunK01](https://github.com/HumayunK01)
 
 ---
 
-## 🗃 Database Integrity
+## ⚠️ Important Notes
 
-All core tables are live and linked:
-
-* institutions, users, classes, subjects
-* faculty_subject_map, students
-* timetable_slots, attendance_sessions
-* attendance_records, attendance_audit_logs
+- **Database Schema**: The database schema is immutable. Do not modify tables without proper migration planning.
+- **Audit Trail**: All attendance modifications are logged. Deleting audit logs is prohibited.
+- **Session Locking**: Once a session is locked, it cannot be unlocked or modified.
+- **Archival**: Archived sessions are read-only and preserved for historical records.
 
 ---
 
-## ✅ What You've Actually Built
+## 🙏 Acknowledgments
 
-**Not CRUD.**  
-**Not tutorial junk.**
-
-You built a **policy-driven academic system** that:
-
-* Enforces real institutional rules
-* Preserves history
-* Detects abuse
-* Protects integrity by code, not trust
-
-**This backend is now ready for frontend work or production polishing.**
+Built with modern best practices for educational institutions that value data integrity and academic accountability.
 
 ---
 
-## 📌 Roadmap
-
-### ✅ Phase 1 — Authentication & RBAC (DONE)
-* JWT authentication & RBAC
-* Protected attendance APIs
-* Session locking & audit trails
-
-### ✅ Phase 2 — Admin Management APIs (DONE)
-* Create classes & subjects
-* Assign faculty to class+subject
-* Create timetable slots
-* **System is now fully configurable through APIs**
-
-### ✅ Phase 3 — Attendance Reporting Engine (DONE)
-* Student attendance percentage
-* Subject-wise attendance reports
-* Defaulter detection (<75%)
-* Monthly class analytics
-* **System now delivers academic value**
-
-### ✅ Phase 4 — Edit Window & Abuse Detection (DONE)
-* 10-minute edit window enforced
-* Edit count tracking per record
-* Abuse detection API
-* Admin-only access to abuse reports
-* **System now prevents data manipulation**
-
-### ✅ Phase 5 — Soft Deletes & Archival (DONE)
-* Student deactivation (soft delete)
-* Session archival
-* Deactivated students excluded from marking
-* Archived sessions are read-only
-* **System now handles data lifecycle**
-
-### ✅ Phase 6 — Validation, Constraints & Data Protection (DONE)
-* Zod payload validation
-* Timetable collision detection
-* Duplicate mapping prevention
-* SQL integrity hardening
-* **Backend is now production-ready**
-
----
-
-## ⚠️ Warning
-
-This system is not a CRUD demo.
-It enforces real-world academic integrity.
-Any change must preserve auditability and immutability.
-
+**For detailed backend API documentation, setup instructions, and endpoint references, see [backend/README.md](./backend/README.md)**
