@@ -16,3 +16,9 @@ router.post('/session/:id/lock', requireAuth(['FACULTY']), async (req, res) => {
 })
 
 export default router
+
+router.post('/session/:id/archive', requireAuth(['ADMIN']), async (req, res) => {
+  const { id } = req.params
+  await sql`UPDATE attendance_sessions SET is_archived = true WHERE id = ${id}`
+  res.json({ archived: true })
+})

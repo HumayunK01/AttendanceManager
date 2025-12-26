@@ -42,6 +42,7 @@ export const students = pgTable('students', {
   userId: integer('user_id').references(() => users.id),
   classId: integer('class_id').references(() => classes.id),
   rollNo: varchar('roll_no', { length: 50 }),
+  isActive: boolean('is_active').default(true)
 })
 
 export const timetableSlots = pgTable('timetable_slots', {
@@ -57,6 +58,7 @@ export const attendanceSessions = pgTable('attendance_sessions', {
   timetableSlotId: integer('timetable_slot_id').references(() => timetableSlots.id),
   sessionDate: date('session_date'),
   locked: boolean('locked').default(false),
+  isArchived: boolean('is_archived').default(false),
   createdAt: timestamp('created_at').defaultNow()
 })
 

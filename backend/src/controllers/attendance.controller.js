@@ -38,15 +38,15 @@ export const markAttendance = async (req, res) => {
 
   // 🔒 Lock check
   const session = await sql`
-    SELECT locked FROM attendance_sessions WHERE id = ${sessionId}
+    SELECT locked, is_archived FROM attendance_sessions WHERE id = ${sessionId}
   `
 
   if (session.length === 0) {
     return res.status(404).json({ error: 'Session not found' })
   }
 
-  if (session[0].locked) {
-    return res.status(403).json({ error: 'Attendance session is locked' })
+  if (session[0].locked || session[0].is_archived) {
+    return res.status(403).json({ error: 'Attendance session is locked or archived' })
   }
 
   // Check existing record
@@ -78,17 +78,18 @@ export const markAttendance = async (req, res) => {
 }
 
 export const getSessionStudents = async (req, res) => {
-    const { sessionId } = req.params
+  const { sessionId } = req.params
 
-    const result = await sql`
+  const result = await sql`
     SELECT 
       s.id as student_id,
       u.name as student_name,
       sr.status
     FROM attendance_sessions asn
+    WHERE asn.is_archived = false
     JOIN timetable_slots ts ON ts.id = asn.timetable_slot_id
     JOIN faculty_subject_map fsm ON fsm.id = ts.faculty_subject_map_id
-    JOIN students s ON s.class_id = fsm.class_id
+    JOIN students s ON s.class_id = fsm.class_id AND s.is_active = true
     JOIN users u ON u.id = s.user_id
     LEFT JOIN attendance_records sr 
       ON sr.session_id = asn.id AND sr.student_id = s.id
@@ -96,5 +97,5 @@ export const getSessionStudents = async (req, res) => {
     ORDER BY s.roll_no;
   `
 
-    res.json(result)
+  res.json(result)
 }

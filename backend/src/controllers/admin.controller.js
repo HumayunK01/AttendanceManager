@@ -59,3 +59,13 @@ export const createTimetableSlot = async (req, res) => {
 
   res.json({ success: true })
 }
+
+export const deactivateStudent = async (req, res) => {
+  const { id } = req.params
+
+  await sql`
+    UPDATE students SET is_active = false WHERE id = ${id}
+  `
+
+  res.json({ success: true })
+}

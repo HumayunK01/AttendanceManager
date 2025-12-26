@@ -121,41 +121,50 @@ When ready, the frontend will be initialized in the `/frontend` directory and wi
 
 ---
 
-## 📌 Backend Status — After Phase 4 (Edit Window & Abuse Detection)
+## 📌 Backend Status — After Phase 5 (Soft Deletes & Archival)
 
 ---
 
 ## 🔐 Phase 1 — Authentication & RBAC (DONE)
 
-* JWT login
-* Role-based access enforced on all sensitive routes
+* JWT login with bcrypt passwords
+* Token verification middleware
+* Role-based access enforced (ADMIN / FACULTY / STUDENT)
 
 ---
 
 ## 🧠 Core Attendance Engine (DONE)
 
-* Timetable-bound sessions
-* Student list per session
-* Mark / update attendance
-* Audit trail for every edit
-* Session locking
+* Faculty timetable retrieval
+* Attendance session creation (one per slot per day)
+* Student list per session (only active students)
+* Mark attendance with audit trail
+* Session locking & archive enforcement
+* Edit-window control (10 min)
+* `edit_count` tracking for abuse detection
 
 ---
 
-## 🛠 Phase 2 — Admin APIs (DONE)
+## 🛠 Phase 2 — Admin Management APIs (DONE)
 
-* Create class
-* Create subject
-* Map faculty → subject → class
-* Create timetable slots
+| Feature                           | Endpoint                              |
+| --------------------------------- | ------------------------------------- |
+| Create subject                    | `POST /api/admin/subject`             |
+| Create class                      | `POST /api/admin/class`               |
+| Map faculty → subject → class     | `POST /api/admin/map`                 |
+| Create timetable slot             | `POST /api/admin/timetable`           |
+| Deactivate student (soft delete)  | `POST /api/admin/student/:id/deactivate` |
 
 ---
 
-## 📊 Phase 3 — Reporting (DONE)
+## 📊 Phase 3 — Reporting Engine (DONE)
 
-* Student-wise attendance %
-* Defaulter list (<75%)
-* Monthly class-subject summary
+| Report                        | Endpoint                                           |
+| ----------------------------- | -------------------------------------------------- |
+| Student-wise attendance %     | `GET /api/reports/student/:studentId`              |
+| Defaulter list (<75%)         | `GET /api/reports/defaulters/:classId`             |
+| Monthly class subject summary | `GET /api/reports/class/:classId/month/:year/:month` |
+| Abuse detection               | `GET /api/reports/abuse`                           |
 
 ---
 
@@ -165,6 +174,16 @@ When ready, the frontend will be initialized in the `/frontend` directory and wi
 * `edit_count` tracking per attendance record
 * Abuse detection API
 * `GET /api/reports/abuse` (ADMIN only)
+
+---
+
+## 🗃 Phase 5 — Soft Deletes & Archival (DONE)
+
+* `students.is_active` enforced
+* `attendance_sessions.is_archived` enforced
+* Deactivated students disappear from marking
+* Archived sessions are read-only history
+* Admin can archive sessions via API
 
 ---
 
@@ -246,6 +265,30 @@ Body:
   "dayOfWeek": 1,
   "startTime": "09:00",
   "endTime": "10:00"
+}
+```
+
+**Deactivate Student (Soft Delete)**
+```
+POST /api/admin/student/:id/deactivate
+Headers: Authorization: Bearer <token>
+```
+Response:
+```json
+{
+  "success": true
+}
+```
+
+**Archive Attendance Session**
+```
+POST /api/attendance/session/:id/archive
+Headers: Authorization: Bearer <token>
+```
+Response:
+```json
+{
+  "archived": true
 }
 ```
 
@@ -405,16 +448,11 @@ All core tables are live and linked:
 
 ---
 
-## ❌ What Remains
+## ❌ Remaining Phase
 
-**Only two phases left:**
-
-| Phase   | Purpose                                    |
+| Phase   | Focus                                      |
 | ------- | ------------------------------------------ |
-| Phase 5 | Soft Deletes & Archival                    |
 | Phase 6 | Validation, Constraints & Data Protection  |
-
-**When those are done, your backend is no longer a project — it's a product.**
 
 ---
 
@@ -445,11 +483,12 @@ All core tables are live and linked:
 * Admin-only access to abuse reports
 * **System now prevents data manipulation**
 
-### 🔜 Phase 5 — Soft Deletes & Archival
-* Soft delete for classes/subjects
-* Archive old sessions
-* Data retention policies
-* Historical data preservation
+### ✅ Phase 5 — Soft Deletes & Archival (DONE)
+* Student deactivation (soft delete)
+* Session archival
+* Deactivated students excluded from marking
+* Archived sessions are read-only
+* **System now handles data lifecycle**
 
 ### 🔜 Phase 6 — Validation, Constraints & Data Protection
 * Input validation & sanitization
