@@ -13,6 +13,12 @@ const options = {
       { url: 'http://localhost:5000/api' },
       { url: 'https://attendancemanager-6spn.onrender.com/api' }
     ],
+    tags: [
+      { name: 'Auth', description: 'Authentication endpoints' },
+      { name: 'Admin', description: 'Admin management endpoints' },
+      { name: 'Faculty', description: 'Faculty attendance operations' },
+      { name: 'Reports', description: 'Attendance and student reports' }
+    ],
     components: {
       securitySchemes: {
         bearerAuth: {
