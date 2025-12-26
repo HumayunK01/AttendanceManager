@@ -121,10 +121,9 @@ When ready, the frontend will be initialized in the `/frontend` directory and wi
 
 ---
 
-## 📌 Backend Status — After Phase 2
+## 📌 Backend Status — After Phase 3 (Reporting Engine)
 
-You are no longer building a project.
-**You are maintaining a system.**
+Your backend is now a **complete academic attendance backend**, not just a logger.
 
 ---
 
@@ -133,7 +132,7 @@ You are no longer building a project.
 | Feature                                        | Status |
 | ---------------------------------------------- | ------ |
 | JWT login                                      | ✅      |
-| Password hashing (bcrypt)                      | ✅      |
+| Password hashing                               | ✅      |
 | Token verification middleware                  | ✅      |
 | Role guards (ADMIN / FACULTY / STUDENT)        | ✅      |
 | Attendance APIs protected                      | ✅      |
@@ -149,22 +148,30 @@ You are no longer building a project.
 | Create attendance session | `POST /api/attendance/session`             |
 | Fetch session students    | `GET /api/attendance/session/:id/students` |
 | Mark attendance           | `POST /api/attendance/mark`                |
-| Lock attendance session   | `POST /api/attendance/session/:id/lock`    |
-| Prevent edits after lock  | Backend enforced                           |
-| Attendance audit trail    | Implemented                                |
+| Lock session              | `POST /api/attendance/session/:id/lock`    |
+| Prevent edits after lock  | Enforced                                   |
+| Audit trail               | attendance_audit_logs                      |
 
 ---
 
 ## 🛠 Phase 2 — Admin Management APIs (DONE)
 
-**Your system is now fully configurable through APIs.**
-
-| Operation                     | Endpoint                 | Role  |
-| ----------------------------- | ------------------------ | ----- |
-| Create subject                | `POST /api/admin/subject` | ADMIN |
-| Create class                  | `POST /api/admin/class`   | ADMIN |
-| Map faculty → subject → class | `POST /api/admin/map`     | ADMIN |
+| Feature                       | Endpoint                    | Role  |
+| ----------------------------- | --------------------------- | ----- |
+| Create subject                | `POST /api/admin/subject`   | ADMIN |
+| Create class                  | `POST /api/admin/class`     | ADMIN |
+| Map faculty → subject → class | `POST /api/admin/map`       | ADMIN |
 | Create timetable slot         | `POST /api/admin/timetable` | ADMIN |
+
+---
+
+## 📊 Phase 3 — Attendance Reporting Engine (DONE)
+
+| Report                        | Endpoint                                           |
+| ----------------------------- | -------------------------------------------------- |
+| Student-wise attendance %     | `GET /api/reports/student/:studentId`              |
+| Defaulter list (<75%)         | `GET /api/reports/defaulters/:classId`             |
+| Monthly class subject summary | `GET /api/reports/class/:classId/month/:year/:month` |
 
 ---
 
@@ -251,6 +258,76 @@ Body:
 
 ---
 
+### Reporting Operations (Protected: FACULTY, ADMIN)
+
+**Get Student Attendance Report**
+```
+GET /api/reports/student/:studentId
+Headers: Authorization: Bearer <token>
+```
+Response:
+```json
+[
+  {
+    "subject": "Data Structures",
+    "present": 18,
+    "total": 20,
+    "percentage": 90.00
+  },
+  {
+    "subject": "Operating Systems",
+    "present": 14,
+    "total": 20,
+    "percentage": 70.00
+  }
+]
+```
+
+**Get Defaulters List (Students <75%)**
+```
+GET /api/reports/defaulters/:classId
+Headers: Authorization: Bearer <token>
+```
+Response:
+```json
+[
+  {
+    "student": "John Doe",
+    "percentage": 68.50
+  },
+  {
+    "student": "Jane Smith",
+    "percentage": 72.30
+  }
+]
+```
+
+**Get Monthly Class Report**
+```
+GET /api/reports/class/:classId/month/:year/:month
+Headers: Authorization: Bearer <token>
+```
+Example: `GET /api/reports/class/1/month/2024/12`
+
+Response:
+```json
+[
+  {
+    "subject": "Data Structures",
+    "total_sessions": 15,
+    "total_present": 270
+  },
+  {
+    "subject": "Operating Systems",
+    "total_sessions": 12,
+    "total_present": 216
+  }
+]
+```
+
+---
+
+
 ### Faculty Operations
 
 **Get Today's Timetable** (Protected: FACULTY)
@@ -307,35 +384,24 @@ After locking, all marking attempts are rejected.
 
 ## 🗃 Database Integrity
 
-All domain tables implemented & linked:
+All core tables are live and linked:
 
-* institutions
-* users
-* classes
-* subjects
-* faculty_subject_map
-* students
-* timetable_slots
-* attendance_sessions
-* attendance_records
-* attendance_audit_logs
-
-Foreign keys enforced, not "trusted".
+* institutions, users, classes, subjects
+* faculty_subject_map, students
+* timetable_slots, attendance_sessions
+* attendance_records, attendance_audit_logs
 
 ---
 
-## ⚠ What Is Still Missing
+## ❌ Remaining Phases
 
-**Your backend is now operable — but it still does not deliver academic value yet.**
+| Phase   | Focus                                      |
+| ------- | ------------------------------------------ |
+| Phase 4 | Edit Window & Abuse Detection              |
+| Phase 5 | Soft Deletes & Archival                    |
+| Phase 6 | Validation, Constraints & Data Protection  |
 
-Remaining phases:
-
-| Phase   | Purpose                            |
-| ------- | ---------------------------------- |
-| Phase 3 | Attendance Reporting Engine        |
-| Phase 4 | Edit Window & Abuse Detection      |
-| Phase 5 | Soft Deletes & Archival            |
-| Phase 6 | Validation, Constraints & Data Protection |
+**Your backend is now valuable — but not yet bullet-proof.**
 
 ---
 
@@ -352,11 +418,12 @@ Remaining phases:
 * Create timetable slots
 * **System is now fully configurable through APIs**
 
-### 🔜 Phase 3 — Attendance Reporting Engine
+### ✅ Phase 3 — Attendance Reporting Engine (DONE)
 * Student attendance percentage
 * Subject-wise attendance reports
-* Class-wise attendance analytics
-* Date range filtering
+* Defaulter detection (<75%)
+* Monthly class analytics
+* **System now delivers academic value**
 
 ### 🔜 Phase 4 — Edit Window & Abuse Detection
 * Time-bound edit windows
@@ -364,7 +431,7 @@ Remaining phases:
 * Detect suspicious patterns
 * Admin override capabilities
 
-### � Phase 5 — Soft Deletes & Archival
+### 🔜 Phase 5 — Soft Deletes & Archival
 * Soft delete for classes/subjects
 * Archive old sessions
 * Data retention policies
