@@ -115,3 +115,31 @@ export const createFaculty = async (req, res) => {
 
   res.json({ success: true })
 }
+
+export const createStudent = async (req, res) => {
+  const { name, email, password, classId, rollNo } = req.body
+
+  if (!name || !email || !password || !classId || !rollNo) {
+    return res.status(400).json({ error: 'All fields required' })
+  }
+
+  const exists = await sql`SELECT id FROM users WHERE email = ${email}`
+  if (exists.length) {
+    return res.status(400).json({ error: 'Email already exists' })
+  }
+
+  const hash = await bcrypt.hash(password, 10)
+
+  const user = await sql`
+    INSERT INTO users (name, email, password_hash, role)
+    VALUES (${name}, ${email}, ${hash}, 'STUDENT')
+    RETURNING id
+  `
+
+  await sql`
+    INSERT INTO students (user_id, class_id, roll_no)
+    VALUES (${user[0].id}, ${classId}, ${rollNo})
+  `
+
+  res.json({ success: true })
+}

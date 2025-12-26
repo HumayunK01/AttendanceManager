@@ -2,6 +2,8 @@ import { Router } from 'express'
 import { requireAuth } from '../middleware/auth.middleware.js'
 import { createSubject, createClass, mapFacultySubject, createTimetableSlot, deactivateStudent } from '../controllers/admin.controller.js'
 import { createFaculty } from '../controllers/admin.controller.js'
+import { createStudent } from '../controllers/admin.controller.js'
+
 
 const router = Router()
 
@@ -11,5 +13,6 @@ router.post('/map', requireAuth(['ADMIN']), mapFacultySubject)
 router.post('/timetable', requireAuth(['ADMIN']), createTimetableSlot)
 router.post('/student/:id/deactivate', requireAuth(['ADMIN']), deactivateStudent)
 router.post('/faculty', requireAuth(['ADMIN']), createFaculty)
+router.post('/student', requireAuth(['ADMIN']), createStudent)
 
 export default router
