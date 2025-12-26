@@ -11,7 +11,7 @@ const options = {
     },
     servers: [
       { url: 'http://localhost:5000/api' },
-      { url: 'https://attendancemanager-6spn.onrender.com/' }
+      { url: 'https://attendancemanager-6spn.onrender.com/api' }
     ],
     components: {
       securitySchemes: {
