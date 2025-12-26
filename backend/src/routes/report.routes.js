@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { getStudentReport, getDefaulters, getMonthlyClassReport } from '../controllers/report.controller.js'
+import { getStudentReport, getDefaulters, getMonthlyClassReport, getAbuseList } from '../controllers/report.controller.js'
 import { requireAuth } from '../middleware/auth.middleware.js'
 
 const router = Router()
@@ -11,5 +11,6 @@ router.get(
     requireAuth(['FACULTY', 'ADMIN']),
     getMonthlyClassReport
 )
+router.get('/abuse', requireAuth(['ADMIN']), getAbuseList)
 
 export default router

@@ -73,3 +73,16 @@ export const getMonthlyClassReport = async (req, res) => {
 
   res.json(result)
 }
+
+export const getAbuseList = async (_, res) => {
+  const result = await sql`
+    SELECT 
+      u.name as student,
+      ar.edit_count
+    FROM attendance_records ar
+    JOIN students s ON s.id = ar.student_id
+    JOIN users u ON u.id = s.user_id
+    WHERE ar.edit_count > 3;
+  `
+  res.json(result)
+}

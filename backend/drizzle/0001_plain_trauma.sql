@@ -1,0 +1,1 @@
+ALTER TABLE "attendance_records" ADD COLUMN "edit_count" integer DEFAULT 0;

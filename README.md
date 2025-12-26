@@ -121,57 +121,50 @@ When ready, the frontend will be initialized in the `/frontend` directory and wi
 
 ---
 
-## 📌 Backend Status — After Phase 3 (Reporting Engine)
-
-Your backend is now a **complete academic attendance backend**, not just a logger.
+## 📌 Backend Status — After Phase 4 (Edit Window & Abuse Detection)
 
 ---
 
 ## 🔐 Phase 1 — Authentication & RBAC (DONE)
 
-| Feature                                        | Status |
-| ---------------------------------------------- | ------ |
-| JWT login                                      | ✅      |
-| Password hashing                               | ✅      |
-| Token verification middleware                  | ✅      |
-| Role guards (ADMIN / FACULTY / STUDENT)        | ✅      |
-| Attendance APIs protected                      | ✅      |
+* JWT login
+* Role-based access enforced on all sensitive routes
 
 ---
 
 ## 🧠 Core Attendance Engine (DONE)
 
-| Operation                 | Endpoint                                   |
-| ------------------------- | ------------------------------------------ |
-| Faculty login             | `POST /api/auth/login`                     |
-| Get today's timetable     | `GET /api/faculty/:id/today-timetable`     |
-| Create attendance session | `POST /api/attendance/session`             |
-| Fetch session students    | `GET /api/attendance/session/:id/students` |
-| Mark attendance           | `POST /api/attendance/mark`                |
-| Lock session              | `POST /api/attendance/session/:id/lock`    |
-| Prevent edits after lock  | Enforced                                   |
-| Audit trail               | attendance_audit_logs                      |
+* Timetable-bound sessions
+* Student list per session
+* Mark / update attendance
+* Audit trail for every edit
+* Session locking
 
 ---
 
-## 🛠 Phase 2 — Admin Management APIs (DONE)
+## 🛠 Phase 2 — Admin APIs (DONE)
 
-| Feature                       | Endpoint                    | Role  |
-| ----------------------------- | --------------------------- | ----- |
-| Create subject                | `POST /api/admin/subject`   | ADMIN |
-| Create class                  | `POST /api/admin/class`     | ADMIN |
-| Map faculty → subject → class | `POST /api/admin/map`       | ADMIN |
-| Create timetable slot         | `POST /api/admin/timetable` | ADMIN |
+* Create class
+* Create subject
+* Map faculty → subject → class
+* Create timetable slots
 
 ---
 
-## 📊 Phase 3 — Attendance Reporting Engine (DONE)
+## 📊 Phase 3 — Reporting (DONE)
 
-| Report                        | Endpoint                                           |
-| ----------------------------- | -------------------------------------------------- |
-| Student-wise attendance %     | `GET /api/reports/student/:studentId`              |
-| Defaulter list (<75%)         | `GET /api/reports/defaulters/:classId`             |
-| Monthly class subject summary | `GET /api/reports/class/:classId/month/:year/:month` |
+* Student-wise attendance %
+* Defaulter list (<75%)
+* Monthly class-subject summary
+
+---
+
+## 🧯 Phase 4 — Integrity Enforcement (DONE)
+
+* 10-minute edit window enforced
+* `edit_count` tracking per attendance record
+* Abuse detection API
+* `GET /api/reports/abuse` (ADMIN only)
 
 ---
 
@@ -325,6 +318,25 @@ Response:
 ]
 ```
 
+**Get Abuse Detection Report** (Protected: ADMIN)
+```
+GET /api/reports/abuse
+Headers: Authorization: Bearer <token>
+```
+Response:
+```json
+[
+  {
+    "student": "John Doe",
+    "edit_count": 5
+  },
+  {
+    "student": "Jane Smith",
+    "edit_count": 4
+  }
+]
+```
+
 ---
 
 
@@ -393,15 +405,16 @@ All core tables are live and linked:
 
 ---
 
-## ❌ Remaining Phases
+## ❌ What Remains
 
-| Phase   | Focus                                      |
+**Only two phases left:**
+
+| Phase   | Purpose                                    |
 | ------- | ------------------------------------------ |
-| Phase 4 | Edit Window & Abuse Detection              |
 | Phase 5 | Soft Deletes & Archival                    |
 | Phase 6 | Validation, Constraints & Data Protection  |
 
-**Your backend is now valuable — but not yet bullet-proof.**
+**When those are done, your backend is no longer a project — it's a product.**
 
 ---
 
@@ -425,11 +438,12 @@ All core tables are live and linked:
 * Monthly class analytics
 * **System now delivers academic value**
 
-### 🔜 Phase 4 — Edit Window & Abuse Detection
-* Time-bound edit windows
-* Prevent retroactive marking
-* Detect suspicious patterns
-* Admin override capabilities
+### ✅ Phase 4 — Edit Window & Abuse Detection (DONE)
+* 10-minute edit window enforced
+* Edit count tracking per record
+* Abuse detection API
+* Admin-only access to abuse reports
+* **System now prevents data manipulation**
 
 ### 🔜 Phase 5 — Soft Deletes & Archival
 * Soft delete for classes/subjects

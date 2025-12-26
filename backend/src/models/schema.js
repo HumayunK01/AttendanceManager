@@ -65,6 +65,7 @@ export const attendanceRecords = pgTable('attendance_records', {
   sessionId: integer('session_id').references(() => attendanceSessions.id),
   studentId: integer('student_id').references(() => students.id),
   status: varchar('status', { length: 1 }),
+  editCount: integer('edit_count').default(0),
   markedAt: timestamp('marked_at').defaultNow()
 })
 
