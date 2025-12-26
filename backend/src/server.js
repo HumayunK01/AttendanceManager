@@ -4,6 +4,7 @@ import 'dotenv/config'
 import routes from './routes/index.js'
 import { db } from './config/db.js'
 import { sql } from './config/db.js'
+import { swaggerUi, swaggerSpec } from './config/swagger.js'
 
 const app = express()
 
@@ -17,6 +18,7 @@ app.get('/health', async (_, res) => {
 })
 
 const PORT = process.env.PORT || 5000
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
 
 app.listen(PORT, () =>
   console.log(`Server running on port ${PORT}`)

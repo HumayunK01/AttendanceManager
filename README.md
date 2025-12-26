@@ -96,6 +96,7 @@ attendancemanager/
 | **Database**   | PostgreSQL (Neon Serverless) |
 | **ORM**        | Drizzle ORM                  |
 | **Auth**       | JWT, bcrypt                  |
+| **Docs**       | Swagger (OpenAPI 3.0)        |
 | **Validation** | Zod                          |
 | **Hosting**    | Neon (Database) + Vercel     |
 
@@ -151,6 +152,7 @@ attendancemanager/
 
 ## 📖 Documentation
 
+- **Interactive API Documentation**: Explore and test endpoints at `/api-docs`
 - **Backend API Documentation**: See [backend/README.md](./backend/README.md)
 - **API Endpoints**: Detailed endpoint documentation in backend README
 - **Database Schema**: Defined in `backend/src/models/`
@@ -228,6 +230,12 @@ This is **not a simple CRUD application**. It's a **policy-driven academic syste
 - Collision detection
 - Duplicate prevention
 - SQL integrity hardening
+
+### ✅ Phase 7 — Swagger API Documentation
+- Interactive API explorer at `/api-docs`
+- Role-based endpoint organization
+- Standardized request/response schemas
+- Integrated JWT authentication for testing
 
 ---
 

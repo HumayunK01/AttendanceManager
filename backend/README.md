@@ -13,6 +13,7 @@ A production-grade attendance management backend designed for colleges, supporti
 | ORM       | Drizzle ORM                  |
 | DB Client | @neondatabase/serverless     |
 | Auth      | JWT                          |
+| Docs      | Swagger (OpenAPI 3.0)        |
 | Hosting   | Neon + Local API             |
 
 ---
@@ -100,7 +101,21 @@ Backend will run on: `http://localhost:5000`
 
 Health check: `http://localhost:5000/health`
 
+**Swagger API Docs:** `http://localhost:5000/api-docs`
+
 ---
+
+## 📖 Interactive API Documentation (Swagger)
+
+The backend now features a fully interactive Swagger UI for testing and exploring the API.
+
+*   **Access**: Navigate to `/api-docs` on your local or hosted server.
+*   **Authentication**: Use the "Authorize" button to provide your Bearer JWT token.
+*   **Organization**: Endpoints are grouped by roles:
+    *   **Admin**: System-level operations (Subjects, Classes, Mapping, Deactivation).
+    *   **Faculty**: Attendance marking, session management, and timetable viewing.
+    *   **Auth**: Login and registration.
+    *   **Reports**: Student and class-wise attendance analytics.
 
 ## 🏁 Backend Status — Production Ready
 
@@ -114,6 +129,7 @@ All 6 development phases are complete:
 ✅ **Phase 4** — Integrity Controls  
 ✅ **Phase 5** — Soft Deletes & Archival  
 ✅ **Phase 6** — Data Protection  
+✅ **Phase 7** — Swagger API Documentation  
 
 ---
 
