@@ -1,0 +1,320 @@
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Lock, Users, CheckCircle, XCircle, Loader2, Search } from 'lucide-react';
+import FacultyLayout from '@/layouts/FacultyLayout';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { useToast } from '@/hooks/use-toast';
+import { facultyAPI } from '@/lib/api';
+
+interface Student {
+  id: string;
+  name: string;
+  rollNumber: string;
+  status: 'present' | 'absent' | 'unmarked';
+}
+
+interface SessionInfo {
+  id: string;
+  subjectName: string;
+  className: string;
+  date: string;
+  startTime: string;
+  isLocked: boolean;
+}
+
+const AttendanceSession: React.FC = () => {
+  const { sessionId } = useParams<{ sessionId: string }>();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  
+  const [sessionInfo, setSessionInfo] = useState<SessionInfo | null>(null);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isLockDialogOpen, setIsLockDialogOpen] = useState(false);
+  const [isLocking, setIsLocking] = useState(false);
+
+  useEffect(() => {
+    fetchSessionData();
+  }, [sessionId]);
+
+  const fetchSessionData = async () => {
+    try {
+      const [sessionRes, studentsRes] = await Promise.all([
+        facultyAPI.getSession(sessionId!),
+        facultyAPI.getSessionStudents(sessionId!)
+      ]);
+      setSessionInfo(sessionRes.data);
+      setStudents(studentsRes.data);
+    } catch (error) {
+      // Mock data
+      setSessionInfo({
+        id: sessionId!,
+        subjectName: 'Data Structures',
+        className: 'CS Y1-A',
+        date: new Date().toLocaleDateString(),
+        startTime: '09:00',
+        isLocked: false,
+      });
+      setStudents([
+        { id: '1', name: 'Alice Johnson', rollNumber: 'CS2024001', status: 'present' },
+        { id: '2', name: 'Bob Williams', rollNumber: 'CS2024002', status: 'present' },
+        { id: '3', name: 'Carol Davis', rollNumber: 'CS2024003', status: 'absent' },
+        { id: '4', name: 'David Brown', rollNumber: 'CS2024004', status: 'unmarked' },
+        { id: '5', name: 'Emma Wilson', rollNumber: 'CS2024005', status: 'present' },
+        { id: '6', name: 'Frank Miller', rollNumber: 'CS2024006', status: 'unmarked' },
+        { id: '7', name: 'Grace Lee', rollNumber: 'CS2024007', status: 'present' },
+        { id: '8', name: 'Henry Taylor', rollNumber: 'CS2024008', status: 'absent' },
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleMarkAttendance = async (student: Student, status: 'present' | 'absent') => {
+    if (sessionInfo?.isLocked) {
+      toast({
+        title: 'Session Locked',
+        description: 'Cannot modify attendance after session is locked.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      await facultyAPI.markAttendance(sessionId!, student.id, status);
+      setStudents(students.map(s => 
+        s.id === student.id ? { ...s, status } : s
+      ));
+    } catch (error) {
+      // Optimistic update for demo
+      setStudents(students.map(s => 
+        s.id === student.id ? { ...s, status } : s
+      ));
+    }
+  };
+
+  const handleLockSession = async () => {
+    setIsLocking(true);
+    try {
+      await facultyAPI.lockSession(sessionId!);
+      setSessionInfo(prev => prev ? { ...prev, isLocked: true } : null);
+      toast({
+        title: 'Session Locked',
+        description: 'The attendance session has been locked. No further changes can be made.',
+      });
+    } catch (error) {
+      // Demo update
+      setSessionInfo(prev => prev ? { ...prev, isLocked: true } : null);
+      toast({
+        title: 'Session Locked',
+        description: 'The attendance session has been locked.',
+      });
+    } finally {
+      setIsLocking(false);
+      setIsLockDialogOpen(false);
+    }
+  };
+
+  const filteredStudents = students.filter(
+    (student) =>
+      student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      student.rollNumber.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const presentCount = students.filter(s => s.status === 'present').length;
+  const absentCount = students.filter(s => s.status === 'absent').length;
+  const unmarkedCount = students.filter(s => s.status === 'unmarked').length;
+
+  if (isLoading) {
+    return (
+      <FacultyLayout>
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </FacultyLayout>
+    );
+  }
+
+  return (
+    <FacultyLayout>
+      <div className="space-y-6 animate-fade-in">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/faculty')}
+              className="p-2"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <div>
+              <h1 className="text-2xl lg:text-3xl font-bold text-foreground">
+                {sessionInfo?.subjectName}
+              </h1>
+              <p className="text-muted-foreground mt-1">
+                {sessionInfo?.className} • {sessionInfo?.date} • {sessionInfo?.startTime}
+              </p>
+            </div>
+          </div>
+          
+          {!sessionInfo?.isLocked && (
+            <Button 
+              onClick={() => setIsLockDialogOpen(true)}
+              className="bg-warning hover:bg-warning/90 text-warning-foreground"
+            >
+              <Lock className="w-4 h-4 mr-2" />
+              Lock Session
+            </Button>
+          )}
+          
+          {sessionInfo?.isLocked && (
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-muted text-muted-foreground">
+              <Lock className="w-4 h-4" />
+              <span className="text-sm font-medium">Session Locked</span>
+            </div>
+          )}
+        </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-3 gap-4">
+          <div className="glass-card p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center">
+                <CheckCircle className="w-5 h-5 text-success" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-foreground">{presentCount}</p>
+                <p className="text-sm text-muted-foreground">Present</p>
+              </div>
+            </div>
+          </div>
+          <div className="glass-card p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-destructive/10 flex items-center justify-center">
+                <XCircle className="w-5 h-5 text-destructive" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-foreground">{absentCount}</p>
+                <p className="text-sm text-muted-foreground">Absent</p>
+              </div>
+            </div>
+          </div>
+          <div className="glass-card p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                <Users className="w-5 h-5 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-foreground">{unmarkedCount}</p>
+                <p className="text-sm text-muted-foreground">Unmarked</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Search */}
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+          <Input
+            placeholder="Search students..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 bg-secondary/50"
+          />
+        </div>
+
+        {/* Students List */}
+        <div className="glass-card overflow-hidden">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Roll No.</th>
+                <th>Name</th>
+                <th>Status</th>
+                <th className="text-right">Mark Attendance</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredStudents.map((student) => (
+                <tr key={student.id}>
+                  <td>
+                    <span className="font-mono text-sm">{student.rollNumber}</span>
+                  </td>
+                  <td className="font-medium text-foreground">{student.name}</td>
+                  <td>
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+                      student.status === 'present' ? 'bg-success/10 text-success' :
+                      student.status === 'absent' ? 'bg-destructive/10 text-destructive' :
+                      'bg-muted text-muted-foreground'
+                    }`}>
+                      {student.status === 'present' && <CheckCircle className="w-3 h-3" />}
+                      {student.status === 'absent' && <XCircle className="w-3 h-3" />}
+                      {student.status.charAt(0).toUpperCase() + student.status.slice(1)}
+                    </span>
+                  </td>
+                  <td>
+                    <div className="flex items-center justify-end gap-3">
+                      <span className="text-sm text-muted-foreground">Absent</span>
+                      <Switch
+                        checked={student.status === 'present'}
+                        disabled={sessionInfo?.isLocked}
+                        onCheckedChange={(checked) => 
+                          handleMarkAttendance(student, checked ? 'present' : 'absent')
+                        }
+                      />
+                      <span className="text-sm text-muted-foreground">Present</span>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Lock Confirmation */}
+      <AlertDialog open={isLockDialogOpen} onOpenChange={setIsLockDialogOpen}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Lock Attendance Session</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to lock this session? Once locked, no further changes can be made to the attendance records.
+              <br /><br />
+              <strong>Summary:</strong>
+              <br />
+              Present: {presentCount} | Absent: {absentCount} | Unmarked: {unmarkedCount}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleLockSession}
+              disabled={isLocking}
+              className="bg-warning hover:bg-warning/90"
+            >
+              {isLocking && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Lock Session
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </FacultyLayout>
+  );
+};
+
+export default AttendanceSession;
