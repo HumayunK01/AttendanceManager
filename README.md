@@ -152,7 +152,7 @@ attendancemanager/
 
 ## 📖 Documentation
 
-- **Interactive API Documentation**: Explore and test endpoints at `/api-docs`
+- **Interactive API Documentation**: Explore and test endpoints at `/docs`
 - **Backend API Documentation**: See [backend/README.md](./backend/README.md)
 - **API Endpoints**: Detailed endpoint documentation in backend README
 - **Database Schema**: Defined in `backend/src/models/`
@@ -197,61 +197,6 @@ This is **not a simple CRUD application**. It's a **policy-driven academic syste
 
 ---
 
-## 📈 Development Phases
-
-### ✅ Phase 1 — Authentication & RBAC
-- JWT authentication system
-- Role-based access control
-- Protected API endpoints
-
-### ✅ Phase 2 — Admin Management
-- Class and subject creation
-- Faculty-subject-class mapping
-- Timetable slot management
-
-### ✅ Phase 3 — Reporting Engine
-- Student attendance reports
-- Defaulter detection
-- Monthly analytics
-- Abuse detection
-
-### ✅ Phase 4 — Integrity Controls
-- 10-minute edit window
-- Edit count tracking
-- Session locking
-
-### ✅ Phase 5 — Soft Deletes & Archival
-- Student deactivation
-- Session archival
-- Historical data preservation
-
-### ✅ Phase 6 — Data Protection
-- Zod validation
-- Collision detection
-- Duplicate prevention
-- SQL integrity hardening
-
-### ✅ Phase 7 — Swagger API Documentation
-- Interactive API explorer at `/api-docs`
-- Role-based endpoint organization
-- Standardized request/response schemas
-- Integrated JWT authentication for testing
-
----
-
-## 🔮 Future Enhancements
-
-- [ ] Real-time notifications for low attendance
-- [ ] Biometric integration for automated marking
-- [ ] Mobile app for students and faculty
-- [ ] Advanced analytics and visualizations
-- [ ] Export reports to PDF/Excel
-- [ ] Parent portal for attendance monitoring
-- [ ] SMS/Email alerts for defaulters
-- [ ] Multi-language support
-
----
-
 ## 🤝 Contributing
 
 Contributions are welcome! Please follow these guidelines:
@@ -292,4 +237,4 @@ Built with modern best practices for educational institutions that value data in
 
 ---
 
-**For detailed backend API documentation, setup instructions, and endpoint references, see [backend/README.md](./backend/README.md)**
+**For detailed backend API documentation, setup instructions, and endpoint references, see [README.md](./backend/README.md)**
