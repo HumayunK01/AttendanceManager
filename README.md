@@ -121,46 +121,97 @@ When ready, the frontend will be initialized in the `/frontend` directory and wi
 
 ---
 
-## 📡 API Endpoints
+## 📌 Backend Status — Post Phase 1
 
-### Get Today's Timetable
+This is not theory. This is what your backend **can already do in production**.
 
+---
+
+## 🔐 Authentication & Access Control (Phase 1 — DONE)
+
+| Feature                                           | Status |
+| ------------------------------------------------- | ------ |
+| JWT login                                         | ✅      |
+| Password hashing (bcrypt)                         | ✅      |
+| Token verification middleware                     | ✅      |
+| Role-based guards (`ADMIN`, `FACULTY`, `STUDENT`) | ✅      |
+| Protect attendance APIs                           | ✅      |
+
+---
+
+## 🧠 Core Attendance Engine (Fully Functional)
+
+| Operation                 | Endpoint                                   | Protection |
+| ------------------------- | ------------------------------------------ | ---------- |
+| Faculty login             | `POST /api/auth/login`                     | Public     |
+| Get today's timetable     | `GET /api/faculty/:id/today-timetable`     | FACULTY    |
+| Create attendance session | `POST /api/attendance/session`             | FACULTY    |
+| Fetch students of session | `GET /api/attendance/session/:id/students` | FACULTY    |
+| Mark P/A                  | `POST /api/attendance/mark`                | FACULTY    |
+| Lock attendance session   | `POST /api/attendance/session/:id/lock`    | FACULTY    |
+| Prevent edits after lock  | Backend-enforced                           | ✅          |
+| Audit trail for updates   | attendance_audit_logs                      | ✅          |
+
+---
+
+## 📡 API Endpoints Reference
+
+### Authentication
+
+**Login**
 ```
-GET /api/faculty/:facultyId/today-timetable
+POST /api/auth/login
+```
+Body:
+```json
+{
+  "email": "faculty@example.com",
+  "password": "password123"
+}
+```
+Response:
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
 ```
 
 ---
 
-### Create Attendance Session
+### Faculty Operations
 
+**Get Today's Timetable** (Protected: FACULTY)
+```
+GET /api/faculty/:facultyId/today-timetable
+Headers: Authorization: Bearer <token>
+```
+
+---
+
+### Attendance Management
+
+**Create Attendance Session** (Protected: FACULTY)
 ```
 POST /api/attendance/session
+Headers: Authorization: Bearer <token>
 ```
-
 Body:
-
 ```json
 { "timetableSlotId": 1 }
 ```
 
----
-
-### Fetch Students of Session
-
+**Fetch Students of Session** (Protected: FACULTY)
 ```
 GET /api/attendance/session/:sessionId/students
+Headers: Authorization: Bearer <token>
 ```
 
----
-
-### Mark Attendance
-
+**Mark Attendance** (Protected: FACULTY)
 ```
 POST /api/attendance/mark
+Headers: Authorization: Bearer <token>
 ```
-
 Body:
-
 ```json
 {
   "sessionId": 1,
@@ -171,15 +222,43 @@ Body:
 }
 ```
 
----
-
-### Lock Session
-
+**Lock Session** (Protected: FACULTY)
 ```
 POST /api/attendance/session/:id/lock
+Headers: Authorization: Bearer <token>
 ```
 
 After locking, all marking attempts are rejected.
+
+---
+
+## 🗃 Database Integrity
+
+All tables live on Neon:
+
+* institutions
+* users
+* classes
+* subjects
+* faculty_subject_map
+* students
+* timetable_slots
+* attendance_sessions
+* attendance_records
+* attendance_audit_logs
+
+Foreign keys and relations enforced.
+
+---
+
+## ⚠ What Still Requires Manual SQL (Not Acceptable for Real Use)
+
+* Creating classes
+* Creating subjects
+* Assigning faculty to class+subject
+* Creating timetable slots
+
+That's the entire admin workflow — currently **not exposed via API**.
 
 ---
 
@@ -188,13 +267,30 @@ After locking, all marking attempts are rejected.
 * Attendance sessions are timetable-bound.
 * Every edit is logged.
 * Locked sessions are immutable.
-* Students cannot mark themselves (auth pending).
+* Students cannot mark themselves.
+* All attendance operations require JWT authentication.
 
 ---
 
 ## 📌 Roadmap
 
+### ✅ Phase 1 — Authentication & Core Attendance (DONE)
 * JWT authentication & RBAC
+* Protected attendance APIs
+* Session locking & audit trails
+
+### ▶ Phase 2 — Admin Management APIs (IN PROGRESS)
+
+| Task                            | Role  | Status |
+| ------------------------------- | ----- | ------ |
+| Create class                    | ADMIN | 🔜     |
+| Create subject                  | ADMIN | 🔜     |
+| Assign faculty to class+subject | ADMIN | 🔜     |
+| Create timetable slots          | ADMIN | 🔜     |
+
+This is where your system stops being "engineer-only" and becomes a real platform.
+
+### 🔮 Phase 3 — Frontend & Analytics
 * Student & faculty dashboards
 * Attendance analytics & reports
 * PDF exports

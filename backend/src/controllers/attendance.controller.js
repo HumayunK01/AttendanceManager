@@ -1,38 +1,33 @@
 import { sql } from '../config/db.js'
 
 export const createAttendanceSession = async (req, res) => {
-    const { timetableSlotId } = req.body
+  const { timetableSlotId } = req.body
 
-    if (!timetableSlotId) {
-        return res.status(400).json({ error: 'timetableSlotId required' })
-    }
+  if (!timetableSlotId) {
+    return res.status(400).json({ error: 'timetableSlotId required' })
+  }
 
-    const today = new Date().toISOString().slice(0, 10)
+  const today = new Date().toISOString().slice(0, 10)
 
-    const session = await sql`
-  SELECT locked FROM attendance_sessions WHERE id = ${sessionId}`
+  const existing = await sql`
+    SELECT id FROM attendance_sessions
+    WHERE timetable_slot_id = ${timetableSlotId}
+      AND session_date = ${today}
+  `
 
-    if (session.length === 0) {
-        return res.status(404).json({ error: 'Session not found' })
-    }
+  if (existing.length > 0) {
+    return res.status(400).json({ error: 'Session already exists' })
+  }
 
-    if (session[0].locked) {
-        return res.status(403).json({ error: 'Attendance session is locked' })
-    }
-
-
-    if (existing.length > 0) {
-        return res.status(400).json({ error: 'Session already exists' })
-    }
-
-    const inserted = await sql`
+  const inserted = await sql`
     INSERT INTO attendance_sessions (timetable_slot_id, session_date)
     VALUES (${timetableSlotId}, ${today})
     RETURNING id
   `
 
-    res.json({ sessionId: inserted[0].id })
+  res.json({ sessionId: inserted[0].id })
 }
+
 
 export const markAttendance = async (req, res) => {
   const { sessionId, studentId, status, editedBy, reason } = req.body
