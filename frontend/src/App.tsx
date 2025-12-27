@@ -9,6 +9,8 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 // Pages
 import Login from "./pages/Login";
 import ChangePassword from "./pages/ChangePassword";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
 // Admin Pages
@@ -70,6 +72,8 @@ const App = () => (
           <Routes>
             <Route path="/" element={<AuthenticatedRedirect />} />
             <Route path="/change-password" element={<ChangePassword />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
 
             {/* Admin Routes */}
             <Route path="/admin" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminDashboard /></ProtectedRoute>} />

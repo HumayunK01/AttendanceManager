@@ -14,6 +14,8 @@ export const users = pgTable('users', {
   passwordHash: varchar('password_hash', { length: 255 }),
   role: varchar('role', { length: 50 }),
   isFirstLogin: boolean('is_first_login').default(true),
+  resetToken: varchar('reset_token', { length: 255 }),
+  resetTokenExpiry: timestamp('reset_token_expiry'),
   createdAt: timestamp('created_at').defaultNow()
 })
 

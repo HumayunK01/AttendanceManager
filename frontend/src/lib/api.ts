@@ -44,6 +44,9 @@ export const authAPI = {
   logout: () => api.post('/auth/logout'),
   getProfile: () => api.get('/auth/profile'),
   changePassword: (newPassword: string) => api.put('/auth/change-password', { newPassword }),
+  forgotPassword: (email: string) => api.post('/auth/forgot-password', { email }),
+  resetPassword: (token: string, newPassword: string) => api.post('/auth/reset-password', { token, newPassword }),
+  verifyToken: (token: string) => api.get(`/auth/verify-token?token=${token}`),
 };
 
 // Admin API

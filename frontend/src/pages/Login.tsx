@@ -220,6 +220,12 @@ const Login: React.FC = () => {
                   onToggle={() => setShowPassword(!showPassword)}
                 />
 
+                <div className="flex justify-end -mt-4">
+                  <a href="/forgot-password" className="text-xs text-gray-400 hover:text-white transition-colors">
+                    Forgot Password?
+                  </a>
+                </div>
+
                 <Button
                   type="submit"
                   className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-bold transition-all duration-300 active:scale-[0.98] shadow-lg rounded-2xl mt-4 group relative overflow-hidden"

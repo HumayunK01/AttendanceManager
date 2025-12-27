@@ -39,4 +39,9 @@ import { requireAuth } from '../middleware/auth.middleware.js'
 import { changePassword } from '../controllers/auth.controller.js'
 router.put('/change-password', requireAuth(), changePassword)
 
+import { forgotPassword, resetPassword, verifyToken } from '../controllers/auth.controller.js'
+router.post('/forgot-password', forgotPassword)
+router.post('/reset-password', resetPassword)
+router.get('/verify-token', verifyToken)
+
 export default router

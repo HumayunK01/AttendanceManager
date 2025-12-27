@@ -195,7 +195,8 @@ export const createFaculty = async (req, res) => {
 
   // Send credentials via email
   try {
-    const mailerUrl = process.env.MAILER_URL || 'http://127.0.0.1:5001/api/send-credentials';
+    const mailerBaseUrl = process.env.MAILER_URL || 'http://127.0.0.1:5001'
+    const mailerUrl = `${mailerBaseUrl}/api/send-credentials`
     fetch(mailerUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -269,7 +270,8 @@ export const createStudent = async (req, res) => {
 
   // Send credentials via email
   try {
-    const mailerUrl = process.env.MAILER_URL || 'http://127.0.0.1:5001/api/send-credentials';
+    const mailerBaseUrl = process.env.MAILER_URL || 'http://127.0.0.1:5001';
+    const mailerUrl = `${mailerBaseUrl}/api/send-credentials`;
     fetch(mailerUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
