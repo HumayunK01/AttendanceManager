@@ -2,18 +2,19 @@ import { sql } from '../config/db.js'
 import bcrypt from 'bcryptjs'
 
 export const createSubject = async (req, res) => {
-  const { name, institutionId } = req.body
+  const { name, institutionId = 1 } = req.body
 
-  if (!name || !institutionId) {
-    return res.status(400).json({ error: 'name and institutionId required' })
+  if (!name) {
+    return res.status(400).json({ error: 'name required' })
   }
 
-  await sql`
+  const subject = await sql`
     INSERT INTO subjects (name, institution_id)
     VALUES (${name}, ${institutionId})
+    RETURNING id, name, created_at as "createdAt"
   `
 
-  res.json({ success: true })
+  res.json(subject[0])
 }
 
 export const createClass = async (req, res) => {
@@ -117,9 +118,9 @@ export const createFaculty = async (req, res) => {
 }
 
 export const createStudent = async (req, res) => {
-  const { name, email, password, classId, rollNo } = req.body
+  const { name, email, password, classId, rollNumber } = req.body
 
-  if (!name || !email || !password || !classId || !rollNo) {
+  if (!name || !email || !password || !classId || !rollNumber) {
     return res.status(400).json({ error: 'All fields required' })
   }
 
@@ -136,10 +137,31 @@ export const createStudent = async (req, res) => {
     RETURNING id
   `
 
-  await sql`
-    INSERT INTO students (user_id, class_id, roll_no)
-    VALUES (${user[0].id}, ${classId}, ${rollNo})
+  const student = await sql`
+    INSERT INTO students (user_id, class_id, roll_number, is_active)
+    VALUES (${user[0].id}, ${classId}, ${rollNumber}, true)
+    RETURNING id
   `
 
-  res.json({ success: true })
+  // Get the class info
+  const classInfo = await sql`
+    SELECT name, year, division FROM classes WHERE id = ${classId}
+  `
+
+  // Return the created student with all necessary info
+  const createdStudent = {
+    id: student[0].id,
+    name,
+    email,
+    rollNumber,
+    classId,
+    className: classInfo.length > 0
+      ? `${classInfo[0].name} Year ${classInfo[0].year} - ${classInfo[0].division}`
+      : '',
+    isActive: true,
+    attendance: 0,
+    createdAt: new Date().toISOString()
+  }
+
+  res.json(createdStudent)
 }

@@ -28,7 +28,6 @@ import { adminAPI } from '@/lib/api';
 interface Subject {
   id: string;
   name: string;
-  code: string;
   createdAt: string;
 }
 
@@ -39,7 +38,7 @@ const SubjectsPage: React.FC = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
-  const [formData, setFormData] = useState({ name: '', code: '' });
+  const [formData, setFormData] = useState({ name: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
@@ -70,19 +69,17 @@ const SubjectsPage: React.FC = () => {
     if (!query) return subjects;
 
     return subjects.filter(
-      (subject) =>
-        subject.name.toLowerCase().includes(query) ||
-        subject.code.toLowerCase().includes(query)
+      (subject) => subject.name.toLowerCase().includes(query)
     );
   }, [subjects, searchQuery]);
 
   const handleOpenDialog = useCallback((subject?: Subject) => {
     if (subject) {
       setSelectedSubject(subject);
-      setFormData({ name: subject.name, code: subject.code });
+      setFormData({ name: subject.name });
     } else {
       setSelectedSubject(null);
-      setFormData({ name: '', code: '' });
+      setFormData({ name: '' });
     }
     setIsDialogOpen(true);
   }, []);
@@ -90,13 +87,13 @@ const SubjectsPage: React.FC = () => {
   const handleCloseDialog = useCallback(() => {
     setIsDialogOpen(false);
     setSelectedSubject(null);
-    setFormData({ name: '', code: '' });
+    setFormData({ name: '' });
   }, []);
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
 
-    if (!formData.name.trim() || !formData.code.trim()) {
+    if (!formData.name.trim()) {
       toast({
         title: 'Validation Error',
         description: 'Please fill in all fields.',
@@ -266,8 +263,7 @@ const SubjectsPage: React.FC = () => {
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th className="w-32">Code</th>
-                    <th>Name</th>
+                    <th className="w-1/2">Name</th>
                     <th className="w-40">Created</th>
                     <th className="w-32 text-right">Actions</th>
                   </tr>
@@ -275,11 +271,6 @@ const SubjectsPage: React.FC = () => {
                 <tbody>
                   {filteredSubjects.map((subject) => (
                     <tr key={subject.id} className="group">
-                      <td>
-                        <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-sm font-bold border border-primary/20 group-hover:bg-primary/20 transition-colors">
-                          {subject.code}
-                        </span>
-                      </td>
                       <td className="font-semibold text-foreground">{subject.name}</td>
                       <td className="text-muted-foreground text-sm">
                         {new Date(subject.createdAt).toLocaleDateString('en-US', {
@@ -345,21 +336,6 @@ const SubjectsPage: React.FC = () => {
           <form onSubmit={handleSubmit}>
             <div className="space-y-5 py-4">
               <div className="space-y-2">
-                <Label htmlFor="code" className="text-sm font-medium">
-                  Subject Code <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="code"
-                  placeholder="e.g., CS201"
-                  value={formData.code}
-                  onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                  className="bg-secondary/50 border-border/50 focus:border-primary"
-                  maxLength={10}
-                  required
-                  autoFocus
-                />
-              </div>
-              <div className="space-y-2">
                 <Label htmlFor="name" className="text-sm font-medium">
                   Subject Name <span className="text-destructive">*</span>
                 </Label>
@@ -370,6 +346,7 @@ const SubjectsPage: React.FC = () => {
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="bg-secondary/50 border-border/50 focus:border-primary"
                   required
+                  autoFocus
                 />
               </div>
             </div>

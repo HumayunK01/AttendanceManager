@@ -49,8 +49,8 @@ export const authAPI = {
 export const adminAPI = {
   // Subjects
   getSubjects: () => api.get('/subjects'),
-  createSubject: (data: { name: string; code: string }) => api.post('/subjects', data),
-  updateSubject: (id: string, data: { name: string; code: string }) =>
+  createSubject: (data: { name: string }) => api.post('/subjects', data),
+  updateSubject: (id: string, data: { name: string }) =>
     api.put(`/subjects/${id}`, data),
   deleteSubject: (id: string) => api.delete(`/subjects/${id}`),
 

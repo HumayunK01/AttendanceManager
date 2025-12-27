@@ -4,6 +4,7 @@ import adminRoutes from './admin.routes.js'
 import facultyRoutes from './faculty.routes.js'
 import attendanceRoutes from './attendance.routes.js'
 import reportRoutes from './report.routes.js'
+import resourceRoutes from './resource.routes.js'
 
 const router = Router()
 
@@ -12,5 +13,6 @@ router.use('/admin', adminRoutes)
 router.use('/faculty', facultyRoutes)
 router.use('/attendance', attendanceRoutes)
 router.use('/reports', reportRoutes)
+router.use('/', resourceRoutes) // Resource routes at root level
 
 export default router
