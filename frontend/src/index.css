@@ -289,4 +289,16 @@
   .scrollbar-none::-webkit-scrollbar {
     display: none;
   }
+
+  /* Native Time Input Refinement */
+  input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.8) sepia(1) saturate(5) hue-rotate(120deg);
+    cursor: pointer;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+  }
+
+  input[type="time"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+  }
 }

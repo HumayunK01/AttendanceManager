@@ -5,6 +5,7 @@ import {
   createClass,
   mapFacultySubject,
   createTimetableSlot,
+  updateTimetableSlot,
   deactivateStudent,
   createFaculty,
   createStudent,

@@ -88,15 +88,20 @@ export const mapFacultySubject = async (req, res) => {
 }
 
 export const createTimetableSlot = async (req, res) => {
-  const { facultySubjectMapId, dayOfWeek, startTime, endTime } = req.body
+  const { mappingId, dayOfWeek, startTime, endTime } = req.body
+
+  if (!mappingId || dayOfWeek === undefined || !startTime || !endTime) {
+    return res.status(400).json({ error: 'Missing required fields' })
+  }
 
   const clash = await sql`
     SELECT id FROM timetable_slots
-    WHERE faculty_subject_map_id = ${facultySubjectMapId}
+    WHERE faculty_subject_map_id = ${mappingId}
       AND day_of_week = ${dayOfWeek}
       AND (
-        (${startTime} BETWEEN start_time AND end_time)
-        OR (${endTime} BETWEEN start_time AND end_time)
+        (${startTime} >= start_time AND ${startTime} < end_time)
+        OR (${endTime} > start_time AND ${endTime} <= end_time)
+        OR (start_time >= ${startTime} AND start_time < ${endTime})
       )
   `
 
@@ -106,7 +111,43 @@ export const createTimetableSlot = async (req, res) => {
 
   await sql`
     INSERT INTO timetable_slots (faculty_subject_map_id, day_of_week, start_time, end_time)
-    VALUES (${facultySubjectMapId}, ${dayOfWeek}, ${startTime}, ${endTime})
+    VALUES (${mappingId}, ${dayOfWeek}, ${startTime}, ${endTime})
+  `
+
+  res.json({ success: true })
+}
+
+export const updateTimetableSlot = async (req, res) => {
+  const { id } = req.params
+  const { mappingId, dayOfWeek, startTime, endTime } = req.body
+
+  if (!mappingId || dayOfWeek === undefined || !startTime || !endTime) {
+    return res.status(400).json({ error: 'Missing required fields' })
+  }
+
+  const clash = await sql`
+    SELECT id FROM timetable_slots
+    WHERE faculty_subject_map_id = ${mappingId}
+      AND day_of_week = ${dayOfWeek}
+      AND id != ${id}
+      AND (
+        (${startTime} >= start_time AND ${startTime} < end_time)
+        OR (${endTime} > start_time AND ${endTime} <= end_time)
+        OR (start_time >= ${startTime} AND start_time < ${endTime})
+      )
+  `
+
+  if (clash.length) {
+    return res.status(400).json({ error: 'Timetable slot overlaps existing lecture' })
+  }
+
+  await sql`
+    UPDATE timetable_slots
+    SET faculty_subject_map_id = ${mappingId},
+        day_of_week = ${dayOfWeek},
+        start_time = ${startTime},
+        end_time = ${endTime}
+    WHERE id = ${id}
   `
 
   res.json({ success: true })
