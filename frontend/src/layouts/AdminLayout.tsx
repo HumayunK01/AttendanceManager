@@ -76,7 +76,8 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           isCollapsed ? "justify-center px-0" : "justify-between px-6"
         )}>
           {!isCollapsed && (
-            <div className="flex items-center gap-3 animate-in fade-in duration-300">
+            <div className="flex items-center gap-2 animate-in fade-in duration-300">
+              <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
               <span className="font-semibold text-foreground whitespace-nowrap text-xl tracking-tight">Attendly</span>
             </div>
           )}
@@ -167,7 +168,10 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       {/* Mobile Header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-background/80 backdrop-blur-lg border-b border-border z-40">
         <div className="flex items-center justify-between h-full px-4">
-          <span className="font-semibold text-foreground text-xl tracking-tight">Attendly</span>
+          <div className="flex items-center gap-1.5">
+            <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
+            <span className="font-semibold text-foreground text-xl tracking-tight">Attendly</span>
+          </div>
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             className="p-2 rounded-lg hover:bg-secondary transition-colors"

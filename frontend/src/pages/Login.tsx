@@ -131,9 +131,11 @@ const Login: React.FC = () => {
 
         {/* Brand Header */}
         <header className="relative z-10 animate-in fade-in slide-in-from-left duration-1000 ease-out">
-          <div className="cursor-default">
-            <span className="text-3xl font-extrabold tracking-tighter text-white block">Attendly</span>
-            <span className="text-xs font-semibold text-primary uppercase tracking-[0.25em] opacity-80 ml-0.5">Campus Portal</span>
+          <div className="cursor-default flex flex-col items-start">
+            <div className="flex items-center gap-2">
+              <img src="/logo.png" alt="Attendly Logo" className="w-10 h-10 object-contain" />
+              <span className="text-3xl font-extrabold tracking-tighter text-white block">Attendly</span>
+            </div>
           </div>
         </header>
 
@@ -177,9 +179,11 @@ const Login: React.FC = () => {
         <div className="w-full max-w-md relative z-10 animate-in fade-in zoom-in-95 duration-700 ease-out-expo">
           {/* Mobile-only Branding */}
           <div className="lg:hidden flex justify-center mb-12 text-center">
-            <div className="group">
-              <span className="text-3xl font-extrabold text-white tracking-tighter">Attendly</span>
-              <span className="block text-[10px] text-primary uppercase tracking-[0.3em] mt-2 opacity-80 font-bold">Campus Portal</span>
+            <div className="group flex flex-col items-center">
+              <div className="flex items-center gap-2">
+                <img src="/logo.png" alt="Attendly Logo" className="w-8 h-8 object-contain" />
+                <span className="text-3xl font-extrabold text-white tracking-tighter">Attendly</span>
+              </div>
             </div>
           </div>
 

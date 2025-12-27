@@ -1,73 +1,56 @@
-# Welcome to your Lovable project
+# Attendance Manager
 
-## Project info
+A comprehensive Attendance Management System for educational institutions.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
-
-## How can I edit this code?
-
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
+## Tech Stack
 
 This project is built with:
+- **Frontend**: React, TypeScript, Vite, Tailwind CSS, shadcn/ui
+- **Backend**: Node.js, Express, PostgreSQL (with Drizzle ORM)
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Getting Started
 
-## How can I deploy this project?
+### Prerequisites
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+- Node.js & npm installed
+- PostgreSQL database
 
-## Can I connect a custom domain to my Lovable project?
+### Installation
 
-Yes, you can!
+1. **Clone the repository**
+   ```bash
+   git clone <repository_url>
+   cd attendancemanager
+   ```
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+2. **Frontend Setup**
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+3. **Backend Setup**
+   ```bash
+   cd backend
+   npm install
+   npm run dev
+   ```
+
+## Key Features
+
+- **Admin Module**: Manage subjects, classes, faculty, students, and timetable.
+- **Faculty Module**: Mark attendance, view schedule, and generate reports.
+- **Student Module**: View attendance history, check percentage, and raise disputes.
+- **Role-Based Access Control**: Secure login for Admin, Faculty, and Students.
+- **Reports**: Detailed attendance reports and analysis.
+
+## Development
+
+The project is structured as a monorepo with `frontend` and `backend` directories.
+- Frontend runs on Port `8080` (default) or `5173`.
+- Backend runs on Port `5000`.
+
+## License
+
+This project is licensed under the MIT License.
