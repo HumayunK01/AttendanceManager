@@ -1,240 +1,130 @@
-# 🎓 Attendance Manager – College Attendance System
+# 🎓 Attendly – Institutional Attendance Management System
 
-A production-grade, full-stack attendance management system designed for colleges and educational institutions. Built with modern technologies and enterprise-level features including role-based access control, audit logging, session locking, and comprehensive reporting.
+A production-grade, role-segmented academic attendance platform engineered for real institutional workflows.
 
----
+Attendly is not a CRUD demo. It enforces academic process rules: identity isolation, immutable audit logs, session locking, abuse detection, and role-isolated dashboards for Admins, Faculty, and Students.
 
-## ✨ Key Features
+![Attendly Preview](preview.png)
 
-### 🔐 **Authentication & Authorization**
-- JWT-based authentication with bcrypt password hashing
-- Role-based access control (RBAC) for ADMIN, FACULTY, and STUDENT roles
-- Protected API endpoints with middleware guards
-- Secure token verification and session management
+## ✨ Key Capabilities
 
-### 📚 **Academic Management**
-- **Institution Management**: Multi-institution support
-- **Class Management**: Create and manage classes
-- **Subject Management**: Define subjects and curricula
-- **Faculty Assignment**: Map faculty to subjects and classes
-- **Student Enrollment**: Active student tracking with soft delete support
+### 🏛️ For Administration
+| Feature | Description |
+| :--- | :--- |
+| **Programs & Divisions Registry** | Institution vocabulary governed dynamically via database |
+| **Classes Management** | Program + Year + Division + Batch composite identity |
+| **Subjects Management** | Subject Code + Name with enforced uniqueness |
+| **Faculty & Student Provisioning** | Secure onboarding with role-isolated credentials |
+| **Faculty–Subject–Class Mapping** | Formal responsibility assignment |
+| **Timetable Builder** | Lecture slot creation from real mappings |
+| **Abuse Detection Reports** | Detects suspicious retroactive attendance patterns |
 
-### 📅 **Timetable System**
-- Create and manage timetable slots
-- Day-of-week based scheduling
-- Faculty-subject-class binding
-- Collision detection to prevent scheduling conflicts
-- One session per slot per day enforcement
+### 👩‍🏫 For Faculty
+| Feature | Description |
+| :--- | :--- |
+| **Today’s Timetable** | Real-time lecture list |
+| **Attendance Sessions** | Auto-locked daily sessions |
+| **Attendance Marking** | Optimistic UI with server-enforced locks |
+| **Session Locking** | Prevents tampering after closure |
 
-### ✅ **Attendance Tracking**
-- **Timetable-bound Sessions**: Every attendance session is linked to a timetable slot
-- **Real-time Marking**: Faculty can mark attendance (Present/Absent/Late)
-- **Edit Window**: 10-minute grace period for corrections
-- **Session Locking**: Lock sessions to prevent further modifications
-- **Archival System**: Archive old sessions for historical records
-- **Active Student Enforcement**: Only active students can be marked
+### 🧑‍🎓 For Students
+| Feature | Description |
+| :--- | :--- |
+| **Attendance Dashboard** | Subject-wise percentage with warning states |
+| **Daily History** | Immutable lecture-wise logs |
+| **Defaulter Alerts** | Automatic threshold monitoring |
 
-### 📊 **Comprehensive Reporting**
-- **Student Reports**: Individual attendance percentage by subject
-- **Defaulter Detection**: Identify students below 75% attendance
-- **Class Analytics**: Monthly class-wise attendance summaries
-- **Abuse Detection**: Track excessive attendance edits (Admin only)
-- **Subject-wise Analysis**: Detailed subject attendance breakdowns
+## 🔄 System Flow by Role
 
-### 🛡️ **Data Integrity & Protection**
-- **Audit Logging**: Complete audit trail for every attendance change
-- **Edit Count Tracking**: Monitor and flag suspicious editing patterns
-- **Immutable Archives**: Archived sessions cannot be modified
-- **Soft Deletes**: Deactivated students excluded from active marking
-- **Zod Validation**: Payload validation for all API requests
-- **SQL Integrity**: Database-level constraints and foreign keys
+### 🔐 Authentication Flow
+`User → Login → JWT Issued → Role Decoded → Redirect to /admin | /faculty | /student`
 
-### 🔒 **Security Features**
-- Password hashing with bcrypt
-- JWT token-based authentication
-- Protected routes with role verification
-- Input sanitization and validation
-- Secure database connections (SSL)
+**Ensures:**
+*   No shared dashboards
+*   No privilege escalation
+*   Middleware-enforced access control
 
----
+### �️ Admin Workflow
+`Programs → Divisions → Classes → Subjects → Faculty → Students → Faculty Mapping → Timetable`
+
+**Each entity exists only if its parent identity exists.**
+
+### 👩‍🏫 Faculty Workflow
+`Login → View Today’s Timetable → Start Session → Mark Attendance → Lock Session`
+
+**Once locked, attendance is immutable.**
+
+### 🧑‍🎓 Student Workflow
+`Login → Attendance Dashboard → Defaulter Monitoring → Historical Logs`
+
+**Read-only transparency.**
+
+## 🌍 Real-World Problems Solved
+
+| Institutional Problem | Attendly Solution |
+| :--- | :--- |
+| Faculty altering past attendance | Session locking + audit trail |
+| Attendance disputes | Immutable history logs |
+| Excel-based identity errors | DB-enforced relationships |
+| Program restructuring | Dynamic Programs & Divisions registry |
+| Duplicate class definitions | Composite class identity |
+| Faculty responsibility confusion | Faculty-Subject-Class mapping |
 
 ## 🏗️ Architecture
-
-### **Monorepo Structure**
-
 ```
-attendancemanager/
- ├─ frontend/                 # Next.js frontend application
- │   ├─ src/
- │   ├─ public/
- │   └─ package.json
- │
- ├─ backend/                  # Node.js + Express API
- │   ├─ src/
- │   │   ├─ config/           # Database configuration
- │   │   ├─ controllers/      # Business logic
- │   │   ├─ middleware/       # Auth & guards
- │   │   ├─ models/           # Drizzle ORM schema
- │   │   ├─ routes/           # API routes
- │   │   ├─ util/             # Helper functions
- │   │   └─ server.js         # Entry point
- │   ├─ drizzle/              # Database migrations
- │   ├─ package.json
- │   └─ README.md             # Backend documentation
- │
- └─ README.md                 # This file
+AttendanceManager/
+├── frontend/   → Next.js 14 + shadcn/ui
+└── backend/    → Express + Drizzle ORM + PostgreSQL
 ```
-
----
 
 ## 🔧 Technology Stack
 
-| Component      | Technology                   |
-| -------------- | ---------------------------- |
-| **Frontend**   | Next.js, React               |
-| **Backend**    | Node.js, Express             |
-| **Database**   | PostgreSQL (Neon Serverless) |
-| **ORM**        | Drizzle ORM                  |
-| **Auth**       | JWT, bcrypt                  |
-| **Docs**       | Swagger (OpenAPI 3.0)        |
-| **Validation** | Zod                          |
-| **Hosting**    | Neon (Database) + Vercel     |
+| Layer | Tools |
+| :--- | :--- |
+| **Frontend** | Next.js 14, TypeScript, Tailwind, shadcn/ui |
+| **Backend** | Node.js, Express, Drizzle ORM |
+| **Database** | PostgreSQL (Neon) |
+| **Auth** | JWT + BCrypt |
+| **Validation** | Zod |
+| **Docs** | Swagger |
+| **Deployment** | Vercel (Frontend), Render (Backend) |
 
----
+## 🧠 Engineering Principles
 
-## 🚀 Quick Start
+| Principle | Implementation |
+| :--- | :--- |
+| **Identity Isolation** | All relations via system-generated IDs |
+| **Role Isolation** | ADMIN / FACULTY / STUDENT enforced in middleware |
+| **Tamper Resistance** | Audit logs for all attendance edits |
+| **Referential Integrity** | No orphan records allowed |
+| **Institutional Vocabulary** | DB-governed Programs & Divisions |
+| **Scalability** | No hardcoded frontend assumptions |
 
-### Prerequisites
-- Node.js (v16 or higher)
-- PostgreSQL database (or Neon account)
-- npm or yarn
+## 🚀 Local Setup
 
-### Installation
+```bash
+git clone https://github.com/HumayunK01/AttendanceManager.git
+cd AttendanceManager/backend
+npm install
+npx drizzle-kit push
+npm run dev
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/HumayunK01/AttendanceManager.git
-   cd AttendanceManager
-   ```
+cd ../frontend
+npm install
+npm run dev
+```
 
-2. **Backend Setup**
-   ```bash
-   cd backend
-   npm install
-   
-   # Create .env file with your database URL
-   echo "DATABASE_URL=your_postgresql_url" > .env
-   echo "JWT_SECRET=your_jwt_secret" > .env
-   
-   # Run migrations
-   npx drizzle-kit generate
-   npx drizzle-kit push
-   
-   # Start backend server
-   npm run dev
-   ```
-   Backend runs on: `http://localhost:5000`
+## 🔐 Security Guarantees
 
-3. **Frontend Setup**
-   ```bash
-   cd ../frontend
-   npm install
-   
-   # Create .env.local with backend URL
-   echo "NEXT_PUBLIC_API_URL=http://localhost:5000" > .env.local
-   
-   # Start frontend
-   npm run dev
-   ```
-   Frontend runs on: `http://localhost:3000`
-
----
-
-## 📖 Documentation
-
-- **Interactive API Documentation**: Explore and test endpoints at `/docs`
-- **Backend API Documentation**: See [backend/README.md](./backend/README.md)
-- **API Endpoints**: Detailed endpoint documentation in backend README
-- **Database Schema**: Defined in `backend/src/models/`
-
----
-
-## 🎯 Use Cases
-
-### For Administrators
-- Create and manage classes, subjects, and faculty assignments
-- Configure timetables for the entire institution
-- Monitor attendance patterns and detect anomalies
-- Generate institution-wide reports
-- Manage student enrollment and deactivation
-
-### For Faculty
-- View daily timetable
-- Create attendance sessions for scheduled lectures
-- Mark student attendance (Present/Absent/Late)
-- Lock sessions after verification
-- Generate student and class reports
-- Track defaulters in their subjects
-
-### For Students
-- View personal attendance records
-- Check subject-wise attendance percentages
-- Monitor attendance status across all subjects
-- Access historical attendance data
-
----
-
-## 🏆 What Makes This Different
-
-This is **not a simple CRUD application**. It's a **policy-driven academic system** that:
-
-✅ **Enforces Real-World Rules**: Timetable constraints, edit windows, session locking  
-✅ **Maintains Complete History**: Every change is logged and auditable  
-✅ **Prevents Data Tampering**: Locked and archived sessions are immutable  
-✅ **Detects Abuse**: Tracks suspicious editing patterns  
-✅ **Protects Integrity**: Database constraints + application-level validation  
-✅ **Production-Ready**: Built with security, scalability, and maintainability in mind  
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Please follow these guidelines:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
----
+| Protection | Mechanism |
+| :--- | :--- |
+| **Unauthorized access** | JWT middleware |
+| **Attendance tampering** | Session locking |
+| **Data corruption** | Foreign-key constraints |
+| **Identity drift** | No editable system IDs |
 
 ## 📄 License
 
-This project is licensed under the MIT License.
+MIT License
 
----
-
-## 👨‍💻 Author
-
-**Humayun Khan**
-- GitHub: [@HumayunK01](https://github.com/HumayunK01)
-
----
-
-## ⚠️ Important Notes
-
-- **Database Schema**: The database schema is immutable. Do not modify tables without proper migration planning.
-- **Audit Trail**: All attendance modifications are logged. Deleting audit logs is prohibited.
-- **Session Locking**: Once a session is locked, it cannot be unlocked or modified.
-- **Archival**: Archived sessions are read-only and preserved for historical records.
-
----
-
-## 🙏 Acknowledgments
-
-Built with modern best practices for educational institutions that value data integrity and academic accountability.
-
----
-
-**For detailed backend API documentation, setup instructions, and endpoint references, see [README.md](./backend/README.md)**
+**Built by Humayun Khan — engineered for institutions, not demos.**
