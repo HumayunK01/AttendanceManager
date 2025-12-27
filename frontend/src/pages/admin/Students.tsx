@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Search, GraduationCap, Loader2, Mail, UserX, UserCheck } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Plus, Search, GraduationCap, Loader2, Mail, UserX, UserCheck, X, TrendingDown, TrendingUp, Users as UsersIcon } from 'lucide-react';
 import AdminLayout from '@/layouts/AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -60,6 +60,7 @@ const StudentsPage: React.FC = () => {
 
   const fetchData = async () => {
     try {
+      setIsLoading(true);
       const [studentsRes, classesRes] = await Promise.all([
         adminAPI.getStudents(),
         adminAPI.getClasses()
@@ -67,36 +68,64 @@ const StudentsPage: React.FC = () => {
       setStudents(studentsRes.data);
       setClasses(classesRes.data);
     } catch (error) {
-      // Mock data
-      setStudents([
-        { id: '1', name: 'Alice Johnson', email: 'alice@student.edu', rollNumber: 'CS2024001', className: 'CS Year 1 - A', classId: '1', isActive: true, attendance: 92, createdAt: '2024-01-15' },
-        { id: '2', name: 'Bob Williams', email: 'bob@student.edu', rollNumber: 'CS2024002', className: 'CS Year 1 - A', classId: '1', isActive: true, attendance: 78, createdAt: '2024-01-15' },
-        { id: '3', name: 'Carol Davis', email: 'carol@student.edu', rollNumber: 'CS2024003', className: 'CS Year 1 - B', classId: '2', isActive: true, attendance: 65, createdAt: '2024-01-15' },
-        { id: '4', name: 'David Brown', email: 'david@student.edu', rollNumber: 'CS2024004', className: 'CS Year 2 - A', classId: '3', isActive: false, attendance: 45, createdAt: '2024-01-15' },
-        { id: '5', name: 'Emma Wilson', email: 'emma@student.edu', rollNumber: 'IT2024001', className: 'IT Year 1 - A', classId: '4', isActive: true, attendance: 88, createdAt: '2024-01-15' },
-      ]);
-      setClasses([
-        { id: '1', name: 'Computer Science', year: 1, division: 'A' },
-        { id: '2', name: 'Computer Science', year: 1, division: 'B' },
-        { id: '3', name: 'Computer Science', year: 2, division: 'A' },
-        { id: '4', name: 'Information Technology', year: 1, division: 'A' },
-      ]);
+      console.error('Failed to fetch data:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load students. Please try again.',
+        variant: 'destructive',
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const filteredStudents = students.filter((student) => {
-    const matchesSearch = 
-      student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      student.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      student.rollNumber.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesClass = filterClass === 'all' || student.classId === filterClass;
-    const matchesStatus = filterStatus === 'all' || 
-      (filterStatus === 'active' && student.isActive) ||
-      (filterStatus === 'inactive' && !student.isActive);
-    return matchesSearch && matchesClass && matchesStatus;
-  });
+  // Memoized filtered students
+  const filteredStudents = useMemo(() => {
+    const query = searchQuery.toLowerCase().trim();
+
+    return students.filter((student) => {
+      const matchesSearch = !query ||
+        student.name.toLowerCase().includes(query) ||
+        student.email.toLowerCase().includes(query) ||
+        student.rollNumber.toLowerCase().includes(query);
+      const matchesClass = filterClass === 'all' || student.classId === filterClass;
+      const matchesStatus = filterStatus === 'all' ||
+        (filterStatus === 'active' && student.isActive) ||
+        (filterStatus === 'inactive' && !student.isActive);
+      return matchesSearch && matchesClass && matchesStatus;
+    });
+  }, [students, searchQuery, filterClass, filterStatus]);
+
+  // Memoized stats
+  const stats = useMemo(() => {
+    const activeStudents = students.filter(s => s.isActive).length;
+    const avgAttendance = students.length > 0
+      ? students.reduce((sum, s) => sum + (s.attendance || 0), 0) / students.length
+      : 0;
+    const defaulters = students.filter(s => s.isActive && (s.attendance || 0) < 75).length;
+    const recentlyAdded = students.filter(s => {
+      const daysDiff = (Date.now() - new Date(s.createdAt).getTime()) / (1000 * 60 * 60 * 24);
+      return daysDiff <= 7;
+    }).length;
+
+    return { activeStudents, avgAttendance: Math.round(avgAttendance), defaulters, recentlyAdded };
+  }, [students]);
+
+  // Get initials for avatar
+  const getInitials = useCallback((name: string) => {
+    const parts = name.split(' ');
+    if (parts.length >= 2) {
+      return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  }, []);
+
+  const getAttendanceColor = useCallback((attendance?: number) => {
+    if (!attendance) return 'text-muted-foreground';
+    if (attendance >= 75) return 'text-success';
+    if (attendance >= 60) return 'text-warning';
+    return 'text-destructive';
+  }, []);
 
   const handleToggleStatus = async (student: Student) => {
     try {
@@ -105,27 +134,45 @@ const StudentsPage: React.FC = () => {
       } else {
         await adminAPI.activateStudent(student.id);
       }
-      setStudents(students.map(s => 
+      setStudents(students.map(s =>
         s.id === student.id ? { ...s, isActive: !s.isActive } : s
       ));
       toast({
-        title: student.isActive ? 'Student Deactivated' : 'Student Activated',
+        title: 'Success',
         description: `${student.name} has been ${student.isActive ? 'deactivated' : 'activated'}.`,
       });
     } catch (error: any) {
       toast({
         title: 'Error',
-        description: error.response?.data?.message || 'An error occurred.',
+        description: error.response?.data?.message || 'Failed to update student status.',
         variant: 'destructive',
       });
     }
   };
 
-  const handleSubmit = async () => {
-    if (!formData.name || !formData.email || !formData.password || !formData.rollNumber || !formData.classId) {
+  const handleCloseDialog = useCallback(() => {
+    setIsDialogOpen(false);
+    setFormData({ name: '', email: '', password: '', rollNumber: '', classId: '' });
+  }, []);
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+
+    if (!formData.name.trim() || !formData.email.trim() || !formData.password.trim() || !formData.rollNumber.trim() || !formData.classId) {
       toast({
         title: 'Validation Error',
         description: 'Please fill in all required fields.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast({
+        title: 'Validation Error',
+        description: 'Please enter a valid email address.',
         variant: 'destructive',
       });
       return;
@@ -135,8 +182,8 @@ const StudentsPage: React.FC = () => {
     try {
       const response = await adminAPI.createStudent(formData);
       const selectedClass = classes.find(c => c.id === formData.classId);
-      const newStudent = response.data || { 
-        id: Date.now().toString(), 
+      const newStudent = response.data || {
+        id: Date.now().toString(),
         name: formData.name,
         email: formData.email,
         rollNumber: formData.rollNumber,
@@ -144,19 +191,18 @@ const StudentsPage: React.FC = () => {
         className: selectedClass ? `${selectedClass.name} Year ${selectedClass.year} - ${selectedClass.division}` : '',
         isActive: true,
         attendance: 0,
-        createdAt: new Date().toISOString() 
+        createdAt: new Date().toISOString()
       };
-      setStudents([...students, newStudent]);
+      setStudents([newStudent, ...students]);
       toast({
-        title: 'Student Created',
-        description: 'The student account has been created successfully.',
+        title: 'Success',
+        description: 'Student account created successfully.',
       });
-      setIsDialogOpen(false);
-      setFormData({ name: '', email: '', password: '', rollNumber: '', classId: '' });
+      handleCloseDialog();
     } catch (error: any) {
       toast({
         title: 'Error',
-        description: error.response?.data?.message || 'An error occurred.',
+        description: error.response?.data?.message || 'An error occurred. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -164,44 +210,104 @@ const StudentsPage: React.FC = () => {
     }
   };
 
-  const getAttendanceColor = (attendance?: number) => {
-    if (!attendance) return 'text-muted-foreground';
-    if (attendance >= 75) return 'text-success';
-    if (attendance >= 60) return 'text-warning';
-    return 'text-destructive';
-  };
+  const handleClearSearch = useCallback(() => {
+    setSearchQuery('');
+  }, []);
+
+  const handleClearFilters = useCallback(() => {
+    setFilterClass('all');
+    setFilterStatus('all');
+    setSearchQuery('');
+  }, []);
 
   return (
     <AdminLayout>
-      <div className="space-y-6 animate-fade-in">
+      <div className="space-y-6 lg:space-y-8 animate-fade-in">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Students</h1>
-            <p className="text-muted-foreground mt-1">Manage student accounts and status</p>
+            <h1 className="text-3xl lg:text-4xl font-bold text-foreground flex items-center gap-3">
+              <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
+                <GraduationCap className="w-6 h-6 lg:w-7 lg:h-7 text-primary" />
+              </div>
+              Students
+            </h1>
+            <p className="text-muted-foreground mt-2 text-sm lg:text-base">
+              Manage student accounts and track attendance
+            </p>
           </div>
-          <Button 
-            onClick={() => setIsDialogOpen(true)} 
-            className="bg-primary hover:bg-primary/90"
+          <Button
+            onClick={() => setIsDialogOpen(true)}
+            className="gap-2 shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all"
+            size="lg"
           >
-            <Plus className="w-5 h-5 mr-2" />
+            <Plus className="w-5 h-5" />
             Add Student
           </Button>
         </div>
 
+        {/* Stats Bar */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="glass-card p-4 hover-lift">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <UsersIcon className="w-5 h-5 text-primary" />
+              </div>
+              <p className="text-sm text-muted-foreground">Total Students</p>
+            </div>
+            <p className="text-2xl font-bold text-foreground">{students.length}</p>
+          </div>
+          <div className="glass-card p-4 hover-lift">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center">
+                <UserCheck className="w-5 h-5 text-success" />
+              </div>
+              <p className="text-sm text-muted-foreground">Active Students</p>
+            </div>
+            <p className="text-2xl font-bold text-success">{stats.activeStudents}</p>
+          </div>
+          <div className="glass-card p-4 hover-lift">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-accent" />
+              </div>
+              <p className="text-sm text-muted-foreground">Avg Attendance</p>
+            </div>
+            <p className="text-2xl font-bold text-accent">{stats.avgAttendance}%</p>
+          </div>
+          <div className="glass-card p-4 hover-lift">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center">
+                <TrendingDown className="w-5 h-5 text-destructive" />
+              </div>
+              <p className="text-sm text-muted-foreground">Defaulters</p>
+            </div>
+            <p className="text-2xl font-bold text-destructive">{stats.defaulters}</p>
+          </div>
+        </div>
+
         {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
             <Input
-              placeholder="Search students..."
+              placeholder="Search by name, email, or roll number..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 bg-secondary/50"
+              className="pl-10 pr-10 bg-secondary/50 border-border/50 focus:border-primary transition-colors"
             />
+            {searchQuery && (
+              <button
+                onClick={handleClearSearch}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="Clear search"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
           <Select value={filterClass} onValueChange={setFilterClass}>
-            <SelectTrigger className="w-full sm:w-48 bg-secondary/50">
+            <SelectTrigger className="w-full sm:w-56 bg-secondary/50 border-border/50">
               <SelectValue placeholder="All Classes" />
             </SelectTrigger>
             <SelectContent>
@@ -214,7 +320,7 @@ const StudentsPage: React.FC = () => {
             </SelectContent>
           </Select>
           <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="w-full sm:w-40 bg-secondary/50">
+            <SelectTrigger className="w-full sm:w-40 bg-secondary/50 border-border/50">
               <SelectValue placeholder="All Status" />
             </SelectTrigger>
             <SelectContent>
@@ -223,186 +329,243 @@ const StudentsPage: React.FC = () => {
               <SelectItem value="inactive">Inactive</SelectItem>
             </SelectContent>
           </Select>
+          {(searchQuery || filterClass !== 'all' || filterStatus !== 'all') && (
+            <Button
+              variant="outline"
+              size="default"
+              onClick={handleClearFilters}
+              className="gap-2"
+            >
+              <X className="w-4 h-4" />
+              Clear
+            </Button>
+          )}
         </div>
 
         {/* Table */}
         <div className="glass-card overflow-hidden">
           {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <div className="flex flex-col items-center justify-center py-16">
+              <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
+              <p className="text-muted-foreground">Loading students...</p>
             </div>
           ) : filteredStudents.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <GraduationCap className="w-12 h-12 text-muted-foreground mb-4" />
-              <p className="text-lg font-medium text-foreground">No students found</p>
-              <p className="text-sm text-muted-foreground">
-                {searchQuery ? 'Try adjusting your search' : 'Add your first student to get started'}
+            <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                <GraduationCap className="w-8 h-8 text-primary" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground mb-2">
+                {searchQuery || filterClass !== 'all' || filterStatus !== 'all' ? 'No students found' : 'No students yet'}
+              </h3>
+              <p className="text-sm text-muted-foreground max-w-sm mb-6">
+                {searchQuery || filterClass !== 'all' || filterStatus !== 'all'
+                  ? 'Try adjusting your filters or search terms.'
+                  : 'Get started by adding your first student to the system.'}
               </p>
+              {!(searchQuery || filterClass !== 'all' || filterStatus !== 'all') && (
+                <Button onClick={() => setIsDialogOpen(true)} className="gap-2">
+                  <Plus className="w-4 h-4" />
+                  Add Your First Student
+                </Button>
+              )}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Student</th>
-                    <th>Roll Number</th>
-                    <th>Class</th>
-                    <th>Attendance</th>
-                    <th>Status</th>
-                    <th className="text-right">Active</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredStudents.map((student) => (
-                    <tr key={student.id}>
-                      <td>
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                            <span className="text-sm font-medium text-primary">
-                              {student.name.charAt(0)}
-                            </span>
-                          </div>
-                          <div>
-                            <p className="font-medium text-foreground">{student.name}</p>
-                            <p className="text-sm text-muted-foreground flex items-center gap-1">
-                              <Mail className="w-3 h-3" />
-                              {student.email}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-secondary text-foreground text-sm font-mono">
-                          {student.rollNumber}
-                        </span>
-                      </td>
-                      <td className="text-muted-foreground">{student.className}</td>
-                      <td>
-                        <span className={`font-medium ${getAttendanceColor(student.attendance)}`}>
-                          {student.attendance !== undefined ? `${student.attendance}%` : 'N/A'}
-                        </span>
-                        {student.attendance !== undefined && student.attendance < 75 && (
-                          <span className="ml-2 text-xs text-destructive">Defaulter</span>
-                        )}
-                      </td>
-                      <td>
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
-                          student.isActive 
-                            ? 'bg-success/10 text-success' 
-                            : 'bg-destructive/10 text-destructive'
-                        }`}>
-                          {student.isActive ? (
-                            <>
-                              <UserCheck className="w-3 h-3" />
-                              Active
-                            </>
-                          ) : (
-                            <>
-                              <UserX className="w-3 h-3" />
-                              Inactive
-                            </>
-                          )}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="flex justify-end">
-                          <Switch
-                            checked={student.isActive}
-                            onCheckedChange={() => handleToggleStatus(student)}
-                          />
-                        </div>
-                      </td>
+            <>
+              <div className="overflow-x-auto">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th className="w-1/4">Student</th>
+                      <th className="w-32">Roll Number</th>
+                      <th className="w-1/5">Class</th>
+                      <th className="w-24">Attendance</th>
+                      <th className="w-28">Status</th>
+                      <th className="w-20 text-right">Active</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {filteredStudents.map((student) => (
+                      <tr key={student.id} className="group">
+                        <td>
+                          <div className="flex items-center gap-3">
+                            <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center border-2 border-primary/20 group-hover:scale-110 transition-transform">
+                              <span className="text-sm font-bold text-primary">
+                                {getInitials(student.name)}
+                              </span>
+                            </div>
+                            <div>
+                              <p className="font-semibold text-foreground group-hover:text-primary transition-colors">{student.name}</p>
+                              <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                                <Mail className="w-3.5 h-3.5" />
+                                {student.email}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-secondary/80 text-foreground text-sm font-mono font-semibold border border-border/50">
+                            {student.rollNumber}
+                          </span>
+                        </td>
+                        <td className="text-sm text-muted-foreground">{student.className}</td>
+                        <td>
+                          <div className="flex flex-col gap-1">
+                            <span className={`font-bold text-base ${getAttendanceColor(student.attendance)}`}>
+                              {student.attendance !== undefined ? `${student.attendance}%` : 'N/A'}
+                            </span>
+                            {student.attendance !== undefined && student.attendance < 75 && (
+                              <span className="text-xs text-destructive font-medium">Defaulter</span>
+                            )}
+                          </div>
+                        </td>
+                        <td>
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border ${student.isActive
+                              ? 'bg-success/10 text-success border-success/20'
+                              : 'bg-destructive/10 text-destructive border-destructive/20'
+                            }`}>
+                            {student.isActive ? (
+                              <>
+                                <UserCheck className="w-3.5 h-3.5" />
+                                Active
+                              </>
+                            ) : (
+                              <>
+                                <UserX className="w-3.5 h-3.5" />
+                                Inactive
+                              </>
+                            )}
+                          </span>
+                        </td>
+                        <td>
+                          <div className="flex justify-end">
+                            <Switch
+                              checked={student.isActive}
+                              onCheckedChange={() => handleToggleStatus(student)}
+                              aria-label={`Toggle ${student.name} status`}
+                            />
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Results Count */}
+              <div className="px-6 py-4 border-t border-border/50 text-sm text-muted-foreground text-center">
+                Showing {filteredStudents.length} of {students.length} student{students.length !== 1 ? 's' : ''}
+              </div>
+            </>
           )}
         </div>
       </div>
 
       {/* Create Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="bg-card border-border">
+        <DialogContent className="bg-card border-border sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Add New Student</DialogTitle>
+            <DialogTitle className="text-xl">Add New Student</DialogTitle>
             <DialogDescription>
               Enter the details for the new student account.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
-              <Input
-                id="name"
-                placeholder="e.g., John Doe"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="bg-secondary/50"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="e.g., john.doe@student.edu"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="bg-secondary/50"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Enter initial password"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="bg-secondary/50"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
+          <form onSubmit={handleSubmit}>
+            <div className="space-y-5 py-4">
               <div className="space-y-2">
-                <Label htmlFor="rollNumber">Roll Number</Label>
+                <Label htmlFor="name" className="text-sm font-medium">
+                  Full Name <span className="text-destructive">*</span>
+                </Label>
                 <Input
-                  id="rollNumber"
-                  placeholder="e.g., CS2024001"
-                  value={formData.rollNumber}
-                  onChange={(e) => setFormData({ ...formData, rollNumber: e.target.value })}
-                  className="bg-secondary/50"
+                  id="name"
+                  placeholder="e.g., John Doe"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="bg-secondary/50 border-border/50 focus:border-primary"
+                  required
+                  autoFocus
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="classId">Class</Label>
-                <Select
-                  value={formData.classId}
-                  onValueChange={(value) => setFormData({ ...formData, classId: value })}
-                >
-                  <SelectTrigger className="bg-secondary/50">
-                    <SelectValue placeholder="Select class" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {classes.map((cls) => (
-                      <SelectItem key={cls.id} value={cls.id}>
-                        {cls.name} Y{cls.year} - {cls.division}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="email" className="text-sm font-medium">
+                  Email Address <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="e.g., john.doe@student.edu"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value.toLowerCase() })}
+                  className="bg-secondary/50 border-border/50 focus:border-primary"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-sm font-medium">
+                  Password <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Enter initial password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  className="bg-secondary/50 border-border/50 focus:border-primary"
+                  minLength={6}
+                  required
+                />
+                <p className="text-xs text-muted-foreground">Minimum 6 characters</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="rollNumber" className="text-sm font-medium">
+                    Roll Number <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="rollNumber"
+                    placeholder="e.g., CS2024001"
+                    value={formData.rollNumber}
+                    onChange={(e) => setFormData({ ...formData, rollNumber: e.target.value.toUpperCase() })}
+                    className="bg-secondary/50 border-border/50 focus:border-primary font-mono"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="classId" className="text-sm font-medium">
+                    Class <span className="text-destructive">*</span>
+                  </Label>
+                  <Select
+                    value={formData.classId}
+                    onValueChange={(value) => setFormData({ ...formData, classId: value })}
+                  >
+                    <SelectTrigger className="bg-secondary/50 border-border/50 focus:border-primary">
+                      <SelectValue placeholder="Select class" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {classes.map((cls) => (
+                        <SelectItem key={cls.id} value={cls.id}>
+                          {cls.name} Y{cls.year} - {cls.division}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSubmit} disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Create Student
-            </Button>
-          </DialogFooter>
+            <DialogFooter className="gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleCloseDialog}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting} className="gap-2">
+                {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                Create Student
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </AdminLayout>

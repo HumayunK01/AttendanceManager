@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, Search, BookOpen, Loader2 } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Plus, Pencil, Trash2, Search, BookOpen, Loader2, X } from 'lucide-react';
 import AdminLayout from '@/layouts/AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -49,29 +49,34 @@ const SubjectsPage: React.FC = () => {
 
   const fetchSubjects = async () => {
     try {
+      setIsLoading(true);
       const response = await adminAPI.getSubjects();
       setSubjects(response.data);
     } catch (error) {
-      // Mock data for demo
-      setSubjects([
-        { id: '1', name: 'Data Structures', code: 'CS201', createdAt: '2024-01-15' },
-        { id: '2', name: 'Database Management', code: 'CS301', createdAt: '2024-01-15' },
-        { id: '3', name: 'Computer Networks', code: 'CS401', createdAt: '2024-01-15' },
-        { id: '4', name: 'Operating Systems', code: 'CS302', createdAt: '2024-01-15' },
-        { id: '5', name: 'Software Engineering', code: 'CS501', createdAt: '2024-01-15' },
-      ]);
+      console.error('Failed to fetch subjects:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load subjects. Please try again.',
+        variant: 'destructive',
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const filteredSubjects = subjects.filter(
-    (subject) =>
-      subject.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      subject.code.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Memoized filtered subjects for performance
+  const filteredSubjects = useMemo(() => {
+    const query = searchQuery.toLowerCase().trim();
+    if (!query) return subjects;
 
-  const handleOpenDialog = (subject?: Subject) => {
+    return subjects.filter(
+      (subject) =>
+        subject.name.toLowerCase().includes(query) ||
+        subject.code.toLowerCase().includes(query)
+    );
+  }, [subjects, searchQuery]);
+
+  const handleOpenDialog = useCallback((subject?: Subject) => {
     if (subject) {
       setSelectedSubject(subject);
       setFormData({ name: subject.name, code: subject.code });
@@ -80,10 +85,18 @@ const SubjectsPage: React.FC = () => {
       setFormData({ name: '', code: '' });
     }
     setIsDialogOpen(true);
-  };
+  }, []);
 
-  const handleSubmit = async () => {
-    if (!formData.name || !formData.code) {
+  const handleCloseDialog = useCallback(() => {
+    setIsDialogOpen(false);
+    setSelectedSubject(null);
+    setFormData({ name: '', code: '' });
+  }, []);
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+
+    if (!formData.name.trim() || !formData.code.trim()) {
       toast({
         title: 'Validation Error',
         description: 'Please fill in all fields.',
@@ -96,31 +109,31 @@ const SubjectsPage: React.FC = () => {
     try {
       if (selectedSubject) {
         await adminAPI.updateSubject(selectedSubject.id, formData);
-        setSubjects(subjects.map(s => 
+        setSubjects(subjects.map(s =>
           s.id === selectedSubject.id ? { ...s, ...formData } : s
         ));
         toast({
-          title: 'Subject Updated',
-          description: 'The subject has been updated successfully.',
+          title: 'Success',
+          description: 'Subject updated successfully.',
         });
       } else {
         const response = await adminAPI.createSubject(formData);
-        const newSubject = response.data || { 
-          id: Date.now().toString(), 
-          ...formData, 
-          createdAt: new Date().toISOString() 
+        const newSubject = response.data || {
+          id: Date.now().toString(),
+          ...formData,
+          createdAt: new Date().toISOString()
         };
-        setSubjects([...subjects, newSubject]);
+        setSubjects([newSubject, ...subjects]);
         toast({
-          title: 'Subject Created',
-          description: 'The subject has been created successfully.',
+          title: 'Success',
+          description: 'Subject created successfully.',
         });
       }
-      setIsDialogOpen(false);
+      handleCloseDialog();
     } catch (error: any) {
       toast({
         title: 'Error',
-        description: error.response?.data?.message || 'An error occurred.',
+        description: error.response?.data?.message || 'An error occurred. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -135,13 +148,13 @@ const SubjectsPage: React.FC = () => {
       await adminAPI.deleteSubject(selectedSubject.id);
       setSubjects(subjects.filter(s => s.id !== selectedSubject.id));
       toast({
-        title: 'Subject Deleted',
-        description: 'The subject has been deleted successfully.',
+        title: 'Success',
+        description: 'Subject deleted successfully.',
       });
     } catch (error: any) {
       toast({
         title: 'Error',
-        description: error.response?.data?.message || 'An error occurred.',
+        description: error.response?.data?.message || 'Failed to delete subject.',
         variant: 'destructive',
       });
     } finally {
@@ -150,71 +163,130 @@ const SubjectsPage: React.FC = () => {
     }
   };
 
+  const handleClearSearch = useCallback(() => {
+    setSearchQuery('');
+  }, []);
+
   return (
     <AdminLayout>
-      <div className="space-y-6 animate-fade-in">
+      <div className="space-y-6 lg:space-y-8 animate-fade-in">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Subjects</h1>
-            <p className="text-muted-foreground mt-1">Manage academic subjects</p>
+            <h1 className="text-3xl lg:text-4xl font-bold text-foreground flex items-center gap-3">
+              <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
+                <BookOpen className="w-6 h-6 lg:w-7 lg:h-7 text-primary" />
+              </div>
+              Subjects
+            </h1>
+            <p className="text-muted-foreground mt-2 text-sm lg:text-base">
+              Manage academic subjects and course codes
+            </p>
           </div>
-          <Button 
-            onClick={() => handleOpenDialog()} 
-            className="bg-primary hover:bg-primary/90"
+          <Button
+            onClick={() => handleOpenDialog()}
+            className="gap-2 shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all"
+            size="lg"
           >
-            <Plus className="w-5 h-5 mr-2" />
+            <Plus className="w-5 h-5" />
             Add Subject
           </Button>
         </div>
 
+        {/* Stats Bar */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="glass-card p-4 hover-lift">
+            <p className="text-sm text-muted-foreground mb-1">Total Subjects</p>
+            <p className="text-2xl font-bold text-foreground">{subjects.length}</p>
+          </div>
+          <div className="glass-card p-4 hover-lift">
+            <p className="text-sm text-muted-foreground mb-1">Search Results</p>
+            <p className="text-2xl font-bold text-primary">{filteredSubjects.length}</p>
+          </div>
+          <div className="glass-card p-4 hover-lift">
+            <p className="text-sm text-muted-foreground mb-1">Recently Added</p>
+            <p className="text-2xl font-bold text-success">
+              {subjects.filter(s => {
+                const daysDiff = (Date.now() - new Date(s.createdAt).getTime()) / (1000 * 60 * 60 * 24);
+                return daysDiff <= 7;
+              }).length}
+            </p>
+          </div>
+        </div>
+
         {/* Search */}
         <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
           <Input
-            placeholder="Search subjects..."
+            placeholder="Search by name or code..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 bg-secondary/50"
+            className="pl-10 pr-10 bg-secondary/50 border-border/50 focus:border-primary transition-colors"
           />
+          {searchQuery && (
+            <button
+              onClick={handleClearSearch}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Clear search"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
         {/* Table */}
         <div className="glass-card overflow-hidden">
           {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <div className="flex flex-col items-center justify-center py-16">
+              <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
+              <p className="text-muted-foreground">Loading subjects...</p>
             </div>
           ) : filteredSubjects.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <BookOpen className="w-12 h-12 text-muted-foreground mb-4" />
-              <p className="text-lg font-medium text-foreground">No subjects found</p>
-              <p className="text-sm text-muted-foreground">
-                {searchQuery ? 'Try adjusting your search' : 'Add your first subject to get started'}
+            <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                <BookOpen className="w-8 h-8 text-primary" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground mb-2">
+                {searchQuery ? 'No subjects found' : 'No subjects yet'}
+              </h3>
+              <p className="text-sm text-muted-foreground max-w-sm mb-6">
+                {searchQuery
+                  ? 'Try adjusting your search terms or clear the search to see all subjects.'
+                  : 'Get started by adding your first subject to the system.'}
               </p>
+              {!searchQuery && (
+                <Button onClick={() => handleOpenDialog()} className="gap-2">
+                  <Plus className="w-4 h-4" />
+                  Add Your First Subject
+                </Button>
+              )}
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>Code</th>
+                    <th className="w-32">Code</th>
                     <th>Name</th>
-                    <th>Created</th>
-                    <th className="text-right">Actions</th>
+                    <th className="w-40">Created</th>
+                    <th className="w-32 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredSubjects.map((subject) => (
-                    <tr key={subject.id}>
+                    <tr key={subject.id} className="group">
                       <td>
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-primary/10 text-primary text-sm font-medium">
+                        <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-sm font-bold border border-primary/20 group-hover:bg-primary/20 transition-colors">
                           {subject.code}
                         </span>
                       </td>
-                      <td className="font-medium text-foreground">{subject.name}</td>
-                      <td className="text-muted-foreground">
-                        {new Date(subject.createdAt).toLocaleDateString()}
+                      <td className="font-semibold text-foreground">{subject.name}</td>
+                      <td className="text-muted-foreground text-sm">
+                        {new Date(subject.createdAt).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric'
+                        })}
                       </td>
                       <td>
                         <div className="flex items-center justify-end gap-2">
@@ -222,7 +294,8 @@ const SubjectsPage: React.FC = () => {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleOpenDialog(subject)}
-                            className="hover:bg-secondary"
+                            className="hover:bg-primary/10 hover:text-primary transition-colors"
+                            aria-label={`Edit ${subject.name}`}
                           >
                             <Pencil className="w-4 h-4" />
                           </Button>
@@ -233,7 +306,8 @@ const SubjectsPage: React.FC = () => {
                               setSelectedSubject(subject);
                               setIsDeleteDialogOpen(true);
                             }}
-                            className="hover:bg-destructive/10 hover:text-destructive"
+                            className="hover:bg-destructive/10 hover:text-destructive transition-colors"
+                            aria-label={`Delete ${subject.name}`}
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -246,48 +320,74 @@ const SubjectsPage: React.FC = () => {
             </div>
           )}
         </div>
+
+        {/* Results Count */}
+        {!isLoading && filteredSubjects.length > 0 && (
+          <div className="text-sm text-muted-foreground text-center">
+            Showing {filteredSubjects.length} of {subjects.length} subject{subjects.length !== 1 ? 's' : ''}
+          </div>
+        )}
       </div>
 
       {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="bg-card border-border">
+        <DialogContent className="bg-card border-border sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{selectedSubject ? 'Edit Subject' : 'Add New Subject'}</DialogTitle>
+            <DialogTitle className="text-xl">
+              {selectedSubject ? 'Edit Subject' : 'Add New Subject'}
+            </DialogTitle>
             <DialogDescription>
-              {selectedSubject ? 'Update the subject details below.' : 'Enter the details for the new subject.'}
+              {selectedSubject
+                ? 'Update the subject details below.'
+                : 'Enter the details for the new subject.'}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="code">Subject Code</Label>
-              <Input
-                id="code"
-                placeholder="e.g., CS201"
-                value={formData.code}
-                onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                className="bg-secondary/50"
-              />
+          <form onSubmit={handleSubmit}>
+            <div className="space-y-5 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="code" className="text-sm font-medium">
+                  Subject Code <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="code"
+                  placeholder="e.g., CS201"
+                  value={formData.code}
+                  onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                  className="bg-secondary/50 border-border/50 focus:border-primary"
+                  maxLength={10}
+                  required
+                  autoFocus
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-sm font-medium">
+                  Subject Name <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="name"
+                  placeholder="e.g., Data Structures"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="bg-secondary/50 border-border/50 focus:border-primary"
+                  required
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="name">Subject Name</Label>
-              <Input
-                id="name"
-                placeholder="e.g., Data Structures"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="bg-secondary/50"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSubmit} disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {selectedSubject ? 'Update' : 'Create'}
-            </Button>
-          </DialogFooter>
+            <DialogFooter className="gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleCloseDialog}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting} className="gap-2">
+                {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                {selectedSubject ? 'Update Subject' : 'Create Subject'}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
@@ -295,18 +395,19 @@ const SubjectsPage: React.FC = () => {
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Subject</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete "{selectedSubject?.name}"? This action cannot be undone.
+            <AlertDialogTitle className="text-xl">Delete Subject</AlertDialogTitle>
+            <AlertDialogDescription className="text-base">
+              Are you sure you want to delete <span className="font-semibold text-foreground">"{selectedSubject?.name}"</span>?
+              This action cannot be undone and may affect related data.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
-              className="bg-destructive hover:bg-destructive/90"
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
             >
-              Delete
+              Delete Subject
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
