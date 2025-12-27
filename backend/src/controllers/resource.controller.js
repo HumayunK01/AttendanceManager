@@ -50,7 +50,8 @@ export const getFaculty = async (req, res) => {
         u.created_at as "createdAt",
         COUNT(DISTINCT fsm.id)::int as "subjectsCount"
       FROM users u
-      LEFT JOIN faculty_subject_map fsm ON fsm.faculty_id = u.id
+      LEFT JOIN faculty f ON f.user_id = u.id
+      LEFT JOIN faculty_subject_map fsm ON fsm.faculty_id = f.id
       WHERE u.role = 'FACULTY'
       GROUP BY u.id, u.name, u.email, u.created_at
       ORDER BY u.name ASC
@@ -109,12 +110,11 @@ export const getMappings = async (req, res) => {
         fu.name as "facultyName",
         fsm.subject_id as "subjectId",
         sub.name as "subjectName",
-        sub.code as "subjectCode",
         fsm.class_id as "classId",
-        CONCAT(p.name, ' Y', c.batch_year, CASE WHEN d.name IS NOT NULL THEN '-' || d.name ELSE '' END) as "className",
-        fsm.created_at as "createdAt"
+        CONCAT(p.name, ' Y', c.batch_year, CASE WHEN d.name IS NOT NULL THEN '-' || d.name ELSE '' END) as "className"
       FROM faculty_subject_map fsm
-      JOIN users fu ON fu.id = fsm.faculty_id
+      JOIN faculty f ON f.id = fsm.faculty_id
+      JOIN users fu ON fu.id = f.user_id
       JOIN subjects sub ON sub.id = fsm.subject_id
       JOIN classes c ON c.id = fsm.class_id
       JOIN programs p ON p.id = c.program_id
@@ -143,7 +143,8 @@ export const getTimetable = async (req, res) => {
         ts.end_time as "endTime"
       FROM timetable_slots ts
       JOIN faculty_subject_map fsm ON fsm.id = ts.faculty_subject_map_id
-      JOIN users fu ON fu.id = fsm.faculty_id
+      JOIN faculty f ON f.id = fsm.faculty_id
+      JOIN users fu ON fu.id = f.user_id
       JOIN subjects sub ON sub.id = fsm.subject_id
       JOIN classes c ON c.id = fsm.class_id
       JOIN programs p ON p.id = c.program_id

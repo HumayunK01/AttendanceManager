@@ -1,5 +1,20 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Plus, Trash2, Search, Link2, Loader2, X, Users, BookOpen, Building, GraduationCap } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
+import {
+  Plus,
+  Trash2,
+  Search,
+  Link2,
+  Loader2,
+  X,
+  Users,
+  BookOpen,
+  Building,
+  GraduationCap,
+  Filter,
+  CheckCircle2,
+  AlertCircle,
+  Mail
+} from 'lucide-react';
 import AdminLayout from '@/layouts/AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,16 +28,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -32,13 +37,14 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { adminAPI } from '@/lib/api';
 
+// --- Types ---
+
 interface Mapping {
   id: string;
   facultyId: string;
   facultyName: string;
   subjectId: string;
   subjectName: string;
-  subjectCode: string;
   classId: string;
   className: string;
   createdAt: string;
@@ -61,11 +67,93 @@ interface Program {
 }
 
 interface Class {
-  id: string;
-  program: string; // From the backend getClasses JOIN
-  division: string;
+  id: number;
+  program: string;
+  division: string | null;
   batchYear: number;
 }
+
+// --- Sub-components ---
+
+const StatsCard = memo(({ title, value, icon: Icon, colorClass, gradientClass, iconBgClass }: any) => (
+  <div className={`glass-card p-4 rounded-xl border border-border/50 ${gradientClass} flex flex-col justify-between overflow-hidden relative group transition-all duration-300 hover:shadow-lg hover:shadow-${colorClass}/5`}>
+    <div className={`absolute -right-4 -top-4 w-20 h-20 ${iconBgClass} rounded-full blur-2xl group-hover:opacity-70 transition-opacity duration-500`} />
+    <div className="relative">
+      <div className="flex items-center gap-2.5 mb-3">
+        <div className={`w-9 h-9 rounded-xl ${iconBgClass} flex items-center justify-center border border-${colorClass}/20 shadow-inner`}>
+          <Icon className={`w-5 h-5 text-${colorClass}`} />
+        </div>
+        <div className="space-y-0.5">
+          <p className="text-[10px] font-bold text-muted-foreground tracking-widest uppercase">{title}</p>
+          <div className={`h-0.5 w-6 bg-${colorClass} rounded-full`} />
+        </div>
+      </div>
+      <p className={`text-2xl font-black text-${colorClass === 'foreground' ? 'foreground' : colorClass} tracking-tight`}>{value}</p>
+    </div>
+  </div>
+));
+
+StatsCard.displayName = 'StatsCard';
+
+const MappingRow = memo(({
+  mapping,
+  onDelete,
+  getInitials
+}: {
+  mapping: Mapping;
+  onDelete: (m: Mapping) => void;
+  getInitials: (name: string) => string;
+}) => (
+  <tr className="group hover:bg-white/5 transition-colors duration-200">
+    <td className="py-3 px-6">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-success/20 to-success/5 flex items-center justify-center border border-success/20 group-hover:scale-110 transition-transform duration-300 shadow-inner">
+          <span className="text-[11px] font-black text-success tracking-tighter">
+            {getInitials(mapping.facultyName)}
+          </span>
+        </div>
+        <div>
+          <p className="text-sm font-bold text-foreground group-hover:text-primary transition-colors tracking-tight">
+            {mapping.facultyName}
+          </p>
+          <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider opacity-60">Professor</p>
+        </div>
+      </div>
+    </td>
+    <td className="px-6">
+      <div className="flex flex-col gap-1">
+        <p className="text-sm font-bold text-foreground tracking-tight">{mapping.subjectName}</p>
+      </div>
+    </td>
+    <td className="px-6">
+      <p className="text-[12px] font-medium text-muted-foreground md:max-w-[250px] lg:max-w-[400px] truncate md:whitespace-normal" title={mapping.className}>
+        {mapping.className}
+      </p>
+    </td>
+    <td className="px-6">
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-success/10 text-success border border-success/20 text-[10px] font-black uppercase tracking-wider">
+        <CheckCircle2 className="w-3 h-3" />
+        Synced
+      </span>
+    </td>
+    <td className="px-6">
+      <div className="flex justify-end">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => onDelete(mapping)}
+          className="w-8 h-8 rounded-lg hover:bg-destructive/10 hover:text-destructive border border-transparent hover:border-destructive/20 transition-all duration-200"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </Button>
+      </div>
+    </td>
+  </tr>
+));
+
+MappingRow.displayName = 'MappingRow';
+
+// --- Main Component ---
 
 const MappingsPage: React.FC = () => {
   const [mappings, setMappings] = useState<Mapping[]>([]);
@@ -87,11 +175,7 @@ const MappingsPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
       const [mappingsRes, facultyRes, subjectsRes, classesRes, programsRes] = await Promise.all([
@@ -110,45 +194,53 @@ const MappingsPage: React.FC = () => {
       console.error('Failed to fetch data:', error);
       toast({
         title: 'Error',
-        description: 'Failed to load data. Please try again.',
+        description: 'Failed to synchronize mapping database.',
         variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const getInitials = useCallback((name: string) => {
+    const parts = name.split(' ');
+    return parts.length >= 2
+      ? `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase()
+      : name.substring(0, 2).toUpperCase();
+  }, []);
 
   // Filtered classes based on selected program
   const filteredClassesList = useMemo(() => {
     if (!formData.programId) return [];
-    const selectedProgram = programs.find(p => p.id === formData.programId);
+    const selectedProgram = programs.find(p => String(p.id) === formData.programId); // Use string compare
     if (!selectedProgram) return [];
 
     return classes.filter(c => c.program === selectedProgram.name);
   }, [formData.programId, classes, programs]);
 
-  // Memoized filtered mappings
   const filteredMappings = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
     if (!query) return mappings;
 
     return mappings.filter(
-      (mapping) =>
-        mapping.facultyName.toLowerCase().includes(query) ||
-        mapping.subjectName.toLowerCase().includes(query) ||
-        (mapping.subjectCode && mapping.subjectCode.toLowerCase().includes(query)) ||
-        mapping.className.toLowerCase().includes(query)
+      (m) =>
+        m.facultyName.toLowerCase().includes(query) ||
+        m.subjectName.toLowerCase().includes(query) ||
+        m.className.toLowerCase().includes(query)
     );
   }, [mappings, searchQuery]);
 
-  // Memoized stats
   const stats = useMemo(() => {
-    const uniqueFaculty = new Set(mappings.map(m => m.facultyId)).size;
-    const uniqueSubjects = new Set(mappings.map(m => m.subjectId)).size;
-    const uniqueClasses = new Set(mappings.map(m => m.classId)).size;
-
-    return { uniqueFaculty, uniqueSubjects, uniqueClasses };
-  }, [mappings]);
+    return {
+      totalFaculty: faculty.length,
+      totalSubjects: subjects.length,
+      totalClasses: classes.length
+    };
+  }, [faculty, subjects, classes]);
 
   const handleCloseDialog = useCallback(() => {
     setIsDialogOpen(false);
@@ -160,8 +252,8 @@ const MappingsPage: React.FC = () => {
 
     if (!formData.facultyId || !formData.subjectId || !formData.classId) {
       toast({
-        title: 'Validation Error',
-        description: 'Please select faculty, subject, and class.',
+        title: 'Validation Failed',
+        description: 'Ensure faculty, subject, and class are all selected.',
         variant: 'destructive',
       });
       return;
@@ -177,14 +269,14 @@ const MappingsPage: React.FC = () => {
 
       toast({
         title: 'Success',
-        description: 'Mapping created successfully.',
+        description: 'Faculty-Subject linkage established successfully.',
       });
-      fetchData(); // Refresh to show new mapping with correct names from backend
+      fetchData();
       handleCloseDialog();
     } catch (error: any) {
       toast({
-        title: 'Error',
-        description: error.response?.data?.error || error.response?.data?.message || 'An error occurred. Please try again.',
+        title: 'Fault',
+        description: error.response?.data?.error || 'Database mapping conflict detected.',
         variant: 'destructive',
       });
     } finally {
@@ -196,293 +288,196 @@ const MappingsPage: React.FC = () => {
     if (!selectedMapping) return;
 
     try {
+      setIsSubmitting(true);
       await adminAPI.deleteMapping(selectedMapping.id);
-      setMappings(mappings.filter(m => m.id !== selectedMapping.id));
-      toast({
-        title: 'Success',
-        description: 'Mapping deleted successfully.',
-      });
+      toast({ title: 'Success', description: 'Faculty mapping removed successfully.' });
+      fetchData();
+      setIsDeleteDialogOpenConfirm(false);
     } catch (error: any) {
       toast({
         title: 'Error',
-        description: error.response?.data?.message || 'Failed to delete mapping.',
+        description: error.response?.data?.message || 'Failed to remove mapping.',
         variant: 'destructive',
       });
     } finally {
-      setIsDeleteDialogOpenConfirm(false);
+      setIsSubmitting(false);
       setSelectedMapping(null);
     }
   };
 
-  const handleClearSearch = useCallback(() => {
-    setSearchQuery('');
-  }, []);
-
   return (
     <AdminLayout>
-      <div className="space-y-6 lg:space-y-8 animate-fade-in">
+      <div className="space-y-6 animate-fade-in pb-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl lg:text-4xl font-bold text-foreground flex items-center gap-3">
-              <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-2xl bg-accent/10 flex items-center justify-center">
-                <Link2 className="w-6 h-6 lg:w-7 lg:h-7 text-accent" />
+          <div className="space-y-0.5">
+            <h1 className="text-2xl font-black text-foreground flex items-center gap-2.5 tracking-tight">
+              <div className="w-9 h-9 rounded-xl bg-accent/10 flex items-center justify-center border border-accent/20">
+                <Link2 className="w-5 h-5 text-accent" />
               </div>
-              Mappings
+              Course Mappings
             </h1>
-            <p className="text-muted-foreground mt-2 text-sm lg:text-base">
-              Assign faculty to subjects and classes
-            </p>
+            <p className="text-[13px] text-muted-foreground ml-1">Configure faculty assignments and curriculum linkages</p>
           </div>
           <Button
             onClick={() => setIsDialogOpen(true)}
-            className="gap-2 shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all"
-            size="lg"
+            className="h-9 gap-2 shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all duration-300 rounded-lg px-6 text-sm"
           >
-            <Plus className="w-5 h-5" />
-            Create Mapping
+            <Plus className="w-4 h-4" />
+            <span className="font-bold">Create Linkage</span>
           </Button>
         </div>
 
         {/* Stats Bar */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="glass-card p-4 hover-lift">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center">
-                <Users className="w-5 h-5 text-success" />
-              </div>
-              <p className="text-sm text-muted-foreground">Active Faculty</p>
-            </div>
-            <p className="text-2xl font-bold text-success">{stats.uniqueFaculty}</p>
-          </div>
-          <div className="glass-card p-4 hover-lift">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                <BookOpen className="w-5 h-5 text-primary" />
-              </div>
-              <p className="text-sm text-muted-foreground">Assigned Subjects</p>
-            </div>
-            <p className="text-2xl font-bold text-primary">{stats.uniqueSubjects}</p>
-          </div>
-          <div className="glass-card p-4 hover-lift">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center">
-                <Building className="w-5 h-5 text-warning" />
-              </div>
-              <p className="text-sm text-muted-foreground">Active Classes</p>
-            </div>
-            <p className="text-2xl font-bold text-warning">{stats.uniqueClasses}</p>
-          </div>
+          <StatsCard title="Faculty" value={stats.totalFaculty} icon={Users} colorClass="success" gradientClass="bg-success/5" iconBgClass="bg-success/10" />
+          <StatsCard title="Subjects" value={stats.totalSubjects} icon={BookOpen} colorClass="primary" gradientClass="bg-primary/5" iconBgClass="bg-primary/10" />
+          <StatsCard title="Classes" value={stats.totalClasses} icon={Building} colorClass="warning" gradientClass="bg-warning/5" iconBgClass="bg-warning/10" />
         </div>
 
         {/* Search */}
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
+        <div className="relative group">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
           <Input
-            placeholder="Search by faculty, subject, or class..."
+            placeholder="Search by faculty, subject, or class metadata..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 pr-10 bg-secondary/50 border-border/50 focus:border-primary transition-colors"
+            className="pl-9 h-9 bg-secondary/30 border-border/50 focus:border-primary/50 rounded-xl transition-all shadow-sm text-sm"
           />
-          {searchQuery && (
-            <button
-              onClick={handleClearSearch}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-              aria-label="Clear search"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
         </div>
 
-        {/* Cards Grid */}
+        {/* Table Content */}
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-16">
-            <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
-            <p className="text-muted-foreground">Loading mappings...</p>
+          <div className="flex flex-col items-center justify-center py-16 glass-card rounded-2xl border-dashed">
+            <Loader2 className="w-10 h-10 animate-spin text-primary mb-3 opacity-50" />
+            <p className="text-[13px] text-muted-foreground font-medium animate-pulse">Syncing linkage database...</p>
           </div>
         ) : filteredMappings.length === 0 ? (
-          <div className="glass-card flex flex-col items-center justify-center py-16 px-4 text-center">
-            <div className="w-16 h-16 rounded-full bg-accent/10 flex items-center justify-center mb-4">
-              <Link2 className="w-8 h-8 text-accent" />
+          <div className="glass-card flex flex-col items-center justify-center py-20 px-4 text-center rounded-2xl border-dashed border-primary/20 bg-primary/5">
+            <div className="w-16 h-16 rounded-3xl bg-primary/10 flex items-center justify-center mb-6 border border-primary/20">
+              <Link2 className="w-8 h-8 text-primary opacity-50" />
             </div>
-            <h3 className="text-lg font-semibold text-foreground mb-2">
-              {searchQuery ? 'No mappings found' : 'No mappings yet'}
-            </h3>
-            <p className="text-sm text-muted-foreground max-w-sm mb-6">
-              {searchQuery
-                ? 'Try adjusting your search terms or clear the search to see all mappings.'
-                : 'Get started by creating your first faculty-subject-class mapping.'}
+            <h3 className="text-xl font-bold text-foreground mb-1.5">{searchQuery ? 'No linkages found' : 'No Mappings Established'}</h3>
+            <p className="text-[13px] text-muted-foreground max-w-sm mb-8 leading-relaxed">
+              {searchQuery ? 'Refine your search parameters or check your active filters.' : 'Your academic matrix is currently empty. Start linking faculty to subjects.'}
             </p>
             {!searchQuery && (
-              <Button onClick={() => setIsDialogOpen(true)} className="gap-2">
+              <Button
+                onClick={() => setIsDialogOpen(true)}
+                className="gap-2 shadow-xl shadow-primary/20 rounded-xl px-8"
+              >
                 <Plus className="w-4 h-4" />
-                Create Your First Mapping
+                Establish First Linkage
               </Button>
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredMappings.map((mapping) => (
-              <div key={mapping.id} className="glass-card p-5 hover-lift group relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-accent/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                <div className="relative">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-accent/20 to-accent/10 flex items-center justify-center group-hover:scale-110 transition-transform border-2 border-accent/20">
-                      <Link2 className="w-6 h-6 text-accent" />
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedMapping(mapping);
-                        setIsDeleteDialogOpenConfirm(true);
-                      }}
-                      className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                  <div className="space-y-3">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <Users className="w-3.5 h-3.5 text-success" />
-                        <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Faculty</p>
-                      </div>
-                      <p className="font-semibold text-foreground group-hover:text-accent transition-colors">{mapping.facultyName}</p>
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <BookOpen className="w-3.5 h-3.5 text-primary" />
-                        <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Subject</p>
-                      </div>
-                      <p className="font-semibold text-foreground">{mapping.subjectName}</p>
-                      {mapping.subjectCode && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-primary/10 text-primary text-xs font-mono font-bold mt-1 border border-primary/20">
-                          {mapping.subjectCode}
-                        </span>
-                      )}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <Building className="w-3.5 h-3.5 text-warning" />
-                        <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Class</p>
-                      </div>
-                      <p className="font-semibold text-foreground">{mapping.className}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div className="glass-card overflow-hidden rounded-2xl border-border/50 shadow-xl">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border/50 bg-secondary/20">
+                    <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Faculty Member</th>
+                    <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Subject Module</th>
+                    <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Target Class</th>
+                    <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Status</th>
+                    <th className="text-right py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/30">
+                  {filteredMappings.map((m) => (
+                    <MappingRow
+                      key={m.id}
+                      mapping={m}
+                      onDelete={(m) => { setSelectedMapping(m); setIsDeleteDialogOpenConfirm(true); }}
+                      getInitials={getInitials}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
 
       {/* Create Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="bg-card border-border sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-xl">Create New Mapping</DialogTitle>
-            <DialogDescription>
-              Assign a faculty member to teach a subject for a specific class.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-4 py-4">
-              {/* Faculty Select */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium flex items-center gap-2">
-                  <Users className="w-4 h-4 text-success" />
-                  Faculty <span className="text-destructive">*</span>
-                </Label>
-                <Select
-                  value={formData.facultyId}
-                  onValueChange={(value) => setFormData({ ...formData, facultyId: value })}
-                >
-                  <SelectTrigger className="bg-secondary/50 border-border/50">
-                    <SelectValue placeholder="Select faculty member" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {faculty.map((f) => (
-                      <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+        <DialogContent className="bg-background/95 backdrop-blur-xl border-border/50 sm:max-w-md rounded-3xl shadow-2xl">
+          <DialogHeader className="pt-2 px-1">
+            <DialogTitle className="text-xl font-black tracking-tight flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-accent/10 flex items-center justify-center">
+                <Plus className="w-4 h-4 text-accent" />
               </div>
-
-              {/* Program Select */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium flex items-center gap-2">
-                  <GraduationCap className="w-4 h-4 text-primary" />
-                  Program <span className="text-destructive">*</span>
-                </Label>
-                <Select
-                  value={formData.programId}
-                  onValueChange={(value) => setFormData({ ...formData, programId: value, classId: '' })}
-                >
-                  <SelectTrigger className="bg-secondary/50 border-border/50">
-                    <SelectValue placeholder="Select program" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {programs.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+              Establish Linkage
+            </DialogTitle>
+            <DialogDescription className="text-[13px] mt-1">Assign faculty to specific subjects and student cohorts.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4 pt-4">
+            <div className="space-y-4 px-1">
+              {/* Faculty Select */}
+              <div className="space-y-1.5">
+                <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Faculty Member</Label>
+                <Select value={formData.facultyId} onValueChange={(v) => setFormData({ ...formData, facultyId: v })}>
+                  <SelectTrigger className="h-10 bg-secondary/50 border-border/50 rounded-xl"><SelectValue placeholder="Select faculty" /></SelectTrigger>
+                  <SelectContent className="bg-background/95 backdrop-blur-xl border-border/50 rounded-xl">
+                    {faculty.map((f) => (
+                      <SelectItem key={f.id} value={String(f.id)}>{f.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
               {/* Subject Select */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium flex items-center gap-2">
-                  <BookOpen className="w-4 h-4 text-primary" />
-                  Subject <span className="text-destructive">*</span>
-                </Label>
-                <Select
-                  value={formData.subjectId}
-                  onValueChange={(value) => setFormData({ ...formData, subjectId: value })}
-                >
-                  <SelectTrigger className="bg-secondary/50 border-border/50">
-                    <SelectValue placeholder="Select subject" />
-                  </SelectTrigger>
-                  <SelectContent>
+              <div className="space-y-1.5">
+                <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Subject Module</Label>
+                <Select value={formData.subjectId} onValueChange={(v) => setFormData({ ...formData, subjectId: v })}>
+                  <SelectTrigger className="h-10 bg-secondary/50 border-border/50 rounded-xl"><SelectValue placeholder="Select subject" /></SelectTrigger>
+                  <SelectContent className="bg-background/95 backdrop-blur-xl border-border/50 rounded-xl">
                     {subjects.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>{s.name} {s.code ? `(${s.code})` : ''}</SelectItem>
+                      <SelectItem key={s.id} value={String(s.id)}>{s.name} {s.code ? `(${s.code})` : ''}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              {/* Class Select - Filtered by Program */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium flex items-center gap-2">
-                  <Building className="w-4 h-4 text-warning" />
-                  Class <span className="text-destructive">*</span>
-                </Label>
-                <Select
-                  value={formData.classId}
-                  onValueChange={(value) => setFormData({ ...formData, classId: value })}
-                  disabled={!formData.programId}
-                >
-                  <SelectTrigger className="bg-secondary/50 border-border/50">
-                    <SelectValue placeholder={formData.programId ? "Select actual class" : "Select program first"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {filteredClassesList.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.batchYear} - {c.division}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Program Select */}
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Academic Program</Label>
+                  <Select value={formData.programId} onValueChange={(v) => setFormData({ ...formData, programId: v, classId: '' })}>
+                    <SelectTrigger className="h-10 bg-secondary/50 border-border/50 rounded-xl"><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent className="bg-background/95 backdrop-blur-xl border-border/50 rounded-xl">
+                      {programs.map((p) => (
+                        <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Class Select */}
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Specific Class</Label>
+                  <Select
+                    value={formData.classId}
+                    onValueChange={(v) => setFormData({ ...formData, classId: v })}
+                    disabled={!formData.programId}
+                  >
+                    <SelectTrigger className="h-10 bg-secondary/50 border-border/50 rounded-xl"><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent className="bg-background/95 backdrop-blur-xl border-border/50 rounded-xl max-w-[calc(100vw-4rem)] sm:max-w-[400px]">
+                      {filteredClassesList.map((c) => (
+                        <SelectItem key={c.id} value={String(c.id)} className="whitespace-normal py-2.5 leading-relaxed">
+                          Y{c.batchYear}{c.division ? `-${c.division}` : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
-            <DialogFooter className="gap-2">
-              <Button type="button" variant="outline" onClick={handleCloseDialog} disabled={isSubmitting}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                Create Mapping
+            <DialogFooter className="pt-4 border-t border-border/20 px-1 gap-2">
+              <Button type="button" variant="ghost" onClick={handleCloseDialog} className="rounded-xl font-bold h-10 text-sm">Cancel</Button>
+              <Button type="submit" disabled={isSubmitting} className="flex-1 rounded-xl font-bold bg-primary hover:bg-primary/90 h-10 text-sm">
+                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirm Linkage'}
               </Button>
             </DialogFooter>
           </form>
@@ -490,27 +485,27 @@ const MappingsPage: React.FC = () => {
       </Dialog>
 
       {/* Delete Confirmation */}
-      <AlertDialog open={isDeleteDialogOpenConfirm} onOpenChange={setIsDeleteDialogOpenConfirm}>
-        <AlertDialogContent className="bg-card border-border">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-xl">Delete Mapping</AlertDialogTitle>
-            <AlertDialogDescription className="text-base">
-              Are you sure you want to delete this mapping? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
-            >
-              Delete Mapping
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <Dialog open={isDeleteDialogOpenConfirm} onOpenChange={setIsDeleteDialogOpenConfirm}>
+        <DialogContent className="bg-background/95 backdrop-blur-xl border-border/50 sm:max-w-[380px] rounded-3xl shadow-2xl p-0 overflow-hidden">
+          <div className="p-6 text-center">
+            <div className="w-16 h-16 rounded-3xl bg-destructive/10 flex items-center justify-center mx-auto mb-4 border border-destructive/20">
+              <Trash2 className="w-8 h-8 text-destructive" />
+            </div>
+            <h3 className="text-xl font-black text-foreground mb-2 tracking-tight">Sever Linkage?</h3>
+            <p className="text-[13px] text-muted-foreground leading-relaxed px-4">
+              By confirming, this faculty member will no longer be assigned to <span className="text-foreground font-bold">{selectedMapping?.subjectName}</span>.
+            </p>
+          </div>
+          <div className="bg-secondary/30 p-4 flex gap-3">
+            <Button variant="ghost" onClick={() => setIsDeleteDialogOpenConfirm(false)} className="flex-1 rounded-xl font-bold h-10 text-sm">Cancel</Button>
+            <Button onClick={handleDelete} disabled={isSubmitting} variant="destructive" className="flex-1 rounded-xl font-bold h-10 text-sm shadow-lg shadow-destructive/20">
+              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirm Deletion'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 };
 
-export default MappingsPage;
+export default memo(MappingsPage);

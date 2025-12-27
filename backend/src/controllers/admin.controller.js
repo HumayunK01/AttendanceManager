@@ -55,10 +55,22 @@ export const mapFacultySubject = async (req, res) => {
     return res.status(400).json({ error: 'facultyId, subjectId, classId required' })
   }
 
+  // Resolve user_id to faculty_id if needed
+  const facultyProfile = await sql`
+    SELECT id FROM faculty WHERE user_id = ${facultyId} OR id = ${facultyId}
+    LIMIT 1
+  `
+
+  if (!facultyProfile.length) {
+    return res.status(404).json({ error: 'Faculty profile not found' })
+  }
+
+  const actualFacultyId = facultyProfile[0].id
+
   // Prevent duplicate mappings
   const exists = await sql`
     SELECT id FROM faculty_subject_map
-    WHERE faculty_id = ${facultyId}
+    WHERE faculty_id = ${actualFacultyId}
       AND subject_id = ${subjectId}
       AND class_id = ${classId}
   `
@@ -69,7 +81,7 @@ export const mapFacultySubject = async (req, res) => {
 
   await sql`
     INSERT INTO faculty_subject_map (faculty_id, subject_id, class_id)
-    VALUES (${facultyId}, ${subjectId}, ${classId})
+    VALUES (${actualFacultyId}, ${subjectId}, ${classId})
   `
 
   res.json({ success: true })
@@ -126,12 +138,19 @@ export const createFaculty = async (req, res) => {
   const hash = await bcrypt.hash(password, 10)
 
   // Insert into users table as 'FACULTY'. institution_id defaults to 1.
-  await sql`
+  const [newUser] = await sql`
     INSERT INTO users (name, email, password_hash, role, institution_id)
     VALUES (${name}, ${email}, ${hash}, 'FACULTY', 1)
+    RETURNING id, institution_id
   `
 
-  res.json({ success: true })
+  // ALSO create an entry in the faculty profile table (required by foreign keys)
+  await sql`
+    INSERT INTO faculty (user_id, institution_id, department)
+    VALUES (${newUser.id}, ${newUser.institution_id}, 'General')
+  `
+
+  res.json({ success: true, id: newUser.id })
 }
 
 export const createStudent = async (req, res) => {
