@@ -6,6 +6,9 @@ Attendly is not a CRUD demo. It enforces academic process rules: identity isolat
 
 ![Attendly Preview](https://github.com/user-attachments/assets/387e8850-28d3-474d-8c7b-ba41c8d8d5c8)
 
+### 🚀 **[Live Demo](https://manageattendance.vercel.app/)**
+*Test credentials available upon request.*
+
 ## ✨ Key Capabilities
 
 ### 🏛️ For Administration
@@ -18,6 +21,7 @@ Attendly is not a CRUD demo. It enforces academic process rules: identity isolat
 | **Faculty–Subject–Class Mapping** | Formal responsibility assignment |
 | **Timetable Builder** | Lecture slot creation from real mappings |
 | **Abuse Detection Reports** | Detects suspicious retroactive attendance patterns |
+| **Secure Communication** | Auto-email credentials & password recovery flows |
 
 ### 👩‍🏫 For Faculty
 | Feature | Description |
@@ -71,10 +75,10 @@ Attendly is not a CRUD demo. It enforces academic process rules: identity isolat
 | Faculty responsibility confusion | Faculty-Subject-Class mapping |
 
 ## 🏗️ Architecture
-```
 AttendanceManager/
 ├── frontend/   → Next.js 14 + shadcn/ui
-└── backend/    → Express + Drizzle ORM + PostgreSQL
+├── backend/    → Express + Drizzle ORM + PostgreSQL
+└── mailer/     → NodeMailer + Vercel Serverless
 ```
 
 ## 🔧 Technology Stack
@@ -87,7 +91,8 @@ AttendanceManager/
 | **Auth** | JWT + BCrypt |
 | **Validation** | Zod |
 | **Docs** | Swagger |
-| **Deployment** | Vercel (Frontend), Render (Backend) |
+| **Mailer** | NodeMailer (Serverless) |
+| **Deployment** | Vercel (Frontend & Mailer), Render (Backend) |
 
 ## 🧠 Engineering Principles
 
