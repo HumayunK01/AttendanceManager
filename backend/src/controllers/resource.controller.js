@@ -72,9 +72,10 @@ export const getStudents = async (req, res) => {
         u.email,
         s.roll_no as "rollNumber",
         c.id as "classId",
-        CONCAT(p.name, ' Y', c.batch_year, '-', d.name) as "className",
+        CONCAT(p.name, ' Y', c.batch_year, CASE WHEN d.name IS NOT NULL THEN '-' || d.name ELSE '' END) as "className",
         s.is_active as "isActive",
-        s.created_at as "createdAt",
+        u.created_at as "createdAt",
+        COUNT(ar.id) as "totalSessions",
         COALESCE(
           ROUND(
             (COUNT(ar.id) FILTER (WHERE ar.status = 'P')::decimal / NULLIF(COUNT(ar.id), 0)) * 100,
@@ -88,7 +89,7 @@ export const getStudents = async (req, res) => {
       JOIN programs p ON p.id = c.program_id
       LEFT JOIN divisions d ON d.id = c.division_id
       LEFT JOIN attendance_records ar ON ar.student_id = s.id
-      GROUP BY s.id, u.name, u.email, s.roll_no, c.id, p.name, c.batch_year, d.name, s.is_active, s.created_at
+      GROUP BY s.id, u.name, u.email, s.roll_no, c.id, p.name, c.batch_year, d.name, s.is_active, u.created_at
       ORDER BY u.name ASC
     `
         res.json(students)
@@ -110,7 +111,7 @@ export const getMappings = async (req, res) => {
         sub.name as "subjectName",
         sub.code as "subjectCode",
         fsm.class_id as "classId",
-        CONCAT(p.name, ' Y', c.batch_year, '-', d.name) as "className",
+        CONCAT(p.name, ' Y', c.batch_year, CASE WHEN d.name IS NOT NULL THEN '-' || d.name ELSE '' END) as "className",
         fsm.created_at as "createdAt"
       FROM faculty_subject_map fsm
       JOIN users fu ON fu.id = fsm.faculty_id
@@ -136,7 +137,7 @@ export const getTimetable = async (req, res) => {
         ts.faculty_subject_map_id as "mappingId",
         fu.name as "facultyName",
         sub.name as "subjectName",
-        CONCAT(p.name, ' Y', c.batch_year, '-', d.name) as "className",
+        CONCAT(p.name, ' Y', c.batch_year, CASE WHEN d.name IS NOT NULL THEN '-' || d.name ELSE '' END) as "className",
         ts.day_of_week as "dayOfWeek",
         ts.start_time as "startTime",
         ts.end_time as "endTime"
@@ -274,6 +275,83 @@ export const activateStudent = async (req, res) => {
     } catch (error) {
         console.error('Error activating student:', error)
         res.status(500).json({ message: 'Failed to activate student' })
+    }
+}
+
+// Update student
+export const updateStudent = async (req, res) => {
+    try {
+        const { id } = req.params
+        const { name, email, rollNo, classId } = req.body
+
+        // Get user_id first
+        const student = await sql`SELECT user_id FROM students WHERE id = ${id}`
+        if (!student.length) return res.status(404).json({ message: 'Student not found' })
+        const userId = student[0].user_id
+
+        // Update user
+        await sql`
+            UPDATE users 
+            SET name = ${name}, email = ${email}
+            WHERE id = ${userId}
+        `
+
+        // Update student
+        await sql`
+            UPDATE students
+            SET roll_no = ${rollNo}, class_id = ${classId}
+            WHERE id = ${id}
+        `
+
+        res.json({ message: 'Student updated successfully' })
+    } catch (error) {
+        console.error('Error updating student:', error)
+        res.status(500).json({ message: 'Failed to update student' })
+    }
+}
+
+// Delete student
+export const deleteStudent = async (req, res) => {
+    try {
+        const { id } = req.params
+
+        // Get user_id first
+        const student = await sql`SELECT user_id FROM students WHERE id = ${id}`
+        if (!student.length) return res.status(404).json({ message: 'Student not found' })
+        const userId = student[0].user_id
+
+        // Delete from students first (to avoid FK issues if any, though attendance_records points to students.id)
+        // Check for attendance records
+        const attendance = await sql`SELECT id FROM attendance_records WHERE student_id = ${id} LIMIT 1`
+        if (attendance.length) {
+            return res.status(400).json({ message: 'Cannot delete student with attendance records. Deactivate instead.' })
+        }
+
+        await sql`DELETE FROM students WHERE id = ${id}`
+        await sql`DELETE FROM users WHERE id = ${userId}`
+
+        res.json({ message: 'Student deleted successfully' })
+    } catch (error) {
+        console.error('Error deleting student:', error)
+        res.status(500).json({ message: 'Failed to delete student' })
+    }
+}
+
+// Deactivate student
+export const deactivateStudent = async (req, res) => {
+    try {
+        const { id } = req.params
+
+        await sql`
+      UPDATE students
+      SET is_active = false
+      WHERE id = ${id}
+    `
+
+        res.json({ message: 'Student deactivated successfully' })
+    } catch (error) {
+        console.error('Error deactivating student:', error)
+        res.status(500).json({ message: 'Failed to deactivate student' })
     }
 }
 

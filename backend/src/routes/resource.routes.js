@@ -14,6 +14,9 @@ import {
     updateFaculty,
     deleteFaculty,
     activateStudent,
+    deactivateStudent,
+    updateStudent,
+    deleteStudent,
     deleteMapping,
     deleteTimetableSlot
 } from '../controllers/resource.controller.js'
@@ -23,8 +26,7 @@ import {
     createFaculty,
     createStudent,
     mapFacultySubject,
-    createTimetableSlot,
-    deactivateStudent
+    createTimetableSlot
 } from '../controllers/admin.controller.js'
 
 const router = Router()
@@ -527,6 +529,8 @@ router.patch('/students/:id/activate', requireAuth(['ADMIN']), activateStudent)
  *         description: Student deactivated successfully
  */
 router.patch('/students/:id/deactivate', requireAuth(['ADMIN']), deactivateStudent)
+router.put('/students/:id', requireAuth(['ADMIN']), updateStudent)
+router.delete('/students/:id', requireAuth(['ADMIN']), deleteStudent)
 
 // ==================== MAPPINGS ====================
 

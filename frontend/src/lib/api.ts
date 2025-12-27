@@ -72,10 +72,11 @@ export const adminAPI = {
 
   // Students
   getStudents: () => api.get('/students'),
-  createStudent: (data: { name: string; email: string; password: string; rollNumber: string; classId: string }) =>
+  createStudent: (data: { name: string; email: string; password: string; rollNo: number; classId: string }) =>
     api.post('/students', data),
-  updateStudent: (id: string, data: Partial<{ name: string; email: string; rollNumber: string; isActive: boolean }>) =>
+  updateStudent: (id: string, data: Partial<{ name: string; email: string; rollNo: number; isActive: boolean; classId: string }>) =>
     api.put(`/students/${id}`, data),
+  deleteStudent: (id: string) => api.delete(`/students/${id}`),
   deactivateStudent: (id: string) => api.patch(`/students/${id}/deactivate`),
   activateStudent: (id: string) => api.patch(`/students/${id}/activate`),
 

@@ -135,9 +135,9 @@ export const createFaculty = async (req, res) => {
 }
 
 export const createStudent = async (req, res) => {
-  const { name, email, password, classId, rollNumber } = req.body
+  const { name, email, password, classId, rollNo } = req.body
 
-  if (!name || !email || !password || !classId || !rollNumber) {
+  if (!name || !email || !password || !classId || !rollNo) {
     return res.status(400).json({ error: 'All fields required' })
   }
 
@@ -148,32 +148,40 @@ export const createStudent = async (req, res) => {
 
   const hash = await bcrypt.hash(password, 10)
 
+  // Insert into users with institution_id
   const user = await sql`
-    INSERT INTO users (name, email, password_hash, role)
-    VALUES (${name}, ${email}, ${hash}, 'STUDENT')
+    INSERT INTO users (name, email, password_hash, role, institution_id)
+    VALUES (${name}, ${email}, ${hash}, 'STUDENT', 1)
     RETURNING id
   `
 
+  // Insert into students using 'roll_no'
   const student = await sql`
-    INSERT INTO students (user_id, class_id, roll_number, is_active)
-    VALUES (${user[0].id}, ${classId}, ${rollNumber}, true)
+    INSERT INTO students (user_id, class_id, roll_no, is_active)
+    VALUES (${user[0].id}, ${classId}, ${rollNo}, true)
     RETURNING id
   `
 
-  // Get the class info
+  // Get class info by joining programs and divisions
   const classInfo = await sql`
-    SELECT name, year, division FROM classes WHERE id = ${classId}
+    SELECT 
+      p.name as program,
+      c.batch_year as year,
+      d.name as division
+    FROM classes c
+    JOIN programs p ON p.id = c.program_id
+    LEFT JOIN divisions d ON d.id = c.division_id
+    WHERE c.id = ${classId}
   `
 
-  // Return the created student with all necessary info
   const createdStudent = {
     id: student[0].id,
     name,
     email,
-    rollNumber,
+    rollNumber: rollNo,
     classId,
     className: classInfo.length > 0
-      ? `${classInfo[0].name} Year ${classInfo[0].year} - ${classInfo[0].division}`
+      ? `${classInfo[0].program} Y${classInfo[0].year}${classInfo[0].division ? `-${classInfo[0].division}` : ''}`
       : '',
     isActive: true,
     attendance: 0,
