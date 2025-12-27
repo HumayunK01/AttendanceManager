@@ -77,12 +77,40 @@ export const getMonthlyClassReport = async (req, res) => {
 export const getAbuseList = async (_, res) => {
   const result = await sql`
     SELECT 
-      u.name as student,
-      ar.edit_count
+      ar.id,
+      u.name as "studentName",
+      s.roll_no as "studentId",
+      fu.name as "facultyName",
+      sub.name as "subjectName",
+      'EXCESSIVE_EDITS' as reason,
+      'Flagged due to abnormal edit count (' || ar.edit_count || ') on record #' || ar.id as description,
+      'pending' as status,
+      ar.marked_at as "createdAt"
     FROM attendance_records ar
     JOIN students s ON s.id = ar.student_id
     JOIN users u ON u.id = s.user_id
-    WHERE ar.edit_count > 3;
+    JOIN attendance_sessions asn ON asn.id = ar.session_id
+    JOIN timetable_slots ts ON ts.id = asn.timetable_slot_id
+    JOIN faculty_subject_map fsm ON fsm.id = ts.faculty_subject_map_id
+    JOIN users fu ON fu.id = fsm.faculty_id
+    JOIN subjects sub ON sub.id = fsm.subject_id
+    WHERE ar.edit_count > 3
+    ORDER BY ar.marked_at DESC;
   `
   res.json(result)
+}
+
+export const resolveAbuseRecord = async (req, res) => {
+  const { id } = req.params;
+  try {
+    await sql`
+      UPDATE attendance_records 
+      SET edit_count = 0 
+      WHERE id = ${id}
+    `;
+    res.json({ success: true, message: 'Record cleared and flags reset.' });
+  } catch (error) {
+    console.error('Resolution Error:', error);
+    res.status(500).json({ error: 'Failed to reset record flags' });
+  }
 }

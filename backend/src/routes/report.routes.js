@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { getStudentReport, getDefaulters, getMonthlyClassReport, getAbuseList } from '../controllers/report.controller.js'
+import { getStudentReport, getDefaulters, getMonthlyClassReport, getAbuseList, resolveAbuseRecord } from '../controllers/report.controller.js'
 import { requireAuth } from '../middleware/auth.middleware.js'
 
 const router = Router()
@@ -13,7 +13,7 @@ const router = Router()
 
 /**
  * @swagger
- * /report/student/{studentId}:
+ * /reports/student/{studentId}:
  *   get:
  *     summary: Get student attendance report
  *     tags: [Reports]
@@ -32,7 +32,7 @@ router.get('/student/:studentId', requireAuth(['FACULTY', 'ADMIN']), getStudentR
 
 /**
  * @swagger
- * /report/defaulters/{classId}:
+ * /reports/defaulters/{classId}:
  *   get:
  *     summary: Get student defaulters for a class
  *     tags: [Reports]
@@ -51,7 +51,7 @@ router.get('/defaulters/:classId', requireAuth(['FACULTY', 'ADMIN']), getDefault
 
 /**
  * @swagger
- * /report/class/{classId}/month/{year}/{month}:
+ * /reports/class/{classId}/month/{year}/{month}:
  *   get:
  *     summary: Get monthly class report
  *     tags: [Reports]
@@ -83,7 +83,7 @@ router.get(
 
 /**
  * @swagger
- * /report/abuse:
+ * /reports/abuse:
  *   get:
  *     summary: Get high attendance abuse list
  *     tags: [Reports]
@@ -92,5 +92,23 @@ router.get(
  *         description: Abuse detection list
  */
 router.get('/abuse', requireAuth(['ADMIN']), getAbuseList)
+
+/**
+ * @swagger
+ * /reports/abuse/{id}/resolve:
+ *   patch:
+ *     summary: Resolve an abuse report
+ *     tags: [Reports]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Report resolved successfully
+ */
+router.patch('/abuse/:id/resolve', requireAuth(['ADMIN']), resolveAbuseRecord)
 
 export default router
