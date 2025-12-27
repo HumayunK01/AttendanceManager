@@ -47,6 +47,36 @@ export const createClass = async (req, res) => {
   res.json(createdClass)
 }
 
+export const updateClass = async (req, res) => {
+  const { id } = req.params
+  const { programId, divisionId, batchYear, isActive } = req.body
+
+  await sql`
+    UPDATE classes
+    SET program_id = ${programId},
+        division_id = ${divisionId || null},
+        batch_year = ${batchYear},
+        is_active = ${isActive}
+    WHERE id = ${id}
+  `
+
+  res.json({ success: true })
+}
+
+export const deleteClass = async (req, res) => {
+  const { id } = req.params
+  try {
+    await sql`DELETE FROM classes WHERE id = ${id}`
+    res.json({ success: true })
+  } catch (error) {
+    if (error.code === '23503') {
+      return res.status(400).json({ error: 'Cannot delete class. Please remove enrolled students/timetable first.' })
+    }
+    console.error('Delete class error:', error)
+    res.status(500).json({ error: 'Failed to delete class' })
+  }
+}
+
 
 export const mapFacultySubject = async (req, res) => {
   const { facultyId, subjectId, classId } = req.body

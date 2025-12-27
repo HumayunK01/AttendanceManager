@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
-import { Plus, Pencil, Trash2, Search, Building, Loader2, X, GraduationCap } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, Building, Loader2, X, GraduationCap, Users } from 'lucide-react';
 import AdminLayout from '@/layouts/AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,6 +48,7 @@ interface Class {
   batchYear: number;
   isActive: boolean;
   createdAt: string;
+  totalStudents: number;
 }
 
 interface Program {
@@ -118,6 +119,12 @@ const TableRow = memo(({ cls, onEdit, onDelete }: { cls: Class; onEdit: (cls: Cl
       )}
     </td>
     <td className="px-6 font-bold text-foreground tabular-nums tracking-tight text-sm">{cls.batchYear}</td>
+    <td className="px-6">
+      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-secondary/40 text-xs font-bold border border-border/50 text-muted-foreground">
+        <Users className="w-3 h-3 text-muted-foreground/70" />
+        {cls.totalStudents || 0}
+      </div>
+    </td>
     <td className="px-6">
       {cls.isActive ? (
         <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-success/10 text-success border border-success/20 shadow-sm">
@@ -414,6 +421,7 @@ const ClassesPage: React.FC = () => {
                     <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Program</th>
                     <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Division</th>
                     <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Batch Year</th>
+                    <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Students</th>
                     <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Status</th>
                     <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Created</th>
                     <th className="text-right py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Actions</th>

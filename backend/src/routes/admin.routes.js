@@ -3,6 +3,8 @@ import { requireAuth } from '../middleware/auth.middleware.js'
 import {
   createSubject,
   createClass,
+  updateClass,
+  deleteClass,
   mapFacultySubject,
   createTimetableSlot,
   updateTimetableSlot,
@@ -71,6 +73,8 @@ router.post('/subject', requireAuth(['ADMIN']), createSubject)
  *         description: Class created
  */
 router.post('/class', requireAuth(['ADMIN']), createClass)
+router.put('/class/:id', requireAuth(['ADMIN']), updateClass)
+router.delete('/class/:id', requireAuth(['ADMIN']), deleteClass)
 
 /**
  * @swagger
