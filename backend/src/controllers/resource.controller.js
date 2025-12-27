@@ -44,16 +44,15 @@ export const getFaculty = async (req, res) => {
     try {
         const faculty = await sql`
       SELECT 
-        f.id,
+        u.id,
         u.name,
         u.email,
-        f.department,
-        f.created_at as "createdAt",
-        COUNT(DISTINCT fsm.id) as "subjectsCount"
-      FROM faculty f
-      JOIN users u ON u.id = f.user_id
-      LEFT JOIN faculty_subject_map fsm ON fsm.faculty_id = f.id
-      GROUP BY f.id, u.name, u.email, f.department, f.created_at
+        u.created_at as "createdAt",
+        COUNT(DISTINCT fsm.id)::int as "subjectsCount"
+      FROM users u
+      LEFT JOIN faculty_subject_map fsm ON fsm.faculty_id = u.id
+      WHERE u.role = 'FACULTY'
+      GROUP BY u.id, u.name, u.email, u.created_at
       ORDER BY u.name ASC
     `
         res.json(faculty)
@@ -71,9 +70,9 @@ export const getStudents = async (req, res) => {
         s.id,
         u.name,
         u.email,
-        s.roll_number as "rollNumber",
+        s.roll_no as "rollNumber",
         c.id as "classId",
-        CONCAT(c.name, ' Year ', c.year, ' - ', c.division) as "className",
+        CONCAT(p.name, ' Y', c.batch_year, '-', d.name) as "className",
         s.is_active as "isActive",
         s.created_at as "createdAt",
         COALESCE(
@@ -86,8 +85,10 @@ export const getStudents = async (req, res) => {
       FROM students s
       JOIN users u ON u.id = s.user_id
       JOIN classes c ON c.id = s.class_id
+      JOIN programs p ON p.id = c.program_id
+      LEFT JOIN divisions d ON d.id = c.division_id
       LEFT JOIN attendance_records ar ON ar.student_id = s.id
-      GROUP BY s.id, u.name, u.email, s.roll_number, c.id, c.name, c.year, c.division, s.is_active, s.created_at
+      GROUP BY s.id, u.name, u.email, s.roll_no, c.id, p.name, c.batch_year, d.name, s.is_active, s.created_at
       ORDER BY u.name ASC
     `
         res.json(students)
@@ -109,13 +110,14 @@ export const getMappings = async (req, res) => {
         sub.name as "subjectName",
         sub.code as "subjectCode",
         fsm.class_id as "classId",
-        CONCAT(c.name, ' Y', c.year, '-', c.division) as "className",
+        CONCAT(p.name, ' Y', c.batch_year, '-', d.name) as "className",
         fsm.created_at as "createdAt"
       FROM faculty_subject_map fsm
-      JOIN faculty f ON f.id = fsm.faculty_id
-      JOIN users fu ON fu.id = f.user_id
+      JOIN users fu ON fu.id = fsm.faculty_id
       JOIN subjects sub ON sub.id = fsm.subject_id
       JOIN classes c ON c.id = fsm.class_id
+      JOIN programs p ON p.id = c.program_id
+      LEFT JOIN divisions d ON d.id = c.division_id
       ORDER BY fu.name ASC, sub.name ASC
     `
         res.json(mappings)
@@ -134,16 +136,17 @@ export const getTimetable = async (req, res) => {
         ts.faculty_subject_map_id as "mappingId",
         fu.name as "facultyName",
         sub.name as "subjectName",
-        CONCAT(c.name, ' Y', c.year, '-', c.division) as "className",
+        CONCAT(p.name, ' Y', c.batch_year, '-', d.name) as "className",
         ts.day_of_week as "dayOfWeek",
         ts.start_time as "startTime",
         ts.end_time as "endTime"
       FROM timetable_slots ts
       JOIN faculty_subject_map fsm ON fsm.id = ts.faculty_subject_map_id
-      JOIN faculty f ON f.id = fsm.faculty_id
-      JOIN users fu ON fu.id = f.user_id
+      JOIN users fu ON fu.id = fsm.faculty_id
       JOIN subjects sub ON sub.id = fsm.subject_id
       JOIN classes c ON c.id = fsm.class_id
+      JOIN programs p ON p.id = c.program_id
+      LEFT JOIN divisions d ON d.id = c.division_id
       ORDER BY ts.day_of_week ASC, ts.start_time ASC
     `
         res.json(slots)
@@ -227,23 +230,12 @@ export const deleteClass = async (req, res) => {
 export const updateFaculty = async (req, res) => {
     try {
         const { id } = req.params
-        const { name, email, department } = req.body
-
-        const faculty = await sql`SELECT user_id FROM faculty WHERE id = ${id}`
-        if (faculty.length === 0) {
-            return res.status(404).json({ message: 'Faculty not found' })
-        }
+        const { name, email } = req.body
 
         await sql`
       UPDATE users
       SET name = ${name}, email = ${email}
-      WHERE id = ${faculty[0].user_id}
-    `
-
-        await sql`
-      UPDATE faculty
-      SET department = ${department}
-      WHERE id = ${id}
+      WHERE id = ${id} AND role = 'FACULTY'
     `
 
         res.json({ message: 'Faculty updated successfully' })
@@ -258,13 +250,7 @@ export const deleteFaculty = async (req, res) => {
     try {
         const { id } = req.params
 
-        const faculty = await sql`SELECT user_id FROM faculty WHERE id = ${id}`
-        if (faculty.length === 0) {
-            return res.status(404).json({ message: 'Faculty not found' })
-        }
-
-        await sql`DELETE FROM faculty WHERE id = ${id}`
-        await sql`DELETE FROM users WHERE id = ${faculty[0].user_id}`
+        await sql`DELETE FROM users WHERE id = ${id} AND role = 'FACULTY'`
 
         res.json({ message: 'Faculty deleted successfully' })
     } catch (error) {

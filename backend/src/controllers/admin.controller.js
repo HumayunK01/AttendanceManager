@@ -125,9 +125,10 @@ export const createFaculty = async (req, res) => {
 
   const hash = await bcrypt.hash(password, 10)
 
+  // Insert into users table as 'FACULTY'. institution_id defaults to 1.
   await sql`
-    INSERT INTO users (name, email, password_hash, role)
-    VALUES (${name}, ${email}, ${hash}, 'FACULTY')
+    INSERT INTO users (name, email, password_hash, role, institution_id)
+    VALUES (${name}, ${email}, ${hash}, 'FACULTY', 1)
   `
 
   res.json({ success: true })

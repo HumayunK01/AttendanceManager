@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Plus, Trash2, Search, Link2, Loader2, X, Users, BookOpen, Building } from 'lucide-react';
+import { Plus, Trash2, Search, Link2, Loader2, X, Users, BookOpen, Building, GraduationCap } from 'lucide-react';
 import AdminLayout from '@/layouts/AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -55,11 +55,16 @@ interface Subject {
   code: string;
 }
 
-interface Class {
+interface Program {
   id: string;
   name: string;
-  year: number;
+}
+
+interface Class {
+  id: string;
+  program: string; // From the backend getClasses JOIN
   division: string;
+  batchYear: number;
 }
 
 const MappingsPage: React.FC = () => {
@@ -67,12 +72,18 @@ const MappingsPage: React.FC = () => {
   const [faculty, setFaculty] = useState<Faculty[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
+  const [programs, setPrograms] = useState<Program[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleteDialogOpenConfirm, setIsDeleteDialogOpenConfirm] = useState(false);
   const [selectedMapping, setSelectedMapping] = useState<Mapping | null>(null);
-  const [formData, setFormData] = useState({ facultyId: '', subjectId: '', classId: '' });
+  const [formData, setFormData] = useState({
+    facultyId: '',
+    programId: '',
+    subjectId: '',
+    classId: ''
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
@@ -83,27 +94,38 @@ const MappingsPage: React.FC = () => {
   const fetchData = async () => {
     try {
       setIsLoading(true);
-      const [mappingsRes, facultyRes, subjectsRes, classesRes] = await Promise.all([
+      const [mappingsRes, facultyRes, subjectsRes, classesRes, programsRes] = await Promise.all([
         adminAPI.getMappings(),
         adminAPI.getFaculty(),
         adminAPI.getSubjects(),
-        adminAPI.getClasses()
+        adminAPI.getClasses(),
+        adminAPI.getPrograms()
       ]);
       setMappings(mappingsRes.data);
       setFaculty(facultyRes.data);
       setSubjects(subjectsRes.data);
       setClasses(classesRes.data);
+      setPrograms(programsRes.data);
     } catch (error) {
       console.error('Failed to fetch data:', error);
       toast({
         title: 'Error',
-        description: 'Failed to load mappings. Please try again.',
+        description: 'Failed to load data. Please try again.',
         variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Filtered classes based on selected program
+  const filteredClassesList = useMemo(() => {
+    if (!formData.programId) return [];
+    const selectedProgram = programs.find(p => p.id === formData.programId);
+    if (!selectedProgram) return [];
+
+    return classes.filter(c => c.program === selectedProgram.name);
+  }, [formData.programId, classes, programs]);
 
   // Memoized filtered mappings
   const filteredMappings = useMemo(() => {
@@ -114,7 +136,7 @@ const MappingsPage: React.FC = () => {
       (mapping) =>
         mapping.facultyName.toLowerCase().includes(query) ||
         mapping.subjectName.toLowerCase().includes(query) ||
-        mapping.subjectCode.toLowerCase().includes(query) ||
+        (mapping.subjectCode && mapping.subjectCode.toLowerCase().includes(query)) ||
         mapping.className.toLowerCase().includes(query)
     );
   }, [mappings, searchQuery]);
@@ -124,17 +146,13 @@ const MappingsPage: React.FC = () => {
     const uniqueFaculty = new Set(mappings.map(m => m.facultyId)).size;
     const uniqueSubjects = new Set(mappings.map(m => m.subjectId)).size;
     const uniqueClasses = new Set(mappings.map(m => m.classId)).size;
-    const recentlyAdded = mappings.filter(m => {
-      const daysDiff = (Date.now() - new Date(m.createdAt).getTime()) / (1000 * 60 * 60 * 24);
-      return daysDiff <= 7;
-    }).length;
 
-    return { uniqueFaculty, uniqueSubjects, uniqueClasses, recentlyAdded };
+    return { uniqueFaculty, uniqueSubjects, uniqueClasses };
   }, [mappings]);
 
   const handleCloseDialog = useCallback(() => {
     setIsDialogOpen(false);
-    setFormData({ facultyId: '', subjectId: '', classId: '' });
+    setFormData({ facultyId: '', programId: '', subjectId: '', classId: '' });
   }, []);
 
   const handleSubmit = async (e?: React.FormEvent) => {
@@ -143,7 +161,7 @@ const MappingsPage: React.FC = () => {
     if (!formData.facultyId || !formData.subjectId || !formData.classId) {
       toast({
         title: 'Validation Error',
-        description: 'Please select all fields.',
+        description: 'Please select faculty, subject, and class.',
         variant: 'destructive',
       });
       return;
@@ -151,32 +169,22 @@ const MappingsPage: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      const response = await adminAPI.createMapping(formData);
-      const selectedFaculty = faculty.find(f => f.id === formData.facultyId);
-      const selectedSubject = subjects.find(s => s.id === formData.subjectId);
-      const selectedClass = classes.find(c => c.id === formData.classId);
-
-      const newMapping = response.data || {
-        id: Date.now().toString(),
+      await adminAPI.createMapping({
         facultyId: formData.facultyId,
-        facultyName: selectedFaculty?.name || '',
         subjectId: formData.subjectId,
-        subjectName: selectedSubject?.name || '',
-        subjectCode: selectedSubject?.code || '',
-        classId: formData.classId,
-        className: selectedClass ? `${selectedClass.name} Y${selectedClass.year}-${selectedClass.division}` : '',
-        createdAt: new Date().toISOString()
-      };
-      setMappings([newMapping, ...mappings]);
+        classId: formData.classId
+      });
+
       toast({
         title: 'Success',
         description: 'Mapping created successfully.',
       });
+      fetchData(); // Refresh to show new mapping with correct names from backend
       handleCloseDialog();
     } catch (error: any) {
       toast({
         title: 'Error',
-        description: error.response?.data?.message || 'An error occurred. Please try again.',
+        description: error.response?.data?.error || error.response?.data?.message || 'An error occurred. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -201,7 +209,7 @@ const MappingsPage: React.FC = () => {
         variant: 'destructive',
       });
     } finally {
-      setIsDeleteDialogOpen(false);
+      setIsDeleteDialogOpenConfirm(false);
       setSelectedMapping(null);
     }
   };
@@ -237,16 +245,7 @@ const MappingsPage: React.FC = () => {
         </div>
 
         {/* Stats Bar */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="glass-card p-4 hover-lift">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
-                <Link2 className="w-5 h-5 text-accent" />
-              </div>
-              <p className="text-sm text-muted-foreground">Total Mappings</p>
-            </div>
-            <p className="text-2xl font-bold text-foreground">{mappings.length}</p>
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="glass-card p-4 hover-lift">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center">
@@ -323,70 +322,59 @@ const MappingsPage: React.FC = () => {
             )}
           </div>
         ) : (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {filteredMappings.map((mapping) => (
-                <div key={mapping.id} className="glass-card p-5 hover-lift group relative overflow-hidden">
-                  {/* Gradient background on hover */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-accent/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
-                  <div className="relative">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-accent/20 to-accent/10 flex items-center justify-center group-hover:scale-110 transition-transform border-2 border-accent/20">
-                        <Link2 className="w-6 h-6 text-accent" />
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedMapping(mapping);
-                          setIsDeleteDialogOpen(true);
-                        }}
-                        className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive transition-colors"
-                        aria-label={`Delete mapping for ${mapping.facultyName}`}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {filteredMappings.map((mapping) => (
+              <div key={mapping.id} className="glass-card p-5 hover-lift group relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-accent/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <div className="relative">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-accent/20 to-accent/10 flex items-center justify-center group-hover:scale-110 transition-transform border-2 border-accent/20">
+                      <Link2 className="w-6 h-6 text-accent" />
                     </div>
-
-                    <div className="space-y-3">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <Users className="w-3.5 h-3.5 text-success" />
-                          <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Faculty</p>
-                        </div>
-                        <p className="font-semibold text-foreground group-hover:text-accent transition-colors">{mapping.facultyName}</p>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedMapping(mapping);
+                        setIsDeleteDialogOpenConfirm(true);
+                      }}
+                      className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <Users className="w-3.5 h-3.5 text-success" />
+                        <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Faculty</p>
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <BookOpen className="w-3.5 h-3.5 text-primary" />
-                          <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Subject</p>
-                        </div>
-                        <p className="font-semibold text-foreground">
-                          {mapping.subjectName}
-                        </p>
+                      <p className="font-semibold text-foreground group-hover:text-accent transition-colors">{mapping.facultyName}</p>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <BookOpen className="w-3.5 h-3.5 text-primary" />
+                        <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Subject</p>
+                      </div>
+                      <p className="font-semibold text-foreground">{mapping.subjectName}</p>
+                      {mapping.subjectCode && (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-primary/10 text-primary text-xs font-mono font-bold mt-1 border border-primary/20">
                           {mapping.subjectCode}
                         </span>
+                      )}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <Building className="w-3.5 h-3.5 text-warning" />
+                        <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Class</p>
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <Building className="w-3.5 h-3.5 text-warning" />
-                          <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Class</p>
-                        </div>
-                        <p className="font-semibold text-foreground">{mapping.className}</p>
-                      </div>
+                      <p className="font-semibold text-foreground">{mapping.className}</p>
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
-
-            {/* Results Count */}
-            <div className="text-sm text-muted-foreground text-center">
-              Showing {filteredMappings.length} of {mappings.length} mapping{mappings.length !== 1 ? 's' : ''}
-            </div>
-          </>
+              </div>
+            ))}
+          </div>
         )}
       </div>
 
@@ -400,7 +388,8 @@ const MappingsPage: React.FC = () => {
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit}>
-            <div className="space-y-5 py-4">
+            <div className="space-y-4 py-4">
+              {/* Faculty Select */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium flex items-center gap-2">
                   <Users className="w-4 h-4 text-success" />
@@ -410,7 +399,7 @@ const MappingsPage: React.FC = () => {
                   value={formData.facultyId}
                   onValueChange={(value) => setFormData({ ...formData, facultyId: value })}
                 >
-                  <SelectTrigger className="bg-secondary/50 border-border/50 focus:border-primary">
+                  <SelectTrigger className="bg-secondary/50 border-border/50">
                     <SelectValue placeholder="Select faculty member" />
                   </SelectTrigger>
                   <SelectContent>
@@ -420,6 +409,29 @@ const MappingsPage: React.FC = () => {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Program Select */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium flex items-center gap-2">
+                  <GraduationCap className="w-4 h-4 text-primary" />
+                  Program <span className="text-destructive">*</span>
+                </Label>
+                <Select
+                  value={formData.programId}
+                  onValueChange={(value) => setFormData({ ...formData, programId: value, classId: '' })}
+                >
+                  <SelectTrigger className="bg-secondary/50 border-border/50">
+                    <SelectValue placeholder="Select program" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {programs.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Subject Select */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium flex items-center gap-2">
                   <BookOpen className="w-4 h-4 text-primary" />
@@ -429,18 +441,18 @@ const MappingsPage: React.FC = () => {
                   value={formData.subjectId}
                   onValueChange={(value) => setFormData({ ...formData, subjectId: value })}
                 >
-                  <SelectTrigger className="bg-secondary/50 border-border/50 focus:border-primary">
+                  <SelectTrigger className="bg-secondary/50 border-border/50">
                     <SelectValue placeholder="Select subject" />
                   </SelectTrigger>
                   <SelectContent>
                     {subjects.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>
-                        {s.name} ({s.code})
-                      </SelectItem>
+                      <SelectItem key={s.id} value={s.id}>{s.name} {s.code ? `(${s.code})` : ''}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Class Select - Filtered by Program */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium flex items-center gap-2">
                   <Building className="w-4 h-4 text-warning" />
@@ -449,14 +461,15 @@ const MappingsPage: React.FC = () => {
                 <Select
                   value={formData.classId}
                   onValueChange={(value) => setFormData({ ...formData, classId: value })}
+                  disabled={!formData.programId}
                 >
-                  <SelectTrigger className="bg-secondary/50 border-border/50 focus:border-primary">
-                    <SelectValue placeholder="Select class" />
+                  <SelectTrigger className="bg-secondary/50 border-border/50">
+                    <SelectValue placeholder={formData.programId ? "Select actual class" : "Select program first"} />
                   </SelectTrigger>
                   <SelectContent>
-                    {classes.map((c) => (
+                    {filteredClassesList.map((c) => (
                       <SelectItem key={c.id} value={c.id}>
-                        {c.name} Year {c.year} - {c.division}
+                        {c.batchYear} - {c.division}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -464,16 +477,11 @@ const MappingsPage: React.FC = () => {
               </div>
             </div>
             <DialogFooter className="gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleCloseDialog}
-                disabled={isSubmitting}
-              >
+              <Button type="button" variant="outline" onClick={handleCloseDialog} disabled={isSubmitting}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting} className="gap-2">
-                {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                 Create Mapping
               </Button>
             </DialogFooter>
@@ -482,15 +490,12 @@ const MappingsPage: React.FC = () => {
       </Dialog>
 
       {/* Delete Confirmation */}
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+      <AlertDialog open={isDeleteDialogOpenConfirm} onOpenChange={setIsDeleteDialogOpenConfirm}>
         <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-xl">Delete Mapping</AlertDialogTitle>
             <AlertDialogDescription className="text-base">
-              Are you sure you want to delete this mapping? This will unassign{' '}
-              <span className="font-semibold text-foreground">{selectedMapping?.facultyName}</span> from teaching{' '}
-              <span className="font-semibold text-foreground">{selectedMapping?.subjectName}</span> to{' '}
-              <span className="font-semibold text-foreground">{selectedMapping?.className}</span>.
+              Are you sure you want to delete this mapping? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

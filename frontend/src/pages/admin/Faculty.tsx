@@ -1,5 +1,17 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Plus, Pencil, Trash2, Search, Users, Loader2, Mail, X, BookOpen, UserCheck } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Search,
+  Users,
+  Loader2,
+  Mail,
+  X,
+  BookOpen,
+  Clock
+} from 'lucide-react';
 import AdminLayout from '@/layouts/AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,73 +37,151 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { adminAPI } from '@/lib/api';
 
+// --- Types ---
+
 interface Faculty {
   id: string;
   name: string;
   email: string;
-  department: string;
   subjectsCount?: number;
   createdAt: string;
 }
+
+// --- Sub-components ---
+
+const StatsCard = memo(({ title, value, icon: Icon, colorClass, gradientClass, iconBgClass }: any) => (
+  <div className={`glass-card p-4 rounded-xl border border-border/50 ${gradientClass} flex flex-col justify-between overflow-hidden relative group transition-all duration-300 hover:shadow-lg hover:shadow-${colorClass}/5`}>
+    <div className={`absolute -right-4 -top-4 w-20 h-20 ${iconBgClass} rounded-full blur-2xl group-hover:opacity-70 transition-opacity duration-500`} />
+    <div className="relative">
+      <div className="flex items-center gap-2.5 mb-3">
+        <div className={`w-9 h-9 rounded-xl ${iconBgClass} flex items-center justify-center border border-${colorClass}/20 shadow-inner`}>
+          <Icon className={`w-5 h-5 text-${colorClass}`} />
+        </div>
+        <div className="space-y-0.5">
+          <p className="text-[10px] font-bold text-muted-foreground tracking-widest uppercase">{title}</p>
+          <div className={`h-0.5 w-6 bg-${colorClass} rounded-full`} />
+        </div>
+      </div>
+      <p className={`text-2xl font-black text-${colorClass === 'foreground' ? 'foreground' : colorClass} tracking-tight`}>{value}</p>
+    </div>
+  </div>
+));
+
+StatsCard.displayName = 'StatsCard';
+
+const TableRow = memo(({
+  faculty,
+  onEdit,
+  onDelete,
+  getInitials
+}: {
+  faculty: Faculty;
+  onEdit: (f: Faculty) => void;
+  onDelete: (f: Faculty) => void;
+  getInitials: (name: string) => string;
+}) => (
+  <tr className="group hover:bg-white/5 transition-colors duration-200">
+    <td className="py-3 px-6">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-success/20 to-success/5 flex items-center justify-center border border-success/20 group-hover:scale-110 transition-transform duration-300 shadow-inner">
+          <span className="text-[11px] font-black text-success tracking-tighter">
+            {getInitials(faculty.name)}
+          </span>
+        </div>
+        <div>
+          <p className="text-sm font-bold text-foreground group-hover:text-primary transition-colors tracking-tight">
+            {faculty.name}
+          </p>
+          <p className="text-[11px] text-muted-foreground flex items-center gap-1.5 opacity-60">
+            <Mail className="w-3 h-3" />
+            {faculty.email}
+          </p>
+        </div>
+      </div>
+    </td>
+    <td className="px-6">
+      <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-[10px] font-black border border-primary/20 shadow-sm uppercase tracking-wider">
+        {faculty.subjectsCount || 0} Subjects
+      </span>
+    </td>
+    <td className="px-6 text-muted-foreground text-[12px]">
+      {new Date(faculty.createdAt).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      })}
+    </td>
+    <td className="px-6">
+      <div className="flex items-center justify-end gap-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => onEdit(faculty)}
+          className="w-8 h-8 rounded-lg hover:bg-primary/10 hover:text-primary transition-all duration-200 border border-transparent hover:border-primary/20"
+        >
+          <Pencil className="w-3.5 h-3.5" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => onDelete(faculty)}
+          className="w-8 h-8 rounded-lg hover:bg-destructive/10 hover:text-destructive transition-all duration-200 border border-transparent hover:border-destructive/20"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </Button>
+      </div>
+    </td>
+  </tr>
+));
+
+TableRow.displayName = 'TableRow';
+
+// --- Main Component ---
 
 const FacultyPage: React.FC = () => {
   const [faculty, setFaculty] = useState<Faculty[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeletePromptOpen, setIsDeletePromptOpen] = useState(false);
   const [selectedFaculty, setSelectedFaculty] = useState<Faculty | null>(null);
-  const [formData, setFormData] = useState({ name: '', email: '', password: '', department: '' });
+  const [formData, setFormData] = useState({ name: '', email: '', password: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchFaculty();
-  }, []);
-
-  const fetchFaculty = async () => {
+  const fetchFaculty = useCallback(async () => {
     try {
       setIsLoading(true);
       const response = await adminAPI.getFaculty();
       setFaculty(response.data);
     } catch (error) {
-      console.error('Failed to fetch faculty:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load faculty. Please try again.',
-        variant: 'destructive',
-      });
+      toast({ title: 'Error', description: 'Failed to load faculty data.', variant: 'destructive' });
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast]);
 
-  // Memoized filtered faculty
+  useEffect(() => {
+    fetchFaculty();
+  }, [fetchFaculty]);
+
   const filteredFaculty = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
     if (!query) return faculty;
-
     return faculty.filter(
-      (f) =>
-        f.name.toLowerCase().includes(query) ||
-        f.email.toLowerCase().includes(query) ||
-        f.department.toLowerCase().includes(query)
+      (f) => f.name.toLowerCase().includes(query) || f.email.toLowerCase().includes(query)
     );
   }, [faculty, searchQuery]);
 
-  // Memoized stats
   const stats = useMemo(() => {
-    const totalSubjects = faculty.reduce((sum, f) => sum + (f.subjectsCount || 0), 0);
-    const departments = new Set(faculty.map(f => f.department)).size;
+    const totalSubjects = faculty.reduce((sum, f) => sum + Number(f.subjectsCount || 0), 0);
     const recentlyAdded = faculty.filter(f => {
       const daysDiff = (Date.now() - new Date(f.createdAt).getTime()) / (1000 * 60 * 60 * 24);
       return daysDiff <= 7;
     }).length;
-
-    return { totalSubjects, departments, recentlyAdded };
+    return { totalSubjects, recentlyAdded };
   }, [faculty]);
 
-  // Get initials for avatar
   const getInitials = useCallback((name: string) => {
     const parts = name.split(' ');
     if (parts.length >= 2) {
@@ -103,42 +193,17 @@ const FacultyPage: React.FC = () => {
   const handleOpenDialog = useCallback((f?: Faculty) => {
     if (f) {
       setSelectedFaculty(f);
-      setFormData({ name: f.name, email: f.email, password: '', department: f.department });
+      setFormData({ name: f.name, email: f.email, password: '' });
     } else {
       setSelectedFaculty(null);
-      setFormData({ name: '', email: '', password: '', department: '' });
+      setFormData({ name: '', email: '', password: '' });
     }
     setIsDialogOpen(true);
   }, []);
 
-  const handleCloseDialog = useCallback(() => {
-    setIsDialogOpen(false);
-    setSelectedFaculty(null);
-    setFormData({ name: '', email: '', password: '', department: '' });
-  }, []);
-
-  const handleSubmit = async (e?: React.FormEvent) => {
-    e?.preventDefault();
-
-    if (!formData.name.trim() || !formData.email.trim() || !formData.department.trim() || (!selectedFaculty && !formData.password.trim())) {
-      toast({
-        title: 'Validation Error',
-        description: 'Please fill in all required fields.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      toast({
-        title: 'Validation Error',
-        description: 'Please enter a valid email address.',
-        variant: 'destructive',
-      });
-      return;
-    }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name.trim() || !formData.email.trim() || (!selectedFaculty && !formData.password.trim())) return;
 
     setIsSubmitting(true);
     try {
@@ -146,36 +211,21 @@ const FacultyPage: React.FC = () => {
         await adminAPI.updateFaculty(selectedFaculty.id, {
           name: formData.name,
           email: formData.email,
-          department: formData.department,
         });
-        setFaculty(faculty.map(f =>
-          f.id === selectedFaculty.id ? { ...f, name: formData.name, email: formData.email, department: formData.department } : f
+        setFaculty(prev => prev.map(f =>
+          f.id === selectedFaculty.id ? { ...f, name: formData.name, email: formData.email } : f
         ));
-        toast({
-          title: 'Success',
-          description: 'Faculty member updated successfully.',
-        });
+        toast({ title: 'Success', description: 'Faculty updated successfully.' });
       } else {
-        const response = await adminAPI.createFaculty(formData);
-        const newFaculty = response.data || {
-          id: Date.now().toString(),
-          name: formData.name,
-          email: formData.email,
-          department: formData.department,
-          subjectsCount: 0,
-          createdAt: new Date().toISOString()
-        };
-        setFaculty([newFaculty, ...faculty]);
-        toast({
-          title: 'Success',
-          description: 'Faculty account created successfully.',
-        });
+        await adminAPI.createFaculty(formData);
+        toast({ title: 'Success', description: 'Faculty account created.' });
+        fetchFaculty();
       }
-      handleCloseDialog();
+      setIsDialogOpen(false);
     } catch (error: any) {
       toast({
         title: 'Error',
-        description: error.response?.data?.message || 'An error occurred. Please try again.',
+        description: error.response?.data?.error || 'Failed to sync with server.',
         variant: 'destructive',
       });
     } finally {
@@ -185,334 +235,232 @@ const FacultyPage: React.FC = () => {
 
   const handleDelete = async () => {
     if (!selectedFaculty) return;
-
     try {
       await adminAPI.deleteFaculty(selectedFaculty.id);
-      setFaculty(faculty.filter(f => f.id !== selectedFaculty.id));
-      toast({
-        title: 'Success',
-        description: 'Faculty account deleted successfully.',
-      });
+      setFaculty(prev => prev.filter(f => f.id !== selectedFaculty.id));
+      toast({ title: 'Success', description: 'Faculty member removed.' });
     } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.response?.data?.message || 'Failed to delete faculty.',
-        variant: 'destructive',
-      });
+      toast({ title: 'Error', description: 'Action failed.', variant: 'destructive' });
     } finally {
-      setIsDeleteDialogOpen(false);
+      setIsDeletePromptOpen(false);
       setSelectedFaculty(null);
     }
   };
 
-  const handleClearSearch = useCallback(() => {
-    setSearchQuery('');
-  }, []);
-
   return (
     <AdminLayout>
-      <div className="space-y-6 lg:space-y-8 animate-fade-in">
+      <div className="space-y-6 animate-fade-in pb-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl lg:text-4xl font-bold text-foreground flex items-center gap-3">
-              <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-2xl bg-success/10 flex items-center justify-center">
-                <Users className="w-6 h-6 lg:w-7 lg:h-7 text-success" />
+          <div className="space-y-0.5">
+            <h1 className="text-2xl font-black text-foreground flex items-center gap-2.5 tracking-tight">
+              <div className="w-9 h-9 rounded-xl bg-success/10 flex items-center justify-center border border-success/20">
+                <Users className="w-5 h-5 text-success" />
               </div>
               Faculty
             </h1>
-            <p className="text-muted-foreground mt-2 text-sm lg:text-base">
-              Manage faculty accounts and assignments
-            </p>
+            <p className="text-[13px] text-muted-foreground ml-1">Manage academic staff and assignments</p>
           </div>
           <Button
             onClick={() => handleOpenDialog()}
-            className="gap-2 shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all"
-            size="lg"
+            className="h-9 gap-2 bg-success hover:bg-success/90 text-success-foreground shadow-lg shadow-success/20 hover:shadow-xl hover:shadow-success/30 transition-all duration-300 rounded-lg px-6 text-sm"
           >
-            <Plus className="w-5 h-5" />
-            Add Faculty
+            <Plus className="w-4 h-4" />
+            <span className="font-bold">Add Faculty</span>
           </Button>
         </div>
 
-        {/* Stats Bar */}
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-          <div className="glass-card p-4 hover-lift">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center">
-                <Users className="w-5 h-5 text-success" />
-              </div>
-              <p className="text-sm text-muted-foreground">Total Faculty</p>
-            </div>
-            <p className="text-2xl font-bold text-foreground">{faculty.length}</p>
-          </div>
-          <div className="glass-card p-4 hover-lift">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                <BookOpen className="w-5 h-5 text-primary" />
-              </div>
-              <p className="text-sm text-muted-foreground">Total Subjects</p>
-            </div>
-            <p className="text-2xl font-bold text-primary">{stats.totalSubjects}</p>
-          </div>
-          <div className="glass-card p-4 hover-lift">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
-                <UserCheck className="w-5 h-5 text-accent" />
-              </div>
-              <p className="text-sm text-muted-foreground">Departments</p>
-            </div>
-            <p className="text-2xl font-bold text-accent">{stats.departments}</p>
-          </div>
-          <div className="glass-card p-4 hover-lift">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center">
-                <Plus className="w-5 h-5 text-warning" />
-              </div>
-              <p className="text-sm text-muted-foreground">Recently Added</p>
-            </div>
-            <p className="text-2xl font-bold text-warning">{stats.recentlyAdded}</p>
-          </div>
-        </div>
-
-        {/* Search */}
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
-          <Input
-            placeholder="Search by name, email, or department..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 pr-10 bg-secondary/50 border-border/50 focus:border-primary transition-colors"
+        {/* Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <StatsCard
+            title="Total Faculty"
+            value={faculty.length}
+            icon={Users}
+            colorClass="success"
+            gradientClass="bg-gradient-to-br from-success/5 to-transparent"
+            iconBgClass="bg-success/10"
           />
-          {searchQuery && (
-            <button
-              onClick={handleClearSearch}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-              aria-label="Clear search"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
+          <StatsCard
+            title="Allocated Subjects"
+            value={stats.totalSubjects}
+            icon={BookOpen}
+            colorClass="primary"
+            gradientClass="bg-gradient-to-br from-primary/5 to-transparent"
+            iconBgClass="bg-primary/10"
+          />
+          <StatsCard
+            title="New This Week"
+            value={stats.recentlyAdded}
+            icon={Clock}
+            colorClass="warning"
+            gradientClass="bg-gradient-to-br from-warning/5 to-transparent"
+            iconBgClass="bg-warning/10"
+          />
         </div>
 
-        {/* Table */}
-        <div className="glass-card overflow-hidden">
-          {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-16">
-              <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
-              <p className="text-muted-foreground">Loading faculty...</p>
-            </div>
-          ) : filteredFaculty.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-              <div className="w-16 h-16 rounded-full bg-success/10 flex items-center justify-center mb-4">
-                <Users className="w-8 h-8 text-success" />
-              </div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">
-                {searchQuery ? 'No faculty found' : 'No faculty yet'}
-              </h3>
-              <p className="text-sm text-muted-foreground max-w-sm mb-6">
-                {searchQuery
-                  ? 'Try adjusting your search terms or clear the search to see all faculty.'
-                  : 'Get started by adding your first faculty member to the system.'}
-              </p>
-              {!searchQuery && (
-                <Button onClick={() => handleOpenDialog()} className="gap-2">
-                  <Plus className="w-4 h-4" />
-                  Add Your First Faculty
-                </Button>
-              )}
-            </div>
-          ) : (
-            <>
-              <div className="overflow-x-auto">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th className="w-1/3">Faculty</th>
-                      <th className="w-1/4">Department</th>
-                      <th className="w-1/6">Subjects</th>
-                      <th className="w-32 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredFaculty.map((f) => (
-                      <tr key={f.id} className="group">
-                        <td>
-                          <div className="flex items-center gap-3">
-                            <div className="w-11 h-11 rounded-full bg-gradient-to-br from-success/20 to-success/10 flex items-center justify-center border-2 border-success/20 group-hover:scale-110 transition-transform">
-                              <span className="text-sm font-bold text-success">
-                                {getInitials(f.name)}
-                              </span>
-                            </div>
-                            <div>
-                              <p className="font-semibold text-foreground group-hover:text-primary transition-colors">{f.name}</p>
-                              <p className="text-sm text-muted-foreground flex items-center gap-1.5">
-                                <Mail className="w-3.5 h-3.5" />
-                                {f.email}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-                        <td>
-                          <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-accent/10 text-accent text-sm font-medium border border-accent/20">
-                            {f.department}
-                          </span>
-                        </td>
-                        <td>
-                          <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-sm font-bold border border-primary/20">
-                            {f.subjectsCount || 0}
-                          </span>
-                        </td>
-                        <td>
-                          <div className="flex items-center justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleOpenDialog(f)}
-                              className="hover:bg-primary/10 hover:text-primary transition-colors"
-                              aria-label={`Edit ${f.name}`}
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setSelectedFaculty(f);
-                                setIsDeleteDialogOpen(true);
-                              }}
-                              className="hover:bg-destructive/10 hover:text-destructive transition-colors"
-                              aria-label={`Delete ${f.name}`}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Results Count */}
-              <div className="px-6 py-4 border-t border-border/50 text-sm text-muted-foreground text-center">
-                Showing {filteredFaculty.length} of {faculty.length} faculty member{faculty.length !== 1 ? 's' : ''}
-              </div>
-            </>
-          )}
+        {/* Filters */}
+        <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+          <div className="relative w-full md:max-w-xs group">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+            <Input
+              placeholder="Search faculty..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 h-9 bg-secondary/30 border-border/50 focus:border-primary/50 rounded-xl transition-all shadow-sm text-sm"
+            />
+            {searchQuery && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 hover:bg-transparent text-muted-foreground"
+              >
+                <X className="w-3.5 h-3.5" />
+              </Button>
+            )}
+          </div>
         </div>
+
+        {/* Table/Content */}
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-16 glass-card rounded-2xl border-dashed">
+            <Loader2 className="w-10 h-10 animate-spin text-primary mb-3 opacity-50" />
+            <p className="text-[13px] text-muted-foreground font-medium animate-pulse">Fetching staff roster...</p>
+          </div>
+        ) : filteredFaculty.length === 0 ? (
+          <div className="glass-card flex flex-col items-center justify-center py-16 px-4 text-center rounded-2xl">
+            <div className="w-16 h-16 rounded-full bg-success/5 flex items-center justify-center mb-5">
+              <Users className="w-8 h-8 text-success/40" />
+            </div>
+            <h3 className="text-xl font-bold text-foreground mb-1.5">{searchQuery ? 'No faculty found' : 'No staff registered'}</h3>
+            <p className="text-[13px] text-muted-foreground max-w-sm mb-6">
+              Start adding your faculty members to manage class assignments.
+            </p>
+            {!searchQuery && (
+              <Button onClick={() => handleOpenDialog()} className="h-9 px-6 rounded-lg font-bold gap-2 text-sm">
+                <Plus className="w-4 h-4" /> Add Faculty
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div className="glass-card overflow-hidden rounded-2xl border-border/50 shadow-xl">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border/50 bg-secondary/20">
+                    <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Personnel</th>
+                    <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Allocation</th>
+                    <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Joined</th>
+                    <th className="text-right py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/30">
+                  {filteredFaculty.map((f) => (
+                    <TableRow
+                      key={f.id}
+                      faculty={f}
+                      onEdit={handleOpenDialog}
+                      onDelete={(f) => { setSelectedFaculty(f); setIsDeletePromptOpen(true); }}
+                      getInitials={getInitials}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="bg-secondary/10 py-3 px-6 border-t border-border/50 flex items-center justify-between text-[10px] font-bold text-muted-foreground/50 tracking-widest uppercase">
+              <span>Showing {filteredFaculty.length} Results</span>
+              <span className="text-[9px] bg-secondary/30 px-2 py-0.5 rounded-md border border-border/50">Admin Console v1.0</span>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Create/Edit Dialog */}
+      {/* --- Dialogs --- */}
+
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="bg-card border-border sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-xl">
-              {selectedFaculty ? 'Edit Faculty' : 'Add New Faculty'}
+        <DialogContent className="bg-background/95 backdrop-blur-xl border-border/50 sm:max-w-md rounded-3xl shadow-2xl">
+          <DialogHeader className="pt-2 px-1">
+            <DialogTitle className="text-xl font-black tracking-tight flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Plus className="w-4 h-4 text-primary" />
+              </div>
+              {selectedFaculty ? 'Update Faculty' : 'New Faculty'}
             </DialogTitle>
-            <DialogDescription>
-              {selectedFaculty
-                ? 'Update the faculty member details below.'
-                : 'Enter the details for the new faculty member.'}
+            <DialogDescription className="text-[13px] mt-1">
+              Set up a new faculty account or update existing details.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-5 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-sm font-medium">
-                  Full Name <span className="text-destructive">*</span>
-                </Label>
+          <form onSubmit={handleSubmit} className="space-y-5 pt-4">
+            <div className="space-y-4 px-1">
+              <div className="space-y-1.5">
+                <Label htmlFor="name" className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Full Name</Label>
                 <Input
                   id="name"
-                  placeholder="e.g., Dr. John Smith"
+                  placeholder="e.g., Dr. Alan Turing"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="bg-secondary/50 border-border/50 focus:border-primary"
+                  className="h-10 bg-secondary/50 border-border/50 rounded-xl text-sm"
                   required
                   autoFocus
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium">
-                  Email Address <span className="text-destructive">*</span>
-                </Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="email" className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Technical Email</Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="e.g., john.smith@university.edu"
+                  placeholder="name@university.edu"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value.toLowerCase() })}
-                  className="bg-secondary/50 border-border/50 focus:border-primary"
+                  className="h-10 bg-secondary/50 border-border/50 rounded-xl text-sm"
                   required
                 />
               </div>
               {!selectedFaculty && (
-                <div className="space-y-2">
-                  <Label htmlFor="password" className="text-sm font-medium">
-                    Password <span className="text-destructive">*</span>
-                  </Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="password" className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Access Credentials</Label>
                   <Input
                     id="password"
                     type="password"
-                    placeholder="Enter initial password"
+                    placeholder="••••••••"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="bg-secondary/50 border-border/50 focus:border-primary"
-                    minLength={6}
+                    className="h-10 bg-secondary/50 border-border/50 rounded-xl text-sm"
                     required
                   />
-                  <p className="text-xs text-muted-foreground">Minimum 6 characters</p>
+                  <p className="text-[9px] text-muted-foreground/50 font-black uppercase tracking-widest ml-1">Min. 6 bits</p>
                 </div>
               )}
-              <div className="space-y-2">
-                <Label htmlFor="department" className="text-sm font-medium">
-                  Department <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="department"
-                  placeholder="e.g., Computer Science"
-                  value={formData.department}
-                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                  className="bg-secondary/50 border-border/50 focus:border-primary"
-                  required
-                />
-              </div>
             </div>
-            <DialogFooter className="gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleCloseDialog}
-                disabled={isSubmitting}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSubmitting} className="gap-2">
-                {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                {selectedFaculty ? 'Update Faculty' : 'Create Faculty'}
+            <DialogFooter className="pt-4 border-t border-border/20 px-1 gap-2">
+              <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)} className="rounded-xl font-bold h-10 text-sm">Discard</Button>
+              <Button type="submit" disabled={isSubmitting} className="flex-1 rounded-xl font-bold shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90 transition-all h-10 text-sm">
+                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : (selectedFaculty ? 'Update' : 'Confirm')}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation */}
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent className="bg-card border-border">
+      {/* Delete Prompt */}
+      <AlertDialog open={isDeletePromptOpen} onOpenChange={setIsDeletePromptOpen}>
+        <AlertDialogContent className="bg-card/95 backdrop-blur-xl border-border/50 rounded-3xl shadow-2xl p-6 text-center">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-xl">Delete Faculty</AlertDialogTitle>
-            <AlertDialogDescription className="text-base">
-              Are you sure you want to delete <span className="font-semibold text-foreground">"{selectedFaculty?.name}"</span>?
-              This action cannot be undone and may affect related data.
+            <div className="w-12 h-12 rounded-xl bg-destructive/10 flex items-center justify-center mb-3 mx-auto border border-destructive/20">
+              <Trash2 className="w-6 h-6 text-destructive" />
+            </div>
+            <AlertDialogTitle className="text-xl font-black text-center tracking-tight">Confirm Deletion</AlertDialogTitle>
+            <AlertDialogDescription className="text-center text-[13px] mt-1">
+              This will permanently remove the faculty profile for: <br />
+              <span className="font-black text-foreground mt-2 block p-2 bg-secondary/30 rounded-lg border border-border/50 uppercase tracking-tighter">
+                {selectedFaculty?.name}
+              </span>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
-            >
-              Delete Faculty
+          <AlertDialogFooter className="sm:justify-center gap-2 mt-4">
+            <AlertDialogCancel className="rounded-xl font-bold h-10 text-sm px-6">Discard</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90 text-white rounded-xl font-black h-10 text-sm px-6 shadow-lg shadow-destructive/20">
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -521,4 +469,4 @@ const FacultyPage: React.FC = () => {
   );
 };
 
-export default FacultyPage;
+export default memo(FacultyPage);

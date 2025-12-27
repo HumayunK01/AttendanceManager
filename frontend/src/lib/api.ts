@@ -64,9 +64,9 @@ export const adminAPI = {
 
   // Faculty
   getFaculty: () => api.get('/faculty'),
-  createFaculty: (data: { name: string; email: string; password: string; department: string }) =>
-    api.post('/faculty', data),
-  updateFaculty: (id: string, data: Partial<{ name: string; email: string; department: string }>) =>
+  createFaculty: (data: { name: string; email: string; password: string }) =>
+    api.post('/admin/faculty', data),
+  updateFaculty: (id: string, data: Partial<{ name: string; email: string }>) =>
     api.put(`/faculty/${id}`, data),
   deleteFaculty: (id: string) => api.delete(`/faculty/${id}`),
 
@@ -82,7 +82,7 @@ export const adminAPI = {
   // Mappings
   getMappings: () => api.get('/mappings'),
   createMapping: (data: { facultyId: string; subjectId: string; classId: string }) =>
-    api.post('/mappings', data),
+    api.post('/admin/map', data),
   deleteMapping: (id: string) => api.delete(`/mappings/${id}`),
 
   // Timetable

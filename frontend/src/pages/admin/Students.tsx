@@ -100,7 +100,7 @@ const StudentsPage: React.FC = () => {
   const stats = useMemo(() => {
     const activeStudents = students.filter(s => s.isActive).length;
     const avgAttendance = students.length > 0
-      ? students.reduce((sum, s) => sum + (s.attendance || 0), 0) / students.length
+      ? students.reduce((sum, s) => sum + Number(s.attendance || 0), 0) / students.length
       : 0;
     const defaulters = students.filter(s => s.isActive && (s.attendance || 0) < 75).length;
     const recentlyAdded = students.filter(s => {
@@ -420,8 +420,8 @@ const StudentsPage: React.FC = () => {
                         </td>
                         <td>
                           <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border ${student.isActive
-                              ? 'bg-success/10 text-success border-success/20'
-                              : 'bg-destructive/10 text-destructive border-destructive/20'
+                            ? 'bg-success/10 text-success border-success/20'
+                            : 'bg-destructive/10 text-destructive border-destructive/20'
                             }`}>
                             {student.isActive ? (
                               <>
