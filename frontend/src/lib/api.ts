@@ -111,6 +111,12 @@ export const adminAPI = {
   getDivisions: () => api.get('/admin/divisions'),
   createDivision: (data: { name: string }) => api.post('/admin/division', data),
 
+  // Batches
+  getBatches: (classId: string) => api.get(`/admin/class/${classId}/batches`),
+  createBatch: (classId: string, name: string) => api.post(`/admin/class/${classId}/batch`, { name }),
+  deleteBatch: (id: string) => api.delete(`/admin/batch/${id}`),
+  assignStudentBatch: (studentId: string | number, batchId: string | number | null) => api.patch('/admin/student/batch', { studentId, batchId }),
+
   // Reports
   getAbuseReports: () => api.get('/reports/abuse'),
   resolveAbuseReport: (id: string) => api.patch(`/reports/abuse/${id}/resolve`),

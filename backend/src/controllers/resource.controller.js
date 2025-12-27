@@ -26,11 +26,13 @@ export const getClasses = async (req, res) => {
             c.batch_year as "batchYear",
             c.is_active as "isActive",
             c.created_at as "createdAt",
-            COUNT(s.id):: int as "totalStudents"
+            COUNT(DISTINCT s.id)::int as "totalStudents",
+            COUNT(DISTINCT b.id)::int as "totalBatches"
       FROM classes c
       JOIN programs p ON p.id = c.program_id
       LEFT JOIN divisions d ON d.id = c.division_id
       LEFT JOIN students s ON s.class_id = c.id AND s.is_active = true
+      LEFT JOIN batches b ON b.class_id = c.id
       GROUP BY c.id, p.name, d.name
       ORDER BY c.batch_year DESC, p.name ASC
             `
@@ -77,6 +79,8 @@ export const getStudents = async (req, res) => {
             s.roll_no as "rollNumber",
             c.id as "classId",
             CONCAT(p.name, ' Y', c.batch_year, CASE WHEN d.name IS NOT NULL THEN '-' || d.name ELSE '' END) as "className",
+            b.id as "batchId",
+            b.name as "batchName",
             s.is_active as "isActive",
             u.created_at as "createdAt",
             COUNT(ar.id) as "totalSessions",
@@ -92,8 +96,9 @@ export const getStudents = async (req, res) => {
       JOIN classes c ON c.id = s.class_id
       JOIN programs p ON p.id = c.program_id
       LEFT JOIN divisions d ON d.id = c.division_id
+      LEFT JOIN batches b ON b.id = s.batch_id
       LEFT JOIN attendance_records ar ON ar.student_id = s.id
-      GROUP BY s.id, u.name, u.email, s.roll_no, c.id, p.name, c.batch_year, d.name, s.is_active, u.created_at
+      GROUP BY s.id, u.name, u.email, s.roll_no, c.id, p.name, c.batch_year, d.name, s.is_active, u.created_at, b.id, b.name
       ORDER BY u.name ASC
     `
         res.json(students)

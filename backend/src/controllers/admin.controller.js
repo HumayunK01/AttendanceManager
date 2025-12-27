@@ -342,3 +342,64 @@ export const getDivisions = async (_, res) => {
   const result = await sql`SELECT id, name FROM divisions WHERE is_active=true ORDER BY name`
   res.json(result)
 }
+
+export const getBatches = async (req, res) => {
+  const { classId } = req.params
+  const batches = await sql`SELECT * FROM batches WHERE class_id = ${classId} ORDER BY name`
+  res.json(batches)
+}
+
+export const createBatch = async (req, res) => {
+  const { classId } = req.params
+  const { name } = req.body
+
+  if (!name) return res.status(400).json({ error: 'name required' })
+
+  const batch = await sql`
+    INSERT INTO batches (class_id, name)
+    VALUES (${classId}, ${name})
+    RETURNING *
+  `
+  res.json(batch[0])
+}
+
+export const deleteBatch = async (req, res) => {
+  const { id } = req.params
+  try {
+    await sql`DELETE FROM batches WHERE id = ${id}`
+    res.json({ success: true })
+  } catch (error) {
+    if (error.code === '23503') {
+      return res.status(400).json({ error: 'Cannot delete batch with assigned students.' })
+    }
+    res.status(500).json({ error: 'Failed to delete batch' })
+  }
+}
+
+export const assignBatch = async (req, res) => {
+  const { studentId, batchId } = req.body
+
+  // batchId can be null to unassign
+  if (!studentId) return res.status(400).json({ error: 'studentId required' })
+
+  // Verify batch belongs to student's class if batchId is provided
+  if (batchId) {
+    const check = await sql`
+        SELECT s.class_id as "studentClassId", b.class_id as "batchClassId"
+        FROM students s, batches b
+        WHERE s.id = ${studentId} AND b.id = ${batchId}
+    `
+    if (!check.length) return res.status(404).json({ error: 'Student or Batch not found' })
+    if (check[0].studentClassId !== check[0].batchClassId) {
+      return res.status(400).json({ error: 'Batch must belong to the same class as the student' })
+    }
+  }
+
+  await sql`
+    UPDATE students
+    SET batch_id = ${batchId || null}
+    WHERE id = ${studentId}
+  `
+
+  res.json({ success: true })
+}

@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Calendar, Clock, Users, Play, FileText, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Calendar, Clock, Users, Play, FileText, Loader2, CheckCircle2, AlertCircle, Layers } from 'lucide-react';
 import FacultyLayout from '@/layouts/FacultyLayout';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -16,6 +19,8 @@ interface TimetableSlot {
   startTime: string;
   endTime: string;
   studentCount?: number;
+  classBatches?: { id: number; name: string }[];
+  batchName?: string;
   sessionId?: string;
   sessionStatus?: 'not_started' | 'in_progress' | 'completed';
 }
@@ -26,6 +31,9 @@ const FacultyDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+  const [isBatchDialogOpen, setIsBatchDialogOpen] = useState(false);
+  const [selectedSlotForBatch, setSelectedSlotForBatch] = useState<TimetableSlot | null>(null);
+  const [selectedBatchId, setSelectedBatchId] = useState<string>('');
 
   useEffect(() => {
     fetchTodaySchedule();
@@ -61,7 +69,9 @@ const FacultyDashboard: React.FC = () => {
           className: slot.class,
           startTime: slot.start_time,
           endTime: slot.end_time,
+          batchName: slot.batch_name,
           studentCount: 0,
+          classBatches: slot.class_batches,
           sessionId: slot.session_id || undefined,
           sessionStatus,
         };
@@ -95,16 +105,25 @@ const FacultyDashboard: React.FC = () => {
     return 'completed';
   };
 
-  const handleStartSession = async (slot: TimetableSlot) => {
+  const handleStartSession = async (slot: TimetableSlot, batchId?: string) => {
+    // If slot accepts batches but none selected, and not strictly forced (via argument), check if we need to prompt
+    if (!batchId && !slot.batchName && slot.classBatches && slot.classBatches.length > 0) {
+      setSelectedSlotForBatch(slot);
+      setSelectedBatchId('');
+      setIsBatchDialogOpen(true);
+      return;
+    }
+
     try {
-      const response = await api.post('/attendance/session', {
-        timetableSlotId: slot.id,
-      });
+      const payload: any = { timetableSlotId: slot.id };
+      if (batchId) payload.batchId = parseInt(batchId);
+
+      const response = await api.post('/attendance/session', payload);
 
       const sessionId = response.data?.sessionId;
       toast({
         title: 'Session Started',
-        description: 'Attendance session has been created.',
+        description: batchId ? 'Batch session created.' : 'Attendance session created.',
       });
       navigate(`/faculty/attendance/${sessionId}`);
     } catch (error: any) {
@@ -243,9 +262,14 @@ const FacultyDashboard: React.FC = () => {
                     <h3 className="text-[15px] font-black text-foreground tracking-tight mb-0.5">{slot.subjectName}</h3>
                     <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground font-medium">
                       <span className="flex items-center gap-1">
-                        <Users className="w-3 h-3" />
                         {slot.className}
                       </span>
+                      {slot.batchName && (
+                        <span className="flex items-center gap-1 text-accent">
+                          <span className="w-1.5 h-1.5 rounded-full bg-accent" />
+                          {slot.batchName}
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -306,6 +330,53 @@ const FacultyDashboard: React.FC = () => {
           </div>
         )}
       </div>
+      <Dialog open={isBatchDialogOpen} onOpenChange={setIsBatchDialogOpen}>
+        <DialogContent className="bg-background/95 backdrop-blur-xl border-border/50 sm:max-w-sm rounded-2xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-black tracking-tight flex items-center gap-2">
+              <Layers className="w-5 h-5 text-primary" />
+              Select Batch
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Attendance for <strong>{selectedSlotForBatch?.subjectName}</strong>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Practical Batch</Label>
+              <Select value={selectedBatchId} onValueChange={setSelectedBatchId}>
+                <SelectTrigger className="h-10 rounded-xl bg-secondary/50 border-border/50">
+                  <SelectValue placeholder="Choose a batch..." />
+                </SelectTrigger>
+                <SelectContent className="bg-background/95 backdrop-blur-xl border-border/50 rounded-xl">
+                  {selectedSlotForBatch?.classBatches?.map(b => (
+                    <SelectItem key={b.id} value={b.id.toString()}>{b.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex gap-2 text-[10px] text-muted-foreground font-medium bg-secondary/20 p-2 rounded-lg border border-border/50">
+              <AlertCircle className="w-3.5 h-3.5" />
+              <span>Selecting a batch restricts the attendance list to assigned students only.</span>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:justify-between">
+            <Button variant="ghost" onClick={() => setIsBatchDialogOpen(false)} className="rounded-xl font-bold text-xs h-9">Cancel</Button>
+            <Button
+              onClick={() => {
+                if (selectedSlotForBatch && selectedBatchId) {
+                  handleStartSession(selectedSlotForBatch, selectedBatchId);
+                  setIsBatchDialogOpen(false);
+                }
+              }}
+              disabled={!selectedBatchId}
+              className="rounded-xl font-bold bg-primary text-primary-foreground text-xs h-9 px-6"
+            >
+              Start Session
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </FacultyLayout>
   );
 };

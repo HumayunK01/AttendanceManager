@@ -30,6 +30,7 @@ interface SessionInfo {
   id: string;
   subjectName: string;
   className: string;
+  batchName?: string;
   date: string;
   startTime: string;
   isLocked: boolean;
@@ -66,6 +67,7 @@ const AttendanceSession: React.FC = () => {
           id: sessionId!,
           subjectName: firstRecord.subject_name || 'Unknown',
           className: firstRecord.class_name || 'Unknown',
+          batchName: firstRecord.batch_name,
           date: new Date(firstRecord.session_date).toLocaleDateString(),
           startTime: firstRecord.start_time,
           isLocked: firstRecord.locked || false,
@@ -195,8 +197,17 @@ const AttendanceSession: React.FC = () => {
               <h1 className="text-2xl lg:text-3xl font-bold text-foreground">
                 {sessionInfo?.subjectName}
               </h1>
-              <p className="text-muted-foreground mt-1">
-                {sessionInfo?.className} • {sessionInfo?.date} • {formatTime12Hour(sessionInfo?.startTime || '')}
+              <p className="text-muted-foreground mt-1 flex items-center gap-2">
+                <span>{sessionInfo?.className}</span>
+                {sessionInfo?.batchName && (
+                  <span className="bg-accent/10 text-accent px-2 py-0.5 rounded text-xs font-bold border border-accent/20">
+                    {sessionInfo.batchName}
+                  </span>
+                )}
+                <span>•</span>
+                <span>{sessionInfo?.date}</span>
+                <span>•</span>
+                <span>{formatTime12Hour(sessionInfo?.startTime || '')}</span>
               </p>
             </div>
           </div>

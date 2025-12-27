@@ -48,6 +48,8 @@ interface Student {
   rollNumber: string;
   className: string;
   classId: string;
+  batchId?: number | null;
+  batchName?: string | null;
   isActive: boolean;
   attendance?: number;
   totalSessions?: number;
@@ -59,6 +61,11 @@ interface Class {
   program: string;
   division: string | null;
   batchYear: number;
+}
+
+interface Batch {
+  id: number;
+  name: string;
 }
 
 // --- Sub-components ---
@@ -130,6 +137,15 @@ const StudentRow = memo(({
       </p>
     </td>
     <td className="px-6">
+      {student.batchName ? (
+        <span className="inline-flex items-center px-2 py-1 rounded-md bg-accent/10 text-accent text-[10px] font-black border border-accent/20 shadow-sm">
+          {student.batchName}
+        </span>
+      ) : (
+        <span className="text-muted-foreground/30 text-[10px] font-medium italic">No Batch</span>
+      )}
+    </td>
+    <td className="px-6">
       <div className="flex flex-col gap-0.5">
         <span className={`text-sm font-black ${getAttendanceColor(student.attendance, student.totalSessions)}`}>
           {student.attendance !== undefined && (student.totalSessions || 0) > 0 ? `${student.attendance}%` : 'N/A'}
@@ -183,12 +199,13 @@ StudentRow.displayName = 'StudentRow';
 const StudentsPage: React.FC = () => {
   const [students, setStudents] = useState<Student[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
+  const [batches, setBatches] = useState<Batch[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterClass, setFilterClass] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [formData, setFormData] = useState({ name: '', email: '', password: '', rollNo: '', classId: '' });
+  const [formData, setFormData] = useState({ name: '', email: '', password: '', rollNo: '', classId: '', batchId: '' });
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
@@ -214,6 +231,25 @@ const StudentsPage: React.FC = () => {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  useEffect(() => {
+    const fetchBatches = async () => {
+      if (!formData.classId) {
+        setBatches([]);
+        return;
+      }
+      try {
+        const res = await adminAPI.getBatches(formData.classId);
+        setBatches(res.data);
+      } catch (error) {
+        console.error(error);
+        setBatches([]);
+      }
+    };
+    if (isDialogOpen) {
+      fetchBatches();
+    }
+  }, [formData.classId, isDialogOpen]);
 
   const filteredStudents = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
@@ -274,7 +310,8 @@ const StudentsPage: React.FC = () => {
       email: student.email,
       password: '', // Password is empty for edit
       rollNo: student.rollNumber,
-      classId: String(student.classId) // Force to string for Select component
+      classId: String(student.classId), // Force to string for Select component
+      batchId: student.batchId ? String(student.batchId) : ''
     });
     setIsDialogOpen(true);
   }, []);
@@ -305,7 +342,9 @@ const StudentsPage: React.FC = () => {
 
     setIsSubmitting(true);
     try {
+      let studentId;
       if (editingStudent) {
+        studentId = editingStudent.id;
         await adminAPI.updateStudent(editingStudent.id, {
           name: formData.name,
           email: formData.email,
@@ -314,15 +353,22 @@ const StudentsPage: React.FC = () => {
         });
         toast({ title: 'Success', description: 'Student configuration updated.' });
       } else {
-        await adminAPI.createStudent({
+        const res = await adminAPI.createStudent({
           ...formData,
           rollNo: Number(formData.rollNo)
         });
+        studentId = res.data.id;
         toast({ title: 'Success', description: 'Student account provisioned successfully.' });
       }
+
+      // Assign Batch
+      if (studentId) {
+        await adminAPI.assignStudentBatch(studentId, formData.batchId || null);
+      }
+
       fetchData();
       setIsDialogOpen(false);
-      setFormData({ name: '', email: '', password: '', rollNo: '', classId: '' });
+      setFormData({ name: '', email: '', password: '', rollNo: '', classId: '', batchId: '' });
       setEditingStudent(null);
     } catch (error: any) {
       toast({ title: 'Fault', description: error.response?.data?.error || 'Database sync failed.', variant: 'destructive' });
@@ -457,6 +503,7 @@ const StudentsPage: React.FC = () => {
                     <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Student Info</th>
                     <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 whitespace-nowrap">Roll No</th>
                     <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 whitespace-nowrap">Academic Class</th>
+                    <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 whitespace-nowrap">Batch</th>
                     <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 whitespace-nowrap">Attendance</th>
                     <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 whitespace-nowrap">Status</th>
                     <th className="text-right py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Action</th>
@@ -521,7 +568,7 @@ const StudentsPage: React.FC = () => {
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Academic Class</Label>
-                  <Select value={formData.classId} onValueChange={(v) => setFormData({ ...formData, classId: v })}>
+                  <Select value={formData.classId} onValueChange={(v) => setFormData({ ...formData, classId: v, batchId: '' })}>
                     <SelectTrigger className="h-10 bg-secondary/50 border-border/50 rounded-xl"><SelectValue placeholder="Select" /></SelectTrigger>
                     <SelectContent className="bg-background/95 backdrop-blur-xl border-border/50 rounded-xl max-w-[calc(100vw-4rem)] sm:max-w-[400px]">
                       {classes.map((c) => (
@@ -532,6 +579,28 @@ const StudentsPage: React.FC = () => {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              {/* Batch Selection */}
+              <div className="space-y-1.5">
+                <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Practical Batch (Optional)</Label>
+                <Select
+                  value={formData.batchId || "none"}
+                  onValueChange={(v) => setFormData({ ...formData, batchId: v === "none" ? "" : v })}
+                  disabled={!formData.classId || batches.length === 0}
+                >
+                  <SelectTrigger className="h-10 bg-secondary/50 border-border/50 rounded-xl">
+                    <SelectValue placeholder={!formData.classId ? "Select Class First" : batches.length === 0 ? "No Batches Available" : "Select Batch"} />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background/95 backdrop-blur-xl border-border/50 rounded-xl">
+                    <SelectItem value="none">None / Unassigned</SelectItem>
+                    {batches.map((b) => (
+                      <SelectItem key={b.id} value={String(b.id)}>
+                        {b.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <DialogFooter className="pt-4 border-t border-border/20 px-1 gap-2">

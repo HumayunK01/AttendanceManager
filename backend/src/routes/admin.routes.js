@@ -14,7 +14,11 @@ import {
   createProgram,
   createDivision,
   getPrograms,
-  getDivisions
+  getDivisions,
+  getBatches,
+  createBatch,
+  deleteBatch,
+  assignBatch
 } from '../controllers/admin.controller.js'
 
 const router = Router()
@@ -311,5 +315,94 @@ router.get('/divisions', requireAuth(['ADMIN']), getDivisions)
  *         description: Division created successfully
  */
 router.post('/division', requireAuth(['ADMIN']), createDivision)
+
+/**
+ * @swagger
+ * /admin/class/{classId}/batches:
+ *   get:
+ *     summary: Get batches for a class
+ *     tags: [Admin]
+ *     parameters:
+ *       - in: path
+ *         name: classId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: List of batches
+ */
+router.get('/class/:classId/batches', requireAuth(['ADMIN']), getBatches)
+
+/**
+ * @swagger
+ * /admin/class/{classId}/batch:
+ *   post:
+ *     summary: Create a batch for a class
+ *     tags: [Admin]
+ *     parameters:
+ *       - in: path
+ *         name: classId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name]
+ *             properties:
+ *               name:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Batch created
+ */
+router.post('/class/:classId/batch', requireAuth(['ADMIN']), createBatch)
+
+/**
+ * @swagger
+ * /admin/batch/{id}:
+ *   delete:
+ *     summary: Delete a batch
+ *     tags: [Admin]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Batch deleted
+ */
+router.delete('/batch/:id', requireAuth(['ADMIN']), deleteBatch)
+
+/**
+ * @swagger
+ * /admin/student/batch:
+ *   patch:
+ *     summary: Assign a student to a batch
+ *     tags: [Admin]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [studentId]
+ *             properties:
+ *               studentId:
+ *                 type: integer
+ *               batchId:
+ *                 type: integer
+ *                 nullable: true
+ *     responses:
+ *       200:
+ *         description: Student assigned to batch
+ */
+router.patch('/student/batch', requireAuth(['ADMIN']), assignBatch)
 
 export default router

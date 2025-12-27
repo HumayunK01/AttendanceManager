@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
-import { Plus, Pencil, Trash2, Search, Building, Loader2, X, GraduationCap, Users } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, Building, Loader2, X, GraduationCap, Users, Layers } from 'lucide-react';
 import AdminLayout from '@/layouts/AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -49,6 +49,7 @@ interface Class {
   isActive: boolean;
   createdAt: string;
   totalStudents: number;
+  totalBatches?: number;
 }
 
 interface Program {
@@ -59,6 +60,13 @@ interface Program {
 interface Division {
   id: number;
   name: string;
+}
+
+interface Batch {
+  id: number;
+  class_id: number;
+  name: string;
+  created_at: string;
 }
 
 interface FormData {
@@ -93,7 +101,7 @@ const StatsCard = memo(({ title, value, subValue, icon: Icon, colorClass, gradie
 
 StatsCard.displayName = 'StatsCard';
 
-const TableRow = memo(({ cls, onEdit, onDelete }: { cls: Class; onEdit: (cls: Class) => void; onDelete: (cls: Class) => void }) => (
+const TableRow = memo(({ cls, onEdit, onDelete, onManageBatches }: { cls: Class; onEdit: (cls: Class) => void; onDelete: (cls: Class) => void; onManageBatches: (cls: Class) => void }) => (
   <tr className="group hover:bg-white/5 transition-colors duration-200">
     <td className="py-3 px-6">
       <TooltipProvider>
@@ -126,6 +134,19 @@ const TableRow = memo(({ cls, onEdit, onDelete }: { cls: Class; onEdit: (cls: Cl
       </div>
     </td>
     <td className="px-6">
+      <button
+        onClick={() => onManageBatches(cls)}
+        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold border transition-all duration-200 ${(cls.totalBatches || 0) > 0
+            ? 'bg-accent/10 text-accent border-accent/20 hover:bg-accent/20'
+            : 'bg-secondary/40 text-muted-foreground border-border/50 hover:bg-secondary/60'
+          }`}
+        title="Manage Batches"
+      >
+        <Layers className="w-3 h-3" />
+        {cls.totalBatches || 0}
+      </button>
+    </td>
+    <td className="px-6">
       {cls.isActive ? (
         <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-success/10 text-success border border-success/20 shadow-sm">
           <span className="w-1 h-1 rounded-full bg-success animate-pulse" />
@@ -147,6 +168,15 @@ const TableRow = memo(({ cls, onEdit, onDelete }: { cls: Class; onEdit: (cls: Cl
     </td>
     <td className="px-6">
       <div className="flex items-center justify-end gap-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => onManageBatches(cls)}
+          className="w-8 h-8 rounded-lg hover:bg-accent/10 hover:text-accent border border-transparent hover:border-accent/20 transition-all duration-200"
+          title="Manage Batches"
+        >
+          <Layers className="w-3.5 h-3.5" />
+        </Button>
         <Button
           variant="ghost"
           size="icon"
@@ -192,6 +222,10 @@ const ClassesPage: React.FC = () => {
   const [programName, setProgramName] = useState('');
   const [divisionName, setDivisionName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isBatchDialogOpen, setIsBatchDialogOpen] = useState(false);
+  const [selectedClassForBatches, setSelectedClassForBatches] = useState<Class | null>(null);
+  const [batches, setBatches] = useState<Batch[]>([]);
+  const [newBatchName, setNewBatchName] = useState('');
   const { toast } = useToast();
 
   const fetchData = useCallback(async () => {
@@ -253,6 +287,43 @@ const ClassesPage: React.FC = () => {
     }
     setIsDialogOpen(true);
   }, [programs, divisions]);
+
+  const handleManageBatches = async (cls: Class) => {
+    setSelectedClassForBatches(cls);
+    setIsBatchDialogOpen(true);
+    setBatches([]);
+    try {
+      const res = await adminAPI.getBatches(cls.id);
+      setBatches(res.data);
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to fetch batches.', variant: 'destructive' });
+    }
+  };
+
+  const handleCreateBatch = async () => {
+    if (!selectedClassForBatches || !newBatchName.trim()) return;
+    setIsSubmitting(true);
+    try {
+      const res = await adminAPI.createBatch(selectedClassForBatches.id, newBatchName);
+      setBatches(prev => [...prev, res.data]);
+      setNewBatchName('');
+      toast({ title: 'Success', description: 'Batch created.' });
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to create batch.', variant: 'destructive' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteBatch = async (id: number) => {
+    try {
+      await adminAPI.deleteBatch(id.toString());
+      setBatches(prev => prev.filter(b => b.id !== id));
+      toast({ title: 'Success', description: 'Batch deleted.' });
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.response?.data?.error || 'Delete failed.', variant: 'destructive' });
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -422,6 +493,7 @@ const ClassesPage: React.FC = () => {
                     <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Division</th>
                     <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Batch Year</th>
                     <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Students</th>
+                    <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Batches</th>
                     <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Status</th>
                     <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Created</th>
                     <th className="text-right py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Actions</th>
@@ -434,6 +506,7 @@ const ClassesPage: React.FC = () => {
                       cls={cls}
                       onEdit={handleOpenDialog}
                       onDelete={(c) => { setSelectedClass(c); setIsDeleteDialogOpen(true); }}
+                      onManageBatches={handleManageBatches}
                     />
                   ))}
                 </tbody>
@@ -594,6 +667,68 @@ const ClassesPage: React.FC = () => {
             >
               ADD DIVISION
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog for Batch Management */}
+      <Dialog open={isBatchDialogOpen} onOpenChange={setIsBatchDialogOpen}>
+        <DialogContent className="bg-background/95 backdrop-blur-xl border-border/50 sm:max-w-md rounded-2xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-black tracking-tight flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-accent/10 flex items-center justify-center">
+                <Layers className="w-4 h-4 text-accent" />
+              </div>
+              Manage Batches
+            </DialogTitle>
+            <DialogDescription className="text-[13px] mt-1">
+              Create student subgroups for Class {selectedClassForBatches?.program || ''}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6 pt-2">
+            {/* Create New */}
+            <div className="flex items-end gap-2">
+              <div className="flex-1 space-y-1.5">
+                <Label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">New Batch Name</Label>
+                <Input
+                  placeholder="E.G. Batch A"
+                  value={newBatchName}
+                  onChange={e => setNewBatchName(e.target.value)}
+                  className="h-9 bg-secondary/50 rounded-xl border-border/50 text-sm"
+                />
+              </div>
+              <Button
+                onClick={handleCreateBatch}
+                disabled={isSubmitting || !newBatchName.trim()}
+                className="h-9 rounded-xl font-bold bg-primary hover:bg-primary/90 text-sm px-4"
+              >
+                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+              </Button>
+            </div>
+
+            {/* List */}
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Existing Batches</Label>
+              <div className="bg-secondary/20 rounded-xl border border-border/50 overflow-hidden max-h-[200px] overflow-y-auto">
+                {batches.length === 0 ? (
+                  <div className="p-4 text-center text-xs text-muted-foreground italic">No batches created yet.</div>
+                ) : (
+                  batches.map(batch => (
+                    <div key={batch.id} className="flex items-center justify-between p-3 border-b border-border/50 last:border-0 hover:bg-secondary/40 transition-colors">
+                      <span className="text-sm font-semibold">{batch.name}</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteBatch(batch.id)}
+                        className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

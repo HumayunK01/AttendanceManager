@@ -32,6 +32,14 @@ export const getTodayTimetable = async (req, res) => {
         ts.start_time,
         ts.end_time,
         ts.day_of_week,
+        b.id as batch_id,
+        b.name as batch_name,
+        COALESCE(
+          (SELECT json_agg(json_build_object('id', ba.id, 'name', ba.name) ORDER BY ba.name)
+           FROM batches ba 
+           WHERE ba.class_id = c.id), 
+          '[]'::json
+        ) as class_batches,
         asn.id as session_id,
         asn.locked as session_locked
       FROM timetable_slots ts
@@ -40,6 +48,7 @@ export const getTodayTimetable = async (req, res) => {
       JOIN classes c ON c.id = fsm.class_id
       JOIN programs p ON p.id = c.program_id
       LEFT JOIN divisions d ON d.id = c.division_id
+      LEFT JOIN batches b ON b.id = ts.batch_id
       LEFT JOIN attendance_sessions asn ON asn.timetable_slot_id = ts.id 
         AND asn.session_date = CURRENT_DATE
         AND asn.is_archived = false

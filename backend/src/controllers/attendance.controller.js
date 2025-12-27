@@ -10,7 +10,7 @@ const markSchema = z.object({
 })
 
 export const createAttendanceSession = async (req, res) => {
-  const { timetableSlotId } = req.body
+  const { timetableSlotId, batchId } = req.body
 
   if (!timetableSlotId) {
     return res.status(400).json({ error: 'timetableSlotId required' })
@@ -18,20 +18,38 @@ export const createAttendanceSession = async (req, res) => {
 
   const today = new Date().toISOString().slice(0, 10)
 
+  // Check if session exists (modified to consider batch?)
+  // Generally, one slot = one session per day. 
+  // BUT if practicals split batches, maybe multiple sessions for same slot?
+  // For now, let's assume if batchId is provided, we check uniqueness with batchId too?
+  // Let's keep it simple: One session per slot for now, unless we change constraints.
+  // Actually, if we have multiple batches for same time, they usually have different slots or the same slot is reused?
+  // Detailed Mode: If batchId provided, check if session exists for that batch?
+
+  // Let's first get the default batch_id from timetable if exists
+  const slot = await sql`SELECT batch_id FROM timetable_slots WHERE id = ${timetableSlotId}`
+  const defaultBatchId = slot[0]?.batch_id
+
+  const finalBatchId = batchId || defaultBatchId || null;
+
   const existing = await sql`
     SELECT id FROM attendance_sessions
     WHERE timetable_slot_id = ${timetableSlotId}
       AND session_date = ${today}
       AND is_archived = false
+      AND (batch_id IS NOT DISTINCT FROM ${finalBatchId}) 
   `
+  // IS NOT DISTINCT FROM handles NULL comparisons correctly
 
   if (existing.length) {
-    return res.status(400).json({ error: 'Session already exists' })
+    // If exact session exists, return it instead of error (idempotency)?
+    // Or return error.
+    return res.status(200).json({ sessionId: existing[0].id, message: 'Session already exists' })
   }
 
   const inserted = await sql`
-    INSERT INTO attendance_sessions (timetable_slot_id, session_date)
-    VALUES (${timetableSlotId}, ${today})
+    INSERT INTO attendance_sessions (timetable_slot_id, session_date, batch_id)
+    VALUES (${timetableSlotId}, ${today}, ${finalBatchId})
     RETURNING id
   `
 
@@ -103,6 +121,7 @@ export const getSessionStudents = async (req, res) => {
       sr.edit_count,
       sub.name as subject_name,
       CONCAT(p.name, ' Y', c.batch_year, CASE WHEN d.name IS NOT NULL THEN '-' || d.name ELSE '' END) as class_name,
+      b.name as batch_name,
       asn.session_date,
       ts.start_time,
       ts.end_time,
@@ -114,7 +133,9 @@ export const getSessionStudents = async (req, res) => {
     JOIN classes c ON c.id = fsm.class_id
     JOIN programs p ON p.id = c.program_id
     LEFT JOIN divisions d ON d.id = c.division_id
+    LEFT JOIN batches b ON b.id = asn.batch_id
     JOIN students s ON s.class_id = fsm.class_id AND s.is_active = true
+        AND (asn.batch_id IS NULL OR s.batch_id = asn.batch_id)
     JOIN users u ON u.id = s.user_id
     LEFT JOIN attendance_records sr 
       ON sr.session_id = asn.id AND sr.student_id = s.id
