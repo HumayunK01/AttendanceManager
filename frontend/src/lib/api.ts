@@ -110,6 +110,9 @@ export const adminAPI = {
   // Reports
   getAbuseReports: () => api.get('/reports/abuse'),
   resolveAbuseReport: (id: string) => api.patch(`/reports/abuse/${id}/resolve`),
+
+  // Dashboard
+  getDashboardStats: () => api.get('/dashboard/stats'),
 };
 
 // Faculty API

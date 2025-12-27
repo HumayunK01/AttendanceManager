@@ -15,135 +15,126 @@ import {
   FileText,
   ArrowRight,
   Activity,
-  TrendingDown
+  TrendingDown,
+  ShieldCheck,
+  Zap
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import AdminLayout from '@/layouts/AdminLayout';
 import { adminAPI } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { cn } from '@/lib/utils';
 
 interface StatCardProps {
   title: string;
   value: string | number;
-  icon: React.ReactNode;
+  icon: React.ElementType;
   trend?: string;
   trendUp?: boolean;
   loading?: boolean;
   onClick?: () => void;
   subtitle?: string;
-  color?: string;
+  color?: 'primary' | 'success' | 'warning' | 'accent' | 'destructive';
 }
 
 const StatCard: React.FC<StatCardProps> = React.memo(({
   title,
   value,
-  icon,
+  icon: Icon,
   trend,
   trendUp,
   loading,
   onClick,
   subtitle,
   color = 'primary'
-}) => (
-  <div
-    className={`stat-card hover-lift group relative overflow-hidden ${onClick ? 'cursor-pointer' : ''}`}
-    onClick={onClick}
-    role={onClick ? 'button' : undefined}
-    tabIndex={onClick ? 0 : undefined}
-  >
-    {/* Animated background gradient */}
-    <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+}) => {
+  const colorMap = {
+    primary: 'text-primary bg-primary/10 border-primary/20 shadow-primary/10',
+    success: 'text-success bg-success/10 border-success/20 shadow-success/10',
+    warning: 'text-warning bg-warning/10 border-warning/20 shadow-warning/10',
+    accent: 'text-accent bg-accent/10 border-accent/20 shadow-accent/10',
+    destructive: 'text-destructive bg-destructive/10 border-destructive/20 shadow-destructive/10',
+  };
 
-    <div className="relative flex items-start justify-between">
-      <div className="flex-1">
-        <p className="text-sm text-muted-foreground mb-1 font-medium">{title}</p>
-        {loading ? (
-          <div className="flex items-center gap-2 my-2">
-            <Loader2 className="w-5 h-5 animate-spin text-primary" />
-            <span className="text-muted-foreground text-sm">Loading...</span>
-          </div>
-        ) : (
-          <>
-            <p className="text-4xl font-bold text-foreground mb-1 group-hover:text-primary transition-colors">
-              {value}
-            </p>
-            {subtitle && (
-              <p className="text-xs text-muted-foreground/70">{subtitle}</p>
-            )}
-          </>
-        )}
-        {trend && !loading && (
-          <div className={`flex items-center gap-1 mt-3 text-sm font-medium ${trendUp ? 'text-success' : 'text-destructive'}`}>
-            {trendUp ? (
-              <TrendingUp className="w-4 h-4" />
+  return (
+    <div
+      onClick={onClick}
+      className={cn(
+        "group relative glass-card p-4 transition-all duration-500 hover:scale-[1.02] active:scale-[0.98]",
+        onClick ? "cursor-pointer" : ""
+      )}
+    >
+      {/* Glow Effect */}
+      <div className={cn(
+        "absolute -inset-px rounded-[24px] opacity-0 group-hover:opacity-10 transition-opacity duration-500",
+        `bg-${color}`
+      )} />
+
+      <div className="relative flex items-center justify-between">
+        <div className="space-y-0.5">
+          <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em]">{title}</p>
+          <div className="flex items-baseline gap-1.5">
+            {loading ? (
+              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground/30" />
             ) : (
-              <TrendingDown className="w-4 h-4" />
+              <h3 className="text-2xl font-black text-foreground tracking-tighter">{value}</h3>
             )}
-            <span>{trend}</span>
+            {trend && !loading && (
+              <span className={cn(
+                "text-[9px] font-black flex items-center gap-0.5 px-1 py-0.5 rounded-md",
+                trendUp ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"
+              )}>
+                {trendUp ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
+                {trend}
+              </span>
+            )}
           </div>
-        )}
-      </div>
-      <div className={`w-14 h-14 rounded-2xl bg-${color}/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg shadow-${color}/20`}>
-        {icon}
-      </div>
-    </div>
+          {subtitle && <p className="text-[10px] text-muted-foreground/60 font-medium">{subtitle}</p>}
+        </div>
 
-    {onClick && (
-      <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-        <ArrowRight className="w-4 h-4 text-primary" />
+        <div className={cn(
+          "w-10 h-10 rounded-xl flex items-center justify-center border transition-all duration-500 group-hover:rotate-6",
+          colorMap[color]
+        )}>
+          <Icon className="w-5 h-5" />
+        </div>
       </div>
-    )}
-  </div>
-));
+
+      {onClick && (
+        <div className="mt-3 pt-3 border-t border-border/30 flex items-center justify-between text-[9px] font-black text-primary uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all duration-500 translate-y-1 group-hover:translate-y-0">
+          <span>Analytics</span>
+          <ArrowRight className="w-2.5 h-2.5" />
+        </div>
+      )}
+    </div>
+  );
+});
 
 StatCard.displayName = 'StatCard';
 
-interface ActivityItem {
-  id: string;
-  action: string;
-  target: string;
-  time: string;
-  type: 'success' | 'warning' | 'info';
+interface AttendanceTrendData {
+  day: string;
+  attendance: number;
 }
 
-// Optimized chart data - memoized to prevent re-renders
-const attendanceTrendData = [
-  { day: 'Mon', attendance: 85, sessions: 12 },
-  { day: 'Tue', attendance: 88, sessions: 14 },
-  { day: 'Wed', attendance: 82, sessions: 13 },
-  { day: 'Thu', attendance: 90, sessions: 15 },
-  { day: 'Fri', attendance: 87, sessions: 11 },
-  { day: 'Sat', attendance: 78, sessions: 8 },
-];
+interface AttendanceDistribution {
+  name: string;
+  value: number;
+  color: string;
+}
 
-const attendanceDistribution = [
-  { name: 'Excellent (>90%)', value: 320, color: '#10b981' },
-  { name: 'Good (75-90%)', value: 150, color: '#f59e0b' },
-  { name: 'Poor (<75%)', value: 54, color: '#ef4444' },
-];
-
-const recentActivity: ActivityItem[] = [
-  { id: '1', action: 'New student registered', target: 'John Doe - CS-2024', time: '5 min ago', type: 'success' },
-  { id: '2', action: 'Attendance session locked', target: 'Data Structures - Section A', time: '15 min ago', type: 'info' },
-  { id: '3', action: 'Low attendance alert', target: 'Computer Networks - 68%', time: '1 hour ago', type: 'warning' },
-  { id: '4', action: 'Faculty account created', target: 'Dr. Sarah Smith', time: '2 hours ago', type: 'success' },
-  { id: '5', action: 'Timetable updated', target: 'Monday Schedule - All Classes', time: '3 hours ago', type: 'info' },
-];
-
-// Optimized tooltip styles - defined once
-const chartTooltipStyle = {
-  backgroundColor: 'hsl(var(--card))',
-  border: '1px solid hsl(var(--border))',
-  borderRadius: '8px',
-  boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.4)',
-};
-
-const chartLabelStyle = { color: 'hsl(var(--foreground))' };
-const chartItemStyle = { color: 'hsl(var(--foreground))' };
+interface SystemLog {
+  source: string;
+  action: string;
+  time: string;
+  type: 'SUCCESS' | 'WARNING';
+}
 
 const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     students: 0,
@@ -152,14 +143,10 @@ const AdminDashboard: React.FC = () => {
     classes: 0,
   });
   const [abuseReportsCount, setAbuseReportsCount] = useState(0);
-
-  // Memoized navigation handlers
-  const navigateToStudents = useCallback(() => navigate('/admin/students'), [navigate]);
-  const navigateToFaculty = useCallback(() => navigate('/admin/faculty'), [navigate]);
-  const navigateToSubjects = useCallback(() => navigate('/admin/subjects'), [navigate]);
-  const navigateToClasses = useCallback(() => navigate('/admin/classes'), [navigate]);
-  const navigateToTimetable = useCallback(() => navigate('/admin/timetable'), [navigate]);
-  const navigateToReports = useCallback(() => navigate('/admin/reports'), [navigate]);
+  const [attendanceTrendData, setAttendanceTrendData] = useState<AttendanceTrendData[]>([]);
+  const [attendanceDistribution, setAttendanceDistribution] = useState<AttendanceDistribution[]>([]);
+  const [systemLogs, setSystemLogs] = useState<SystemLog[]>([]);
+  const [studentsData, setStudentsData] = useState<any[]>([]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -168,23 +155,105 @@ const AdminDashboard: React.FC = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      // Parallel API calls for optimal performance
-      const [studentsRes, facultyRes, subjectsRes, classesRes, abuseRes] = await Promise.all([
+      const [studentsRes, facultyRes, subjectsRes, classesRes, abuseRes, dashboardStatsRes] = await Promise.all([
         adminAPI.getStudents(),
         adminAPI.getFaculty(),
         adminAPI.getSubjects(),
         adminAPI.getClasses(),
         adminAPI.getAbuseReports(),
+        adminAPI.getDashboardStats(),
       ]);
 
+      const students = studentsRes.data || [];
+      setStudentsData(students);
+
       setStats({
-        students: studentsRes.data.length || 0,
-        faculty: facultyRes.data.length || 0,
-        subjects: subjectsRes.data.length || 0,
-        classes: classesRes.data.length || 0,
+        students: students.length,
+        faculty: facultyRes.data?.length || 0,
+        subjects: subjectsRes.data?.length || 0,
+        classes: classesRes.data?.length || 0,
       });
 
-      setAbuseReportsCount(abuseRes.data.length || 0);
+      setAbuseReportsCount(abuseRes.data?.length || 0);
+
+      // Calculate attendance distribution
+      const highAttendance = students.filter((s: any) => s.attendance >= 90).length;
+      const avgAttendance = students.filter((s: any) => s.attendance >= 75 && s.attendance < 90).length;
+      const lowAttendance = students.filter((s: any) => s.attendance < 75).length;
+
+      setAttendanceDistribution([
+        { name: 'High', value: highAttendance, color: 'hsl(var(--success))' },
+        { name: 'Avg', value: avgAttendance, color: 'hsl(var(--primary))' },
+        { name: 'Low', value: lowAttendance, color: 'hsl(var(--destructive))' },
+      ]);
+
+      // Use real attendance trend data from backend
+      const dashboardStats = dashboardStatsRes.data;
+      if (dashboardStats.attendanceTrend && dashboardStats.attendanceTrend.length > 0) {
+        setAttendanceTrendData(dashboardStats.attendanceTrend.map((item: any) => ({
+          day: item.day,
+          attendance: parseInt(item.attendance) || 0
+        })));
+      } else {
+        // Fallback to calculated average if no session data available
+        const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        const avgAttendanceRate = students.length > 0
+          ? students.reduce((sum: number, s: any) => sum + (s.attendance || 0), 0) / students.length
+          : 0;
+
+        setAttendanceTrendData(days.map(day => ({
+          day,
+          attendance: Math.round(avgAttendanceRate)
+        })));
+      }
+
+      // Generate system logs with real session data
+      const logs: SystemLog[] = [];
+
+      if (dashboardStats.todaySessions > 0) {
+        logs.push({
+          source: 'SESSION_MGR',
+          action: `${dashboardStats.todaySessions} sessions today`,
+          time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+          type: 'SUCCESS'
+        });
+      }
+
+      if (students.length > 0) {
+        logs.push({
+          source: 'STUDENT_SVC',
+          action: `${students.length} active students`,
+          time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+          type: 'SUCCESS'
+        });
+      }
+
+      if (abuseRes.data?.length > 0) {
+        logs.push({
+          source: 'ABUSE_DETECTOR',
+          action: `${abuseRes.data.length} reports pending`,
+          time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+          type: 'WARNING'
+        });
+      }
+
+      logs.push({
+        source: 'AUTH_MDW',
+        action: 'Session active',
+        time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+        type: 'SUCCESS'
+      });
+
+      setSystemLogs(logs);
+
+      // Store session stats for use in other parts of the dashboard
+      setStats(prev => ({
+        ...prev,
+        todaySessions: dashboardStats.todaySessions || 0,
+        completedSessions: dashboardStats.completedSessions || 0,
+        inProgressSessions: dashboardStats.inProgressSessions || 0,
+      }));
+
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
     } finally {
@@ -192,295 +261,298 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  // Memoized activity items to prevent re-renders
-  const activityItems = useMemo(() => recentActivity, []);
+  const avgAttendance = useMemo(() => {
+    if (studentsData.length === 0) return 0;
+    const total = studentsData.reduce((sum, s) => sum + (s.attendance || 0), 0);
+    return Math.round(total / studentsData.length);
+  }, [studentsData]);
+
+  const defaultersCount = useMemo(() => {
+    return studentsData.filter(s => s.attendance < 75).length;
+  }, [studentsData]);
 
   return (
     <AdminLayout>
-      <div className="space-y-6 lg:space-y-8 animate-fade-in">
-        {/* Enhanced Header with Quick Actions */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl lg:text-4xl font-bold text-foreground">
-              Dashboard
+      <div className="max-w-[1600px] mx-auto space-y-6 animate-fade-in pb-8">
+        {/* Elite Header */}
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="px-1.5 py-0.5 rounded-md bg-primary/10 text-primary text-[9px] font-black uppercase tracking-widest border border-primary/20">
+                System Active
+              </span>
+              <div className="w-1 h-1 rounded-full bg-success animate-pulse" />
+            </div>
+            <h1 className="text-2xl lg:text-3xl font-black text-foreground tracking-tighter">
+              Welcome back, <span className="text-primary">{user?.name?.split(' ')[0]}</span>
             </h1>
-            <p className="text-muted-foreground mt-2 flex items-center gap-2 text-sm lg:text-base">
-              <Activity className="w-4 h-4" />
-              Real-time overview of your attendance management system
+            <p className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-primary" />
+              System operational.
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2 lg:gap-3">
+          <div className="flex flex-wrap gap-2">
             <Button
-              variant="outline"
-              size="sm"
-              onClick={navigateToStudents}
-              className="gap-2"
+              onClick={() => navigate('/admin/students')}
+              className="rounded-xl bg-foreground text-background hover:bg-foreground/90 font-black uppercase tracking-wider text-[10px] h-10 px-4 shadow-lg shadow-foreground/5 group"
             >
-              <UserPlus className="w-4 h-4" />
-              <span className="hidden sm:inline">Add Student</span>
+              <UserPlus className="w-3.5 h-3.5 mr-2 group-hover:scale-110 transition-transform" />
+              Enroll Student
             </Button>
             <Button
               variant="outline"
-              size="sm"
-              onClick={navigateToTimetable}
-              className="gap-2"
+              onClick={() => navigate('/admin/reports')}
+              className="rounded-xl border-border/50 bg-background/50 backdrop-blur-sm font-black uppercase tracking-wider text-[10px] h-10 px-4 transition-all hover:bg-primary/5 hover:border-primary/30"
             >
-              <Calendar className="w-4 h-4" />
-              <span className="hidden sm:inline">Timetable</span>
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={navigateToReports}
-              className="gap-2"
-            >
-              <FileText className="w-4 h-4" />
-              <span className="hidden sm:inline">Reports</span>
+              <FileText className="w-3.5 h-3.5 mr-2" />
+              Audit Reports
             </Button>
           </div>
         </div>
 
-        {/* Enhanced Stats Grid with Click Actions */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 stagger-children">
+        {/* Technical Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
-            title="Total Students"
+            title="Active Students"
             value={stats.students}
-            icon={<GraduationCap className="w-7 h-7 text-primary" />}
+            icon={GraduationCap}
+            trend="+12%"
+            trendUp={true}
             loading={loading}
-            onClick={navigateToStudents}
-            subtitle="Active enrollments"
+            onClick={() => navigate('/admin/students')}
+            subtitle="Active headcount"
+            color="primary"
           />
           <StatCard
-            title="Faculty Members"
+            title="Verified Faculty"
             value={stats.faculty}
-            icon={<Users className="w-7 h-7 text-success" />}
+            icon={Users}
             loading={loading}
-            onClick={navigateToFaculty}
+            onClick={() => navigate('/admin/faculty')}
             subtitle="Teaching staff"
             color="success"
           />
           <StatCard
-            title="Active Subjects"
+            title="Course Load"
             value={stats.subjects}
-            icon={<BookOpen className="w-7 h-7 text-accent" />}
+            icon={BookOpen}
+            trend="-2"
+            trendUp={false}
             loading={loading}
-            onClick={navigateToSubjects}
-            subtitle="Course offerings"
+            onClick={() => navigate('/admin/subjects')}
+            subtitle="Curriculum"
             color="accent"
           />
           <StatCard
-            title="Classes"
+            title="Infrastructure"
             value={stats.classes}
-            icon={<Building className="w-7 h-7 text-warning" />}
+            icon={Building}
             loading={loading}
-            onClick={navigateToClasses}
-            subtitle="Active sections"
+            onClick={() => navigate('/admin/classes')}
+            subtitle="Classrooms"
             color="warning"
           />
         </div>
 
-        {/* Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
-          {/* Attendance Trend Chart */}
-          <div className="glass-card p-4 lg:p-6 hover-lift">
-            <div className="flex items-center justify-between mb-4 lg:mb-6">
+        {/* Analytics Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Attendance Area Chart */}
+          <div className="lg:col-span-2 glass-card p-5">
+            <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-lg lg:text-xl font-semibold text-foreground flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5 text-primary" />
-                  Weekly Attendance Trend
-                </h2>
-                <p className="text-xs lg:text-sm text-muted-foreground mt-1">Average attendance percentage</p>
+                <h2 className="text-[11px] font-black text-foreground uppercase tracking-widest">Network Pulse</h2>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Real-time attendance ingestion</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                  <span className="text-[9px] font-bold text-muted-foreground uppercase opacity-70">Attendance</span>
+                </div>
               </div>
             </div>
-            <ResponsiveContainer width="100%" height={250}>
-              <AreaChart data={attendanceTrendData}>
-                <defs>
-                  <linearGradient id="colorAttendance" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                <XAxis
-                  dataKey="day"
-                  stroke="hsl(var(--muted-foreground))"
-                  fontSize={12}
-                />
-                <YAxis
-                  stroke="hsl(var(--muted-foreground))"
-                  fontSize={12}
-                  domain={[0, 100]}
-                />
-                <Tooltip
-                  contentStyle={chartTooltipStyle}
-                  labelStyle={chartLabelStyle}
-                  itemStyle={chartItemStyle}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="attendance"
-                  stroke="hsl(var(--primary))"
-                  strokeWidth={2}
-                  fill="url(#colorAttendance)"
-                  animationDuration={1000}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+
+            <div className="h-[200px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={attendanceTrendData}>
+                  <defs>
+                    <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.15} />
+                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                  <XAxis
+                    dataKey="day"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))', fontWeight: 600 }}
+                    dy={10}
+                  />
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))', fontWeight: 600 }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--background))',
+                      borderColor: 'hsl(var(--border))',
+                      borderRadius: '8px',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                    }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="attendance"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={3}
+                    fillOpacity={1}
+                    fill="url(#chartGradient)"
+                    animationDuration={2000}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
           </div>
 
-          {/* Attendance Distribution Pie Chart */}
-          <div className="glass-card p-4 lg:p-6 hover-lift">
-            <div className="flex items-center justify-between mb-4 lg:mb-6">
-              <div>
-                <h2 className="text-lg lg:text-xl font-semibold text-foreground">Student Distribution</h2>
-                <p className="text-xs lg:text-sm text-muted-foreground mt-1">By attendance percentage</p>
-              </div>
-            </div>
-            <div className="flex items-center justify-center">
-              <ResponsiveContainer width="100%" height={250}>
+          {/* Distribution Card */}
+          <div className="glass-card p-5 flex flex-col items-center justify-center text-center">
+            <h2 className="text-[11px] font-black text-foreground uppercase tracking-widest mb-1">Density</h2>
+            <p className="text-[10px] text-muted-foreground mb-4">Performance breakdown</p>
+
+            <div className="h-[140px] w-full relative">
+              <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={attendanceDistribution}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={90}
-                    paddingAngle={5}
+                    innerRadius={50}
+                    outerRadius={65}
+                    paddingAngle={6}
                     dataKey="value"
-                    animationDuration={1000}
+                    animationDuration={1500}
                   >
                     {attendanceDistribution.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
+                      <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
                     ))}
                   </Pie>
-                  <Tooltip
-                    contentStyle={chartTooltipStyle}
-                    labelStyle={chartLabelStyle}
-                    itemStyle={chartItemStyle}
-                  />
+                  <Tooltip />
                 </PieChart>
               </ResponsiveContainer>
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <span className="text-xl font-black text-foreground tracking-tighter">{avgAttendance}%</span>
+                <span className="text-[8px] font-black text-muted-foreground uppercase opacity-70">Avg</span>
+              </div>
             </div>
-            <div className="grid grid-cols-3 gap-2 lg:gap-3 mt-4">
+
+            <div className="grid grid-cols-3 gap-2 w-full mt-4">
               {attendanceDistribution.map((item, idx) => (
-                <div key={idx} className="text-center p-2 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors">
-                  <div className="flex items-center justify-center gap-1 mb-1">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
-                  </div>
-                  <p className="text-base lg:text-lg font-bold text-foreground">{item.value}</p>
-                  <p className="text-xs text-muted-foreground">{item.name.split(' ')[0]}</p>
+                <div key={idx} className="bg-secondary/20 p-2 rounded-xl border border-border/20">
+                  <p className="text-[11px] font-black text-foreground">{item.value}</p>
+                  <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-tighter">{item.name}</p>
                 </div>
               ))}
             </div>
           </div>
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
-          {/* Recent Activity */}
-          <div className="lg:col-span-2 glass-card p-4 lg:p-6 hover-lift">
-            <div className="flex items-center justify-between mb-4 lg:mb-6">
-              <h2 className="text-lg lg:text-xl font-semibold text-foreground flex items-center gap-2">
-                <Activity className="w-5 h-5 text-primary" />
-                Recent Activity
-              </h2>
-              <button className="text-xs lg:text-sm text-primary hover:text-primary/80 transition-colors font-medium flex items-center gap-1">
-                View all
-                <ArrowRight className="w-3 h-3" />
-              </button>
-            </div>
-            <div className="space-y-2 lg:space-y-3">
-              {activityItems.map((activity, idx) => (
-                <div
-                  key={activity.id}
-                  className="flex items-start gap-3 lg:gap-4 p-3 lg:p-4 rounded-xl hover:bg-secondary/40 transition-all duration-300 border border-transparent hover:border-border/50 group"
-                  style={{ animationDelay: `${idx * 50}ms` }}
-                >
-                  <div className={`w-8 h-8 lg:w-10 lg:h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110 ${activity.type === 'success' ? 'bg-success/20 text-success' :
-                      activity.type === 'warning' ? 'bg-warning/20 text-warning' :
-                        'bg-primary/20 text-primary'
-                    }`}>
-                    {activity.type === 'success' ? <CheckCircle2 className="w-4 h-4 lg:w-5 lg:h-5" /> :
-                      activity.type === 'warning' ? <AlertTriangle className="w-4 h-4 lg:w-5 lg:h-5" /> :
-                        <Clock className="w-4 h-4 lg:w-5 lg:h-5" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground mb-0.5">{activity.action}</p>
-                    <p className="text-xs lg:text-sm text-muted-foreground truncate">{activity.target}</p>
-                  </div>
-                  <span className="text-xs text-muted-foreground whitespace-nowrap bg-secondary/50 px-2 py-1 rounded-md">
-                    {activity.time}
-                  </span>
+        {/* Low Level Logs Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="lg:col-span-2 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20">
+                  <Zap className="w-4 h-4 text-primary" />
                 </div>
-              ))}
+                <h2 className="text-base font-black text-foreground tracking-tight">System Logs</h2>
+              </div>
+              <Button variant="ghost" className="text-[9px] font-black text-primary uppercase tracking-wider h-8">
+                View All
+              </Button>
+            </div>
+
+            <div className="overflow-hidden rounded-2xl border border-border/30">
+              <table className="w-full text-left border-collapse">
+                <thead className="bg-muted/30">
+                  <tr>
+                    <th className="p-3 text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em]">Source</th>
+                    <th className="p-3 text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em]">Action</th>
+                    <th className="p-3 text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em]">Time</th>
+                    <th className="p-3 text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] text-right">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/20">
+                  {systemLogs.length > 0 ? systemLogs.map((log, idx) => (
+                    <tr key={idx} className="group hover:bg-primary/5 transition-colors">
+                      <td className="p-3">
+                        <span className="text-[10px] font-mono font-bold text-muted-foreground">{log.source}</span>
+                      </td>
+                      <td className="p-3">
+                        <span className="text-[13px] font-bold text-foreground">{log.action}</span>
+                      </td>
+                      <td className="p-3 text-[11px] font-medium text-muted-foreground">{log.time}</td>
+                      <td className="p-3 text-right">
+                        <span className={cn(
+                          "text-[8px] font-black px-1.5 py-0.5 rounded-md tracking-widest",
+                          log.type === 'SUCCESS' ? "bg-success/10 text-success" : "bg-warning/10 text-warning"
+                        )}>
+                          {log.type}
+                        </span>
+                      </td>
+                    </tr>
+                  )) : (
+                    <tr>
+                      <td colSpan={4} className="p-4 text-center text-sm text-muted-foreground">
+                        No recent activity
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
 
-          {/* Quick Stats & Alerts */}
-          <div className="space-y-4 lg:space-y-6">
-            {/* Today's Overview */}
-            <div className="glass-card p-4 lg:p-6 hover-lift">
-              <h2 className="text-lg lg:text-xl font-semibold text-foreground mb-4 lg:mb-5 flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-primary" />
-                Today's Overview
-              </h2>
-              <div className="space-y-3 lg:space-y-4">
-                <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors">
-                  <span className="text-sm font-medium text-muted-foreground">Sessions Today</span>
-                  <span className="text-lg lg:text-xl font-bold text-foreground">24</span>
-                </div>
-                <div className="flex items-center justify-between p-3 rounded-lg bg-success/10 hover:bg-success/20 transition-colors">
-                  <span className="text-sm font-medium text-success">Completed</span>
-                  <span className="text-lg lg:text-xl font-bold text-success">18</span>
-                </div>
-                <div className="flex items-center justify-between p-3 rounded-lg bg-warning/10 hover:bg-warning/20 transition-colors">
-                  <span className="text-sm font-medium text-warning">In Progress</span>
-                  <span className="text-lg lg:text-xl font-bold text-warning">4</span>
-                </div>
-                <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors">
-                  <span className="text-sm font-medium text-muted-foreground">Pending</span>
-                  <span className="text-lg lg:text-xl font-bold text-muted-foreground">2</span>
+          <div className="space-y-4">
+            <h2 className="text-base font-black text-foreground tracking-tight">Status Alerts</h2>
+            <div className="space-y-3">
+              <div
+                className="glass-card p-4 border-destructive/20 bg-destructive/5 group cursor-pointer"
+                onClick={() => navigate('/admin/students')}
+              >
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-destructive/10 flex items-center justify-center border border-destructive/20 text-destructive shrink-0">
+                    <AlertTriangle className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-[11px] font-black text-foreground uppercase tracking-wide">Defaulter Alert</h3>
+                    <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">
+                      {defaultersCount} {defaultersCount === 1 ? 'student has' : 'students have'} dropped below 75% threshold.
+                    </p>
+                    <button className="text-[9px] font-black text-destructive uppercase tracking-widest mt-2 flex items-center gap-1 group-hover:gap-2 transition-all">
+                      Action <ArrowRight className="w-2.5 h-2.5" />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Alerts */}
-            <div className="glass-card p-4 lg:p-6 hover-lift">
-              <h2 className="text-lg lg:text-xl font-semibold text-foreground mb-4 lg:mb-5 flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5 text-warning" />
-                Alerts
-              </h2>
-              <div className="space-y-3">
-                <div
-                  className="p-3 lg:p-4 rounded-xl bg-destructive/10 border border-destructive/30 hover:border-destructive/50 transition-all cursor-pointer group"
-                  onClick={navigateToStudents}
-                  role="button"
-                  tabIndex={0}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2 text-destructive">
-                      <AlertTriangle className="w-4 h-4 lg:w-5 lg:h-5 group-hover:animate-pulse" />
-                      <span className="text-sm font-bold">15 Defaulters</span>
-                    </div>
-                    <ArrowRight className="w-4 h-4 text-destructive opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div
+                className="glass-card p-4 border-warning/20 bg-warning/5 group cursor-pointer"
+                onClick={() => navigate('/admin/reports')}
+              >
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-warning/10 flex items-center justify-center border border-warning/20 text-warning shrink-0">
+                    <ShieldCheck className="w-4 h-4" />
                   </div>
-                  <p className="text-xs text-muted-foreground">Students below 75% attendance threshold</p>
-                </div>
-                <div
-                  className="p-3 lg:p-4 rounded-xl bg-warning/10 border border-warning/30 hover:border-warning/50 transition-all cursor-pointer group"
-                  onClick={navigateToReports}
-                  role="button"
-                  tabIndex={0}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2 text-warning">
-                      <AlertTriangle className="w-4 h-4 lg:w-5 lg:h-5 group-hover:animate-pulse" />
-                      <span className="text-sm font-bold">{abuseReportsCount} Abuse Reports</span>
-                    </div>
-                    <ArrowRight className="w-4 h-4 text-warning opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="flex-1">
+                    <h3 className="text-[11px] font-black text-foreground uppercase tracking-wide">Abuse Reports</h3>
+                    <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">
+                      {abuseReportsCount} {abuseReportsCount === 1 ? 'report requires' : 'reports require'} triage.
+                    </p>
+                    <button className="text-[9px] font-black text-warning uppercase tracking-widest mt-2 flex items-center gap-1 group-hover:gap-2 transition-all">
+                      Review <ArrowRight className="w-2.5 h-2.5" />
+                    </button>
                   </div>
-                  <p className="text-xs text-muted-foreground">Pending review and action</p>
                 </div>
               </div>
             </div>
