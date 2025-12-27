@@ -76,7 +76,16 @@ const ChangePassword = () => {
             </div>
 
             <div className="w-full max-w-md z-10 animate-in fade-in zoom-in duration-500">
-                <div className="bg-card/50 backdrop-blur-xl border border-white/10 p-8 rounded-2xl shadow-2xl">
+                <div className="bg-card/50 backdrop-blur-xl border border-white/10 p-8 rounded-2xl shadow-2xl relative">
+                    <button
+                        onClick={() => {
+                            localStorage.removeItem('token');
+                            window.location.href = '/';
+                        }}
+                        className="absolute top-4 right-4 text-xs font-semibold text-muted-foreground hover:text-destructive transition-colors"
+                    >
+                        Sign Out
+                    </button>
 
                     <div className="text-center mb-8">
                         <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/20 text-primary mb-4">
