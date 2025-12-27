@@ -22,6 +22,7 @@ import ReportsPage from "./pages/admin/Reports";
 
 // Faculty Pages
 import FacultyDashboard from "./pages/faculty/Dashboard";
+import FacultySchedule from "./pages/faculty/Schedule";
 import AttendanceSession from "./pages/faculty/AttendanceSession";
 
 // Student Pages
@@ -31,7 +32,7 @@ const queryClient = new QueryClient();
 
 const AuthenticatedRedirect = () => {
   const { user, isAuthenticated, isLoading } = useAuth();
-  
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -39,7 +40,7 @@ const AuthenticatedRedirect = () => {
       </div>
     );
   }
-  
+
   if (isAuthenticated && user) {
     const roleRoutes = {
       ADMIN: '/admin',
@@ -48,7 +49,7 @@ const AuthenticatedRedirect = () => {
     };
     return <Navigate to={roleRoutes[user.role]} replace />;
   }
-  
+
   return <Login />;
 };
 
@@ -61,7 +62,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<AuthenticatedRedirect />} />
-            
+
             {/* Admin Routes */}
             <Route path="/admin" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminDashboard /></ProtectedRoute>} />
             <Route path="/admin/subjects" element={<ProtectedRoute allowedRoles={['ADMIN']}><SubjectsPage /></ProtectedRoute>} />
@@ -71,14 +72,15 @@ const App = () => (
             <Route path="/admin/mappings" element={<ProtectedRoute allowedRoles={['ADMIN']}><MappingsPage /></ProtectedRoute>} />
             <Route path="/admin/timetable" element={<ProtectedRoute allowedRoles={['ADMIN']}><TimetablePage /></ProtectedRoute>} />
             <Route path="/admin/reports" element={<ProtectedRoute allowedRoles={['ADMIN']}><ReportsPage /></ProtectedRoute>} />
-            
+
             {/* Faculty Routes */}
             <Route path="/faculty" element={<ProtectedRoute allowedRoles={['FACULTY']}><FacultyDashboard /></ProtectedRoute>} />
+            <Route path="/faculty/schedule/:day" element={<ProtectedRoute allowedRoles={['FACULTY']}><FacultySchedule /></ProtectedRoute>} />
             <Route path="/faculty/attendance/:sessionId" element={<ProtectedRoute allowedRoles={['FACULTY']}><AttendanceSession /></ProtectedRoute>} />
-            
+
             {/* Student Routes */}
             <Route path="/student" element={<ProtectedRoute allowedRoles={['STUDENT']}><StudentDashboard /></ProtectedRoute>} />
-            
+
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

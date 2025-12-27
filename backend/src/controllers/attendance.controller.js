@@ -4,7 +4,7 @@ import { z } from 'zod'
 const markSchema = z.object({
   sessionId: z.number(),
   studentId: z.number(),
-  status: z.enum(['P','A']),
+  status: z.enum(['P', 'A']),
   editedBy: z.number(),
   reason: z.string().optional()
 })
@@ -98,11 +98,22 @@ export const getSessionStudents = async (req, res) => {
     SELECT 
       s.id as student_id,
       u.name as student_name,
+      s.roll_no,
       sr.status,
-      sr.edit_count
+      sr.edit_count,
+      sub.name as subject_name,
+      CONCAT(p.name, ' Y', c.batch_year, CASE WHEN d.name IS NOT NULL THEN '-' || d.name ELSE '' END) as class_name,
+      asn.session_date,
+      ts.start_time,
+      ts.end_time,
+      asn.locked
     FROM attendance_sessions asn
     JOIN timetable_slots ts ON ts.id = asn.timetable_slot_id
     JOIN faculty_subject_map fsm ON fsm.id = ts.faculty_subject_map_id
+    JOIN subjects sub ON sub.id = fsm.subject_id
+    JOIN classes c ON c.id = fsm.class_id
+    JOIN programs p ON p.id = c.program_id
+    LEFT JOIN divisions d ON d.id = c.division_id
     JOIN students s ON s.class_id = fsm.class_id AND s.is_active = true
     JOIN users u ON u.id = s.user_id
     LEFT JOIN attendance_records sr 

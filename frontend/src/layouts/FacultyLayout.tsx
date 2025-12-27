@@ -23,7 +23,15 @@ interface SidebarItem {
 
 const sidebarItems: SidebarItem[] = [
   { label: 'Today\'s Schedule', href: '/faculty', icon: <Calendar className="w-5 h-5" /> },
-  { label: 'Attendance', href: '/faculty/attendance', icon: <ClipboardCheck className="w-5 h-5" /> },
+];
+
+const weekDays = [
+  { label: 'Monday', href: '/faculty/schedule/1', day: 1 },
+  { label: 'Tuesday', href: '/faculty/schedule/2', day: 2 },
+  { label: 'Wednesday', href: '/faculty/schedule/3', day: 3 },
+  { label: 'Thursday', href: '/faculty/schedule/4', day: 4 },
+  { label: 'Friday', href: '/faculty/schedule/5', day: 5 },
+  { label: 'Saturday', href: '/faculty/schedule/6', day: 6 },
 ];
 
 interface FacultyLayoutProps {
@@ -114,6 +122,30 @@ const FacultyLayout: React.FC<FacultyLayoutProps> = ({ children }) => {
               )}
             </Link>
           ))}
+
+          {/* Week Days Section */}
+          {!isCollapsed && (
+            <div className="pt-4 mt-4 border-t border-sidebar-border">
+              <p className="px-3 mb-2 text-[10px] font-black text-muted-foreground uppercase tracking-[0.15em]">
+                Week Schedule
+              </p>
+              {weekDays.map((day) => (
+                <Link
+                  key={day.href}
+                  to={day.href}
+                  className={cn(
+                    'flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200',
+                    isActive(day.href)
+                      ? 'bg-primary/10 text-primary'
+                      : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+                  )}
+                >
+                  <div className="w-1.5 h-1.5 rounded-full bg-current opacity-50" />
+                  {day.label}
+                </Link>
+              ))}
+            </div>
+          )}
         </nav>
 
         {/* User Section */}

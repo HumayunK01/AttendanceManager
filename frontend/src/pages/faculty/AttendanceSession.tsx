@@ -16,7 +16,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { facultyAPI } from '@/lib/api';
+import { api } from '@/lib/api';
 
 interface Student {
   id: string;
@@ -38,7 +38,7 @@ const AttendanceSession: React.FC = () => {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  
+
   const [sessionInfo, setSessionInfo] = useState<SessionInfo | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -52,32 +52,55 @@ const AttendanceSession: React.FC = () => {
 
   const fetchSessionData = async () => {
     try {
-      const [sessionRes, studentsRes] = await Promise.all([
-        facultyAPI.getSession(sessionId!),
-        facultyAPI.getSessionStudents(sessionId!)
-      ]);
-      setSessionInfo(sessionRes.data);
-      setStudents(studentsRes.data);
+      setIsLoading(true);
+
+      // Fetch students for this session
+      const studentsRes = await api.get(`/attendance/session/${sessionId}/students`);
+      const studentsData = studentsRes.data || [];
+
+      // Extract session info from the first record (all records have the same session info)
+      if (studentsData.length > 0) {
+        const firstRecord = studentsData[0];
+        setSessionInfo({
+          id: sessionId!,
+          subjectName: firstRecord.subject_name || 'Unknown',
+          className: firstRecord.class_name || 'Unknown',
+          date: new Date(firstRecord.session_date).toLocaleDateString(),
+          startTime: firstRecord.start_time,
+          isLocked: firstRecord.locked || false,
+        });
+      }
+
+      // Transform the data to match our interface
+      const transformedStudents = studentsData.map((s: any) => ({
+        id: s.student_id,
+        name: s.student_name,
+        rollNumber: s.roll_no?.toString() || 'N/A',
+        status: s.status === 'P' ? 'present' : s.status === 'A' ? 'absent' : 'unmarked'
+      }));
+
+      setStudents(transformedStudents);
+
+
+
     } catch (error) {
-      // Mock data
+      console.error('Failed to fetch session data:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load attendance session.',
+        variant: 'destructive',
+      });
+
+      // Fallback to empty state
+      setStudents([]);
       setSessionInfo({
         id: sessionId!,
-        subjectName: 'Data Structures',
-        className: 'CS Y1-A',
+        subjectName: 'Unknown',
+        className: 'Unknown',
         date: new Date().toLocaleDateString(),
-        startTime: '09:00',
+        startTime: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
         isLocked: false,
       });
-      setStudents([
-        { id: '1', name: 'Alice Johnson', rollNumber: 'CS2024001', status: 'present' },
-        { id: '2', name: 'Bob Williams', rollNumber: 'CS2024002', status: 'present' },
-        { id: '3', name: 'Carol Davis', rollNumber: 'CS2024003', status: 'absent' },
-        { id: '4', name: 'David Brown', rollNumber: 'CS2024004', status: 'unmarked' },
-        { id: '5', name: 'Emma Wilson', rollNumber: 'CS2024005', status: 'present' },
-        { id: '6', name: 'Frank Miller', rollNumber: 'CS2024006', status: 'unmarked' },
-        { id: '7', name: 'Grace Lee', rollNumber: 'CS2024007', status: 'present' },
-        { id: '8', name: 'Henry Taylor', rollNumber: 'CS2024008', status: 'absent' },
-      ]);
     } finally {
       setIsLoading(false);
     }
@@ -94,13 +117,18 @@ const AttendanceSession: React.FC = () => {
     }
 
     try {
-      await facultyAPI.markAttendance(sessionId!, student.id, status);
-      setStudents(students.map(s => 
+      await api.post('/attendance/mark', {
+        sessionId: parseInt(sessionId!),
+        studentId: student.id,
+        status: status === 'present' ? 'P' : 'A',
+        editedBy: 1,
+      });
+      setStudents(students.map(s =>
         s.id === student.id ? { ...s, status } : s
       ));
     } catch (error) {
       // Optimistic update for demo
-      setStudents(students.map(s => 
+      setStudents(students.map(s =>
         s.id === student.id ? { ...s, status } : s
       ));
     }
@@ -109,18 +137,18 @@ const AttendanceSession: React.FC = () => {
   const handleLockSession = async () => {
     setIsLocking(true);
     try {
-      await facultyAPI.lockSession(sessionId!);
+      await api.post(`/attendance/session/${sessionId}/lock`);
       setSessionInfo(prev => prev ? { ...prev, isLocked: true } : null);
       toast({
         title: 'Session Locked',
         description: 'The attendance session has been locked. No further changes can be made.',
       });
-    } catch (error) {
-      // Demo update
-      setSessionInfo(prev => prev ? { ...prev, isLocked: true } : null);
+    } catch (error: any) {
+      console.error('Failed to lock session:', error);
       toast({
-        title: 'Session Locked',
-        description: 'The attendance session has been locked.',
+        title: 'Error',
+        description: error.response?.data?.error || 'Failed to lock session.',
+        variant: 'destructive',
       });
     } finally {
       setIsLocking(false);
@@ -171,9 +199,9 @@ const AttendanceSession: React.FC = () => {
               </p>
             </div>
           </div>
-          
+
           {!sessionInfo?.isLocked && (
-            <Button 
+            <Button
               onClick={() => setIsLockDialogOpen(true)}
               className="bg-warning hover:bg-warning/90 text-warning-foreground"
             >
@@ -181,7 +209,7 @@ const AttendanceSession: React.FC = () => {
               Lock Session
             </Button>
           )}
-          
+
           {sessionInfo?.isLocked && (
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-muted text-muted-foreground">
               <Lock className="w-4 h-4" />
@@ -246,7 +274,7 @@ const AttendanceSession: React.FC = () => {
                 <th>Roll No.</th>
                 <th>Name</th>
                 <th>Status</th>
-                <th className="text-right">Mark Attendance</th>
+                <th>Mark Attendance</th>
               </tr>
             </thead>
             <tbody>
@@ -257,27 +285,43 @@ const AttendanceSession: React.FC = () => {
                   </td>
                   <td className="font-medium text-foreground">{student.name}</td>
                   <td>
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
-                      student.status === 'present' ? 'bg-success/10 text-success' :
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${student.status === 'present' ? 'bg-success/10 text-success' :
                       student.status === 'absent' ? 'bg-destructive/10 text-destructive' :
-                      'bg-muted text-muted-foreground'
-                    }`}>
+                        'bg-muted text-muted-foreground'
+                      }`}>
                       {student.status === 'present' && <CheckCircle className="w-3 h-3" />}
                       {student.status === 'absent' && <XCircle className="w-3 h-3" />}
                       {student.status.charAt(0).toUpperCase() + student.status.slice(1)}
                     </span>
                   </td>
                   <td>
-                    <div className="flex items-center justify-end gap-3">
-                      <span className="text-sm text-muted-foreground">Absent</span>
-                      <Switch
-                        checked={student.status === 'present'}
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant={student.status === 'present' ? 'default' : 'outline'}
+                        onClick={() => handleMarkAttendance(student, 'present')}
                         disabled={sessionInfo?.isLocked}
-                        onCheckedChange={(checked) => 
-                          handleMarkAttendance(student, checked ? 'present' : 'absent')
-                        }
-                      />
-                      <span className="text-sm text-muted-foreground">Present</span>
+                        className={`h-8 px-3 rounded-lg text-[10px] font-black uppercase tracking-wider ${student.status === 'present'
+                          ? 'bg-success hover:bg-success/90 text-success-foreground border-success'
+                          : 'border-success/20 text-success hover:bg-success/10'
+                          }`}
+                      >
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Present
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={student.status === 'absent' ? 'default' : 'outline'}
+                        onClick={() => handleMarkAttendance(student, 'absent')}
+                        disabled={sessionInfo?.isLocked}
+                        className={`h-8 px-3 rounded-lg text-[10px] font-black uppercase tracking-wider ${student.status === 'absent'
+                          ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground border-destructive'
+                          : 'border-destructive/20 text-destructive hover:bg-destructive/10'
+                          }`}
+                      >
+                        <XCircle className="w-3 h-3 mr-1" />
+                        Absent
+                      </Button>
                     </div>
                   </td>
                 </tr>

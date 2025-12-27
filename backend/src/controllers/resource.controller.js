@@ -375,11 +375,77 @@ export const deleteTimetableSlot = async (req, res) => {
     try {
         const { id } = req.params
 
+        // Check if there are any attendance sessions linked to this slot
+        const sessions = await sql`
+            SELECT id, COUNT(*) as count 
+            FROM attendance_sessions 
+            WHERE timetable_slot_id = ${id}
+            GROUP BY id
+        `
+
+        const sessionCount = sessions.length;
+
+        if (sessionCount > 0) {
+            console.log(`Found ${sessionCount} attendance session(s) for timetable slot ${id}`);
+
+            // Get all session IDs
+            const sessionIds = sessions.map(s => s.id);
+
+            // Delete all attendance records and their audit logs for these sessions
+            if (sessionIds.length > 0) {
+                // First, get all attendance record IDs for these sessions
+                const recordIds = [];
+                for (const sessionId of sessionIds) {
+                    const records = await sql`
+                        SELECT id FROM attendance_records 
+                        WHERE session_id = ${sessionId}
+                    `
+                    recordIds.push(...records.map(r => r.id));
+                }
+
+                // Delete audit logs for these records
+                if (recordIds.length > 0) {
+                    for (const recordId of recordIds) {
+                        await sql`
+                            DELETE FROM attendance_audit_logs 
+                            WHERE record_id = ${recordId}
+                        `
+                    }
+                    console.log(`Deleted audit logs for ${recordIds.length} attendance record(s)`);
+                }
+
+                // Now delete the attendance records
+                for (const sessionId of sessionIds) {
+                    await sql`
+                        DELETE FROM attendance_records 
+                        WHERE session_id = ${sessionId}
+                    `
+                }
+                console.log(`Deleted ${recordIds.length} attendance record(s) for ${sessionIds.length} session(s)`);
+            }
+
+            // Delete the sessions (not archive, since we're deleting the timetable slot)
+            await sql`
+                DELETE FROM attendance_sessions 
+                WHERE timetable_slot_id = ${id}
+            `
+            console.log(`Deleted ${sessionCount} attendance session(s)`);
+        }
+
+        // Now delete the timetable slot
         await sql`DELETE FROM timetable_slots WHERE id = ${id}`
 
-        res.json({ message: 'Timetable slot deleted successfully' })
+        const message = sessionCount > 0
+            ? `Timetable slot deleted successfully. ${sessionCount} attendance session(s) and their records were archived/removed.`
+            : 'Timetable slot deleted successfully';
+
+        res.json({ message })
     } catch (error) {
         console.error('Error deleting timetable slot:', error)
-        res.status(500).json({ message: 'Failed to delete timetable slot' })
+        console.error('Error details:', error.message, error.code);
+
+        res.status(500).json({
+            message: 'Failed to delete timetable slot. Please check server logs for details.'
+        })
     }
 }

@@ -255,8 +255,13 @@ const TimetablePage: React.FC = () => {
       await adminAPI.deleteTimetableSlot(selectedSlot.id);
       setSlots(prev => prev.filter(s => s.id !== selectedSlot.id));
       toast({ title: 'Success', description: 'Session removed from schedule.' });
-    } catch (error) {
-      toast({ title: 'Error', description: 'Deletion failed.', variant: 'destructive' });
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Deletion failed.';
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive'
+      });
     } finally {
       setIsDeleteDialogOpen(false);
       setSelectedSlot(null);
@@ -402,7 +407,7 @@ const TimetablePage: React.FC = () => {
               </table>
             </div>
             <div className="bg-secondary/10 py-3 px-6 border-t border-border/50 flex items-center justify-between text-[10px] font-bold text-muted-foreground/50 tracking-widest uppercase">
-              <span>{filteredSlots.length} Lectures on {DAYS[selectedDay]}</span>
+              <span>{filteredSlots.length} Lectures on {DAYS[selectedDay - 1] || 'All Days'}</span>
               <span className="text-[9px] bg-secondary/30 px-2 py-0.5 rounded-md border border-border/50">Admin Console v1.0</span>
             </div>
           </div>
@@ -434,7 +439,7 @@ const TimetablePage: React.FC = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl border-border/50 backdrop-blur-xl">
-                      {DAYS.map((d, i) => <SelectItem key={i} value={i.toString()}>{d}</SelectItem>)}
+                      {DAYS.map((d, i) => <SelectItem key={i} value={(i + 1).toString()}>{d}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>

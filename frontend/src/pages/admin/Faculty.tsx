@@ -81,53 +81,53 @@ const TableRow = memo(({
   getInitials: (name: string) => string;
 }) => (
   <tr className="group hover:bg-white/5 transition-colors duration-200">
-    <td className="py-3 px-6">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-success/20 to-success/5 flex items-center justify-center border border-success/20 group-hover:scale-110 transition-transform duration-300 shadow-inner">
-          <span className="text-[11px] font-black text-success tracking-tighter">
+    <td className="py-2.5 px-5">
+      <div className="flex items-center gap-2.5">
+        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-success/20 to-success/5 flex items-center justify-center border border-success/20 group-hover:scale-110 transition-transform duration-300 shadow-sm">
+          <span className="text-[10px] font-black text-success tracking-tighter">
             {getInitials(faculty.name)}
           </span>
         </div>
         <div>
-          <p className="text-sm font-bold text-foreground group-hover:text-primary transition-colors tracking-tight">
+          <p className="text-[13px] font-bold text-foreground group-hover:text-primary transition-colors tracking-tight">
             {faculty.name}
           </p>
-          <p className="text-[11px] text-muted-foreground flex items-center gap-1.5 opacity-60">
-            <Mail className="w-3 h-3" />
+          <p className="text-[10px] text-muted-foreground flex items-center gap-1 opacity-60">
+            <Mail className="w-2.5 h-2.5" />
             {faculty.email}
           </p>
         </div>
       </div>
     </td>
-    <td className="px-6">
-      <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-[10px] font-black border border-primary/20 shadow-sm uppercase tracking-wider">
+    <td className="px-5">
+      <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-primary/10 text-primary text-[9px] font-black border border-primary/20 shadow-sm uppercase tracking-wider">
         {faculty.subjectsCount || 0} Subjects
       </span>
     </td>
-    <td className="px-6 text-muted-foreground text-[12px]">
+    <td className="px-5 text-muted-foreground text-[11px]">
       {new Date(faculty.createdAt).toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'short',
         day: 'numeric'
       })}
     </td>
-    <td className="px-6">
-      <div className="flex items-center justify-end gap-2">
+    <td className="px-5">
+      <div className="flex items-center justify-end gap-1.5">
         <Button
           variant="ghost"
           size="icon"
           onClick={() => onEdit(faculty)}
-          className="w-8 h-8 rounded-lg hover:bg-primary/10 hover:text-primary transition-all duration-200 border border-transparent hover:border-primary/20"
+          className="w-7 h-7 rounded-lg hover:bg-primary/10 hover:text-primary transition-all duration-200 border border-transparent hover:border-primary/20"
         >
-          <Pencil className="w-3.5 h-3.5" />
+          <Pencil className="w-3 h-3" />
         </Button>
         <Button
           variant="ghost"
           size="icon"
           onClick={() => onDelete(faculty)}
-          className="w-8 h-8 rounded-lg hover:bg-destructive/10 hover:text-destructive transition-all duration-200 border border-transparent hover:border-destructive/20"
+          className="w-7 h-7 rounded-lg hover:bg-destructive/10 hover:text-destructive transition-all duration-200 border border-transparent hover:border-destructive/20"
         >
-          <Trash2 className="w-3.5 h-3.5" />
+          <Trash2 className="w-3 h-3" />
         </Button>
       </div>
     </td>
@@ -249,64 +249,73 @@ const FacultyPage: React.FC = () => {
 
   return (
     <AdminLayout>
-      <div className="space-y-6 animate-fade-in pb-6">
+      <div className="space-y-5 animate-fade-in pb-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="space-y-0.5">
-            <h1 className="text-2xl font-black text-foreground flex items-center gap-2.5 tracking-tight">
-              <div className="w-9 h-9 rounded-xl bg-success/10 flex items-center justify-center border border-success/20">
-                <Users className="w-5 h-5 text-success" />
+            <h1 className="text-xl font-black text-foreground flex items-center gap-2 tracking-tight">
+              <div className="w-8 h-8 rounded-xl bg-success/10 flex items-center justify-center border border-success/20">
+                <Users className="w-4 h-4 text-success" />
               </div>
-              Faculty
+              Faculty Management
             </h1>
-            <p className="text-[13px] text-muted-foreground ml-1">Manage academic staff and assignments</p>
+            <p className="text-[11px] text-muted-foreground ml-1 font-medium">Academic staff and course assignments</p>
           </div>
           <Button
             onClick={() => handleOpenDialog()}
-            className="h-9 gap-2 bg-success hover:bg-success/90 text-success-foreground shadow-lg shadow-success/20 hover:shadow-xl hover:shadow-success/30 transition-all duration-300 rounded-lg px-6 text-sm"
+            className="h-9 gap-1.5 bg-success hover:bg-success/90 text-success-foreground shadow-md shadow-success/10 hover:shadow-lg hover:shadow-success/20 transition-all duration-300 rounded-xl px-5 text-[11px] font-black uppercase tracking-wider"
           >
-            <Plus className="w-4 h-4" />
-            <span className="font-bold">Add Faculty</span>
+            <Plus className="w-3.5 h-3.5" />
+            Add Faculty
           </Button>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <StatsCard
-            title="Total Faculty"
-            value={faculty.length}
-            icon={Users}
-            colorClass="success"
-            gradientClass="bg-gradient-to-br from-success/5 to-transparent"
-            iconBgClass="bg-success/10"
-          />
-          <StatsCard
-            title="Allocated Subjects"
-            value={stats.totalSubjects}
-            icon={BookOpen}
-            colorClass="primary"
-            gradientClass="bg-gradient-to-br from-primary/5 to-transparent"
-            iconBgClass="bg-primary/10"
-          />
-          <StatsCard
-            title="New This Week"
-            value={stats.recentlyAdded}
-            icon={Clock}
-            colorClass="warning"
-            gradientClass="bg-gradient-to-br from-warning/5 to-transparent"
-            iconBgClass="bg-warning/10"
-          />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="glass-card p-4 rounded-xl border border-border/50 bg-gradient-to-br from-success/5 to-transparent group hover:shadow-md transition-all">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em]">Total Faculty</p>
+                <p className="text-2xl font-black text-success tracking-tighter">{faculty.length}</p>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center border border-success/20 group-hover:scale-110 transition-transform">
+                <Users className="w-5 h-5 text-success" />
+              </div>
+            </div>
+          </div>
+          <div className="glass-card p-4 rounded-xl border border-border/50 bg-gradient-to-br from-primary/5 to-transparent group hover:shadow-md transition-all">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em]">Subjects</p>
+                <p className="text-2xl font-black text-primary tracking-tighter">{stats.totalSubjects}</p>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20 group-hover:scale-110 transition-transform">
+                <BookOpen className="w-5 h-5 text-primary" />
+              </div>
+            </div>
+          </div>
+          <div className="glass-card p-4 rounded-xl border border-border/50 bg-gradient-to-br from-warning/5 to-transparent group hover:shadow-md transition-all">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em]">New (7d)</p>
+                <p className="text-2xl font-black text-warning tracking-tighter">{stats.recentlyAdded}</p>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center border border-warning/20 group-hover:scale-110 transition-transform">
+                <Clock className="w-5 h-5 text-warning" />
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Filters */}
-        <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+        <div className="flex flex-col md:flex-row gap-3 items-center justify-between">
           <div className="relative w-full md:max-w-xs group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
             <Input
-              placeholder="Search faculty..."
+              placeholder="Search by name or email..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-9 bg-secondary/30 border-border/50 focus:border-primary/50 rounded-xl transition-all shadow-sm text-sm"
+              className="pl-9 h-9 bg-secondary/30 border-border/50 focus:border-primary/50 rounded-xl transition-all shadow-sm text-[13px]"
             />
             {searchQuery && (
               <Button
@@ -315,7 +324,7 @@ const FacultyPage: React.FC = () => {
                 onClick={() => setSearchQuery('')}
                 className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 hover:bg-transparent text-muted-foreground"
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-3 h-3" />
               </Button>
             )}
           </div>
@@ -323,35 +332,35 @@ const FacultyPage: React.FC = () => {
 
         {/* Table/Content */}
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-16 glass-card rounded-2xl border-dashed">
-            <Loader2 className="w-10 h-10 animate-spin text-primary mb-3 opacity-50" />
-            <p className="text-[13px] text-muted-foreground font-medium animate-pulse">Fetching staff roster...</p>
+          <div className="flex flex-col items-center justify-center py-12 glass-card rounded-xl border-dashed">
+            <Loader2 className="w-8 h-8 animate-spin text-primary mb-2 opacity-50" />
+            <p className="text-[11px] text-muted-foreground font-medium animate-pulse">Loading faculty roster...</p>
           </div>
         ) : filteredFaculty.length === 0 ? (
-          <div className="glass-card flex flex-col items-center justify-center py-16 px-4 text-center rounded-2xl">
-            <div className="w-16 h-16 rounded-full bg-success/5 flex items-center justify-center mb-5">
-              <Users className="w-8 h-8 text-success/40" />
+          <div className="glass-card flex flex-col items-center justify-center py-12 px-4 text-center rounded-xl">
+            <div className="w-14 h-14 rounded-full bg-success/5 flex items-center justify-center mb-4">
+              <Users className="w-7 h-7 text-success/40" />
             </div>
-            <h3 className="text-xl font-bold text-foreground mb-1.5">{searchQuery ? 'No faculty found' : 'No staff registered'}</h3>
-            <p className="text-[13px] text-muted-foreground max-w-sm mb-6">
-              Start adding your faculty members to manage class assignments.
+            <h3 className="text-lg font-black text-foreground mb-1">{searchQuery ? 'No matches' : 'No faculty yet'}</h3>
+            <p className="text-[11px] text-muted-foreground max-w-sm mb-5">
+              {searchQuery ? 'Try adjusting your search terms.' : 'Add faculty members to manage course assignments.'}
             </p>
             {!searchQuery && (
-              <Button onClick={() => handleOpenDialog()} className="h-9 px-6 rounded-lg font-bold gap-2 text-sm">
-                <Plus className="w-4 h-4" /> Add Faculty
+              <Button onClick={() => handleOpenDialog()} className="h-9 px-5 rounded-xl font-black gap-1.5 text-[11px] uppercase tracking-wider">
+                <Plus className="w-3.5 h-3.5" /> Add Faculty
               </Button>
             )}
           </div>
         ) : (
-          <div className="glass-card overflow-hidden rounded-2xl border-border/50 shadow-xl">
+          <div className="glass-card overflow-hidden rounded-xl border-border/50 shadow-lg">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border/50 bg-secondary/20">
-                    <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Personnel</th>
-                    <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Allocation</th>
-                    <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Joined</th>
-                    <th className="text-right py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Actions</th>
+                    <th className="text-left py-3 px-5 text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">Personnel</th>
+                    <th className="text-left py-3 px-5 text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">Allocation</th>
+                    <th className="text-left py-3 px-5 text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">Joined</th>
+                    <th className="text-right py-3 px-5 text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/30">
@@ -367,9 +376,9 @@ const FacultyPage: React.FC = () => {
                 </tbody>
               </table>
             </div>
-            <div className="bg-secondary/10 py-3 px-6 border-t border-border/50 flex items-center justify-between text-[10px] font-bold text-muted-foreground/50 tracking-widest uppercase">
-              <span>Showing {filteredFaculty.length} Results</span>
-              <span className="text-[9px] bg-secondary/30 px-2 py-0.5 rounded-md border border-border/50">Admin Console v1.0</span>
+            <div className="bg-secondary/10 py-2.5 px-5 border-t border-border/50 flex items-center justify-between text-[9px] font-bold text-muted-foreground/50 tracking-widest uppercase">
+              <span>Showing {filteredFaculty.length} {filteredFaculty.length === 1 ? 'Result' : 'Results'}</span>
+              <span className="text-[8px] bg-secondary/30 px-1.5 py-0.5 rounded-md border border-border/50">v1.0</span>
             </div>
           </div>
         )}
