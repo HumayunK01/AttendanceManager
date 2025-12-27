@@ -394,7 +394,7 @@ const StudentsPage: React.FC = () => {
           <Button
             onClick={() => {
               setEditingStudent(null);
-              setFormData({ name: '', email: '', password: '', rollNo: '', classId: '' });
+              setFormData({ name: '', email: '', password: '', rollNo: '', classId: '', batchId: '' });
               setIsDialogOpen(true);
             }}
             className="h-9 gap-2 shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all duration-300 rounded-lg px-6 text-sm"
