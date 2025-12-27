@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
+import { formatTime12Hour } from '@/lib/timeUtils';
 import { cn } from '@/lib/utils';
 
 interface TimetableSlot {
@@ -229,8 +230,8 @@ const FacultyDashboard: React.FC = () => {
                       <Clock className="w-5 h-5 text-primary" />
                     </div>
                     <div>
-                      <p className="text-base font-black text-foreground tracking-tight">{slot.startTime}</p>
-                      <p className="text-[10px] text-muted-foreground font-bold">{slot.endTime}</p>
+                      <p className="text-base font-black text-foreground tracking-tight">{formatTime12Hour(slot.startTime)}</p>
+                      <p className="text-[10px] text-muted-foreground font-bold">{formatTime12Hour(slot.endTime)}</p>
                     </div>
                   </div>
 

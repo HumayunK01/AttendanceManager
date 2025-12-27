@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/lib/api';
+import { formatTime12Hour } from '@/lib/timeUtils';
 
 interface Student {
   id: string;
@@ -195,7 +196,7 @@ const AttendanceSession: React.FC = () => {
                 {sessionInfo?.subjectName}
               </h1>
               <p className="text-muted-foreground mt-1">
-                {sessionInfo?.className} • {sessionInfo?.date} • {sessionInfo?.startTime}
+                {sessionInfo?.className} • {sessionInfo?.date} • {formatTime12Hour(sessionInfo?.startTime || '')}
               </p>
             </div>
           </div>

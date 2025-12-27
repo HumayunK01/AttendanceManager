@@ -159,11 +159,11 @@ const TimetablePage: React.FC = () => {
   const [slots, setSlots] = useState<TimetableSlot[]>([]);
   const [mappings, setMappings] = useState<Mapping[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedDay, setSelectedDay] = useState(0);
+  const [selectedDay, setSelectedDay] = useState(1); // 1=Monday
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<TimetableSlot | null>(null);
-  const [formData, setFormData] = useState({ mappingId: '', dayOfWeek: 0, startTime: '', endTime: '' });
+  const [formData, setFormData] = useState({ mappingId: '', dayOfWeek: 1, startTime: '', endTime: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const { toast } = useToast();
@@ -203,7 +203,7 @@ const TimetablePage: React.FC = () => {
 
   const stats = useMemo(() => {
     const total = slots.length;
-    const slotsPerDay = DAYS.map((_, idx) => slots.filter(s => s.dayOfWeek === idx).length);
+    const slotsPerDay = DAYS.map((_, idx) => slots.filter(s => s.dayOfWeek === idx + 1).length); // idx+1 because days are 1-6
     const busiestDay = DAYS[slotsPerDay.indexOf(Math.max(...slotsPerDay))] || 'N/A';
     const uniqueFaculty = new Set(slots.map(s => s.facultyName)).size;
     return { total, busiestDay, uniqueFaculty };
@@ -353,8 +353,8 @@ const TimetablePage: React.FC = () => {
             {DAYS.map((day, idx) => (
               <button
                 key={day}
-                onClick={() => setSelectedDay(idx)}
-                className={`h-8 px-4 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all border whitespace-nowrap ${selectedDay === idx
+                onClick={() => setSelectedDay(idx + 1)} // idx+1 because days are 1-6
+                className={`h-8 px-4 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all border whitespace-nowrap ${selectedDay === idx + 1
                   ? 'bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20'
                   : 'bg-secondary/30 text-muted-foreground border-border/50 hover:bg-secondary/50'
                   }`}

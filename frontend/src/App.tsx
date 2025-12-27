@@ -23,6 +23,7 @@ import ReportsPage from "./pages/admin/Reports";
 // Faculty Pages
 import FacultyDashboard from "./pages/faculty/Dashboard";
 import FacultySchedule from "./pages/faculty/Schedule";
+import FacultyReports from "./pages/faculty/Reports";
 import AttendanceSession from "./pages/faculty/AttendanceSession";
 
 // Student Pages
@@ -76,6 +77,7 @@ const App = () => (
             {/* Faculty Routes */}
             <Route path="/faculty" element={<ProtectedRoute allowedRoles={['FACULTY']}><FacultyDashboard /></ProtectedRoute>} />
             <Route path="/faculty/schedule/:day" element={<ProtectedRoute allowedRoles={['FACULTY']}><FacultySchedule /></ProtectedRoute>} />
+            <Route path="/faculty/reports" element={<ProtectedRoute allowedRoles={['FACULTY']}><FacultyReports /></ProtectedRoute>} />
             <Route path="/faculty/attendance/:sessionId" element={<ProtectedRoute allowedRoles={['FACULTY']}><AttendanceSession /></ProtectedRoute>} />
 
             {/* Student Routes */}

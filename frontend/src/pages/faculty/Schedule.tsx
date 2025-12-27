@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { formatTime12Hour } from '@/lib/timeUtils';
 
 interface TimetableSlot {
     id: string;
@@ -47,6 +48,9 @@ const FacultySchedule: React.FC = () => {
             const response = await api.get('/faculty/today-timetable');
             const timetableData = response.data || [];
 
+            console.log('All timetable data:', timetableData.map((s: any) => ({ subject: s.subject, day_of_week: s.day_of_week })));
+            console.log('Filtering for day:', dayNumber, 'which is', dayName);
+
             // Filter for the selected day
             const daySlots = timetableData
                 .filter((slot: any) => slot.day_of_week === dayNumber)
@@ -58,6 +62,7 @@ const FacultySchedule: React.FC = () => {
                     endTime: slot.end_time,
                 }));
 
+            console.log('Found slots:', daySlots);
             setSlots(daySlots);
         } catch (error) {
             console.error('Failed to fetch schedule:', error);
@@ -137,8 +142,8 @@ const FacultySchedule: React.FC = () => {
                                             <Clock className="w-5 h-5 text-primary" />
                                         </div>
                                         <div>
-                                            <p className="text-base font-black text-foreground tracking-tight">{slot.startTime}</p>
-                                            <p className="text-[10px] text-muted-foreground font-bold">{slot.endTime}</p>
+                                            <p className="text-base font-black text-foreground tracking-tight">{formatTime12Hour(slot.startTime)}</p>
+                                            <p className="text-[10px] text-muted-foreground font-bold">{formatTime12Hour(slot.endTime)}</p>
                                         </div>
                                     </div>
 
