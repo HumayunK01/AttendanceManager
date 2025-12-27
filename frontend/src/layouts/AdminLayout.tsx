@@ -15,7 +15,8 @@ import {
   ChevronLeft,
   Building,
   PanelLeft,
-  Circle
+  Circle,
+  User
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -128,32 +129,34 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         </nav>
 
         {/* User Section */}
-        <div className="p-4 border-t border-sidebar-border overflow-hidden">
-          <div className={cn("flex items-center transition-all duration-300", isCollapsed ? "justify-center" : "gap-3 px-3 py-2")}>
-            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-              <span className="text-sm font-medium text-primary">
-                {user?.name?.charAt(0).toUpperCase()}
-              </span>
+        <div className="p-3 border-t border-sidebar-border">
+          <div className={cn(
+            "flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 hover:bg-sidebar-accent/50 group/user",
+            isCollapsed && "justify-center px-0"
+          )}>
+            <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 border border-primary/20 shadow-sm transition-transform group-hover/user:scale-105">
+              <User className="w-5 h-5 text-primary" />
             </div>
             {!isCollapsed && (
-              <div className="flex-1 min-w-0 animate-in fade-in duration-300">
-                <p className="text-sm font-medium text-foreground truncate">{user?.name}</p>
-                <p className="text-xs text-muted-foreground">Administrator</p>
+              <div className="flex-1 min-w-0 animate-fade-in">
+                <p className="text-base font-black text-foreground truncate tracking-tight leading-tight">{user?.name}</p>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.15em] opacity-60">Administrator</p>
               </div>
             )}
           </div>
+
           <button
             onClick={handleLogout}
             className={cn(
-              "mt-2 w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-sidebar-accent hover:text-destructive transition-colors group relative",
+              "mt-1 w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all group/logout relative",
               isCollapsed && "justify-center px-0"
             )}
           >
-            <LogOut className="w-5 h-5 flex-shrink-0" />
+            <LogOut className="w-4 h-4 flex-shrink-0 group-hover/logout:-translate-x-0.5 transition-transform" />
             {!isCollapsed && <span>Sign out</span>}
 
             {isCollapsed && (
-              <div className="absolute left-full ml-4 px-2 py-1 bg-destructive text-destructive-foreground text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-50">
+              <div className="absolute left-full ml-4 px-2.5 py-1.5 bg-destructive text-destructive-foreground text-[11px] font-bold uppercase tracking-wider rounded-lg opacity-0 invisible group-hover/logout:opacity-100 group-hover/logout:visible transition-all whitespace-nowrap z-50 shadow-xl">
                 Sign out
               </div>
             )}
