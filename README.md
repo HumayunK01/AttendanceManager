@@ -4,7 +4,7 @@ A production-grade, role-segmented academic attendance platform engineered for r
 
 Attendly is not a CRUD demo. It enforces academic process rules: identity isolation, immutable audit logs, session locking, abuse detection, and role-isolated dashboards for Admins, Faculty, and Students.
 
-![Attendly Preview](preview.png)
+![Attendly Preview](https://github.com/user-attachments/assets/387e8850-28d3-474d-8c7b-ba41c8d8d5c8)
 
 ## ✨ Key Capabilities
 
