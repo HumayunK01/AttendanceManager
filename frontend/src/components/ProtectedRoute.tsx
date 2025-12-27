@@ -26,6 +26,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
     return <Navigate to="/" state={{ from: location }} replace />;
   }
 
+  // FORCE CHANGE PASSWORD BARRIER
+  // If use is logged in but hasn't changed their password, 
+  // they are BLOCKED from accessing anything other than change-password page.
+  if (user?.isFirstLogin) {
+    return <Navigate to="/change-password" replace />;
+  }
+
   if (user && !allowedRoles.includes(user.role)) {
     // Redirect to appropriate dashboard based on role
     const roleRoutes: Record<UserRole, string> = {

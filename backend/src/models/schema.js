@@ -13,6 +13,7 @@ export const users = pgTable('users', {
   email: varchar('email', { length: 255 }).unique(),
   passwordHash: varchar('password_hash', { length: 255 }),
   role: varchar('role', { length: 50 }),
+  isFirstLogin: boolean('is_first_login').default(true),
   createdAt: timestamp('created_at').defaultNow()
 })
 

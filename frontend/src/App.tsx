@@ -8,6 +8,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 
 // Pages
 import Login from "./pages/Login";
+import ChangePassword from "./pages/ChangePassword";
 import NotFound from "./pages/NotFound";
 
 // Admin Pages
@@ -44,6 +45,10 @@ const AuthenticatedRedirect = () => {
   }
 
   if (isAuthenticated && user) {
+    if (user.isFirstLogin) {
+      return <Navigate to="/change-password" replace />;
+    }
+
     const roleRoutes = {
       ADMIN: '/admin',
       FACULTY: '/faculty',
@@ -64,6 +69,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<AuthenticatedRedirect />} />
+            <Route path="/change-password" element={<ChangePassword />} />
 
             {/* Admin Routes */}
             <Route path="/admin" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminDashboard /></ProtectedRoute>} />

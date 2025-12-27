@@ -9,6 +9,7 @@ export interface User {
   email: string;
   name: string;
   role: UserRole;
+  isFirstLogin?: boolean;
 }
 
 interface DecodedToken {
@@ -16,6 +17,7 @@ interface DecodedToken {
   email: string;
   name: string;
   role: UserRole;
+  isFirstLogin?: boolean;
   exp: number;
 }
 
@@ -26,6 +28,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  updateUser: (updates: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -53,7 +56,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         const decoded = jwtDecode<DecodedToken>(storedToken);
         const isExpired = decoded.exp * 1000 < Date.now();
-        
+
         if (!isExpired) {
           setToken(storedToken);
           setUser({
@@ -61,6 +64,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             email: decoded.email,
             name: decoded.name,
             role: decoded.role,
+            isFirstLogin: decoded.isFirstLogin
           });
         } else {
           localStorage.removeItem('token');
@@ -75,9 +79,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (email: string, password: string) => {
     const response = await authAPI.login({ email, password });
     const { token: newToken } = response.data;
-    
+
     localStorage.setItem('token', newToken);
-    
+
     const decoded = jwtDecode<DecodedToken>(newToken);
     setToken(newToken);
     setUser({
@@ -85,6 +89,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       email: decoded.email,
       name: decoded.name,
       role: decoded.role,
+      isFirstLogin: decoded.isFirstLogin
     });
   };
 
@@ -92,6 +97,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.removeItem('token');
     setToken(null);
     setUser(null);
+  };
+
+  const updateUser = (updates: Partial<User>) => {
+    setUser((prev) => prev ? { ...prev, ...updates } : null);
   };
 
   return (
@@ -103,6 +112,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         isAuthenticated: !!user,
         login,
         logout,
+        updateUser
       }}
     >
       {children}

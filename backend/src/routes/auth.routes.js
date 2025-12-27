@@ -35,4 +35,8 @@ const router = Router()
 
 router.post('/login', login)
 
+import { requireAuth } from '../middleware/auth.middleware.js'
+import { changePassword } from '../controllers/auth.controller.js'
+router.put('/change-password', requireAuth(), changePassword)
+
 export default router
