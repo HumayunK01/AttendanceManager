@@ -18,19 +18,35 @@ export const createSubject = async (req, res) => {
 }
 
 export const createClass = async (req, res) => {
-  const { name, institutionId } = req.body
+  const { programId, divisionId, batchYear, isActive } = req.body
 
-  if (!name || !institutionId) {
-    return res.status(400).json({ error: 'name and institutionId required' })
-  }
+  if (!programId || !batchYear)
+    return res.status(400).json({ error: 'Missing fields' })
 
-  await sql`
-    INSERT INTO classes (name, institution_id)
-    VALUES (${name}, ${institutionId})
+  const result = await sql`
+    INSERT INTO classes (program_id, division_id, batch_year, is_active)
+    VALUES (${programId}, ${divisionId || null}, ${batchYear}, ${isActive})
+    RETURNING id, created_at as "createdAt"
   `
 
-  res.json({ success: true })
+  // Get program and division names
+  const program = await sql`SELECT name FROM programs WHERE id = ${programId}`
+  const division = divisionId
+    ? await sql`SELECT name FROM divisions WHERE id = ${divisionId}`
+    : null
+
+  const createdClass = {
+    id: result[0].id,
+    program: program[0]?.name || '',
+    division: division?.[0]?.name || '',
+    batchYear,
+    isActive,
+    createdAt: result[0].createdAt
+  }
+
+  res.json(createdClass)
 }
+
 
 export const mapFacultySubject = async (req, res) => {
   const { facultyId, subjectId, classId } = req.body
@@ -164,4 +180,30 @@ export const createStudent = async (req, res) => {
   }
 
   res.json(createdStudent)
+}
+
+export const createProgram = async (req, res) => {
+  const { name } = req.body
+  if (!name) return res.status(400).json({ error: 'Program name required' })
+
+  await sql`INSERT INTO programs (name) VALUES (${name})`
+  res.json({ success: true })
+}
+
+export const createDivision = async (req, res) => {
+  const { name } = req.body
+  if (!name) return res.status(400).json({ error: 'Division name required' })
+
+  await sql`INSERT INTO divisions (name) VALUES (${name})`
+  res.json({ success: true })
+}
+
+export const getPrograms = async (_, res) => {
+  const result = await sql`SELECT id, name FROM programs WHERE is_active=true ORDER BY name`
+  res.json(result)
+}
+
+export const getDivisions = async (_, res) => {
+  const result = await sql`SELECT id, name FROM divisions WHERE is_active=true ORDER BY name`
+  res.json(result)
 }

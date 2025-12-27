@@ -19,14 +19,23 @@ export const getSubjects = async (req, res) => {
 export const getClasses = async (req, res) => {
     try {
         const classes = await sql`
-      SELECT id, name, year, division, created_at as "createdAt"
-      FROM classes
-      ORDER BY year ASC, division ASC
+      SELECT 
+        c.id,
+        p.name as program,
+        d.name as division,
+        c.batch_year as "batchYear",
+        c.is_active as "isActive",
+        c.created_at as "createdAt"
+      FROM classes c
+      JOIN programs p ON p.id = c.program_id
+      LEFT JOIN divisions d ON d.id = c.division_id
+      ORDER BY c.batch_year DESC, p.name ASC
     `
+        console.log('Classes fetched:', classes.length)
         res.json(classes)
     } catch (error) {
-        console.error('Error fetching classes:', error)
-        res.status(500).json({ message: 'Failed to fetch classes' })
+        console.error('Error fetching classes:', error.message)
+        res.status(500).json({ message: 'Failed to fetch classes', error: error.message })
     }
 }
 
@@ -181,11 +190,15 @@ export const deleteSubject = async (req, res) => {
 export const updateClass = async (req, res) => {
     try {
         const { id } = req.params
-        const { name, year, division } = req.body
+        const { programId, divisionId, batchYear, isActive } = req.body
 
         await sql`
       UPDATE classes
-      SET name = ${name}, year = ${year}, division = ${division}
+      SET 
+        program_id = ${programId}, 
+        division_id = ${divisionId || null}, 
+        batch_year = ${batchYear}, 
+        is_active = ${isActive}
       WHERE id = ${id}
     `
 

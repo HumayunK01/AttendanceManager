@@ -56,9 +56,9 @@ export const adminAPI = {
 
   // Classes
   getClasses: () => api.get('/classes'),
-  createClass: (data: { name: string; year: number; division: string }) =>
+  createClass: (data: { programId: number; divisionId: number | null; batchYear: number; isActive: boolean }) =>
     api.post('/classes', data),
-  updateClass: (id: string, data: { name: string; year: number; division: string }) =>
+  updateClass: (id: string, data: Partial<{ programId: number; divisionId: number | null; batchYear: number; isActive: boolean }>) =>
     api.put(`/classes/${id}`, data),
   deleteClass: (id: string) => api.delete(`/classes/${id}`),
 
@@ -99,6 +99,12 @@ export const adminAPI = {
     endTime: string;
   }>) => api.put(`/timetable/${id}`, data),
   deleteTimetableSlot: (id: string) => api.delete(`/timetable/${id}`),
+
+  // Programs & Divisions
+  getPrograms: () => api.get('/admin/programs'),
+  createProgram: (data: { name: string }) => api.post('/admin/program', data),
+  getDivisions: () => api.get('/admin/divisions'),
+  createDivision: (data: { name: string }) => api.post('/admin/division', data),
 
   // Reports
   getAbuseReports: () => api.get('/reports/abuse'),

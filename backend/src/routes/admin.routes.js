@@ -7,7 +7,11 @@ import {
   createTimetableSlot,
   deactivateStudent,
   createFaculty,
-  createStudent
+  createStudent,
+  createProgram,
+  createDivision,
+  getPrograms,
+  getDivisions
 } from '../controllers/admin.controller.js'
 
 const router = Router()
@@ -198,5 +202,109 @@ router.post('/student', requireAuth(['ADMIN']), createStudent)
  *         description: Student deactivated
  */
 router.post('/student/:id/deactivate', requireAuth(['ADMIN']), deactivateStudent)
+
+/**
+ * @swagger
+ * /admin/programs:
+ *   get:
+ *     summary: Get all active programs
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of active programs
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                   name:
+ *                     type: string
+ *                     example: CSE
+ */
+router.get('/programs', requireAuth(['ADMIN']), getPrograms)
+
+/**
+ * @swagger
+ * /admin/program:
+ *   post:
+ *     summary: Create a new program
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: CSE
+ *     responses:
+ *       200:
+ *         description: Program created successfully
+ */
+router.post('/program', requireAuth(['ADMIN']), createProgram)
+
+/**
+ * @swagger
+ * /admin/divisions:
+ *   get:
+ *     summary: Get all active divisions
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of active divisions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                   name:
+ *                     type: string
+ *                     example: A
+ */
+router.get('/divisions', requireAuth(['ADMIN']), getDivisions)
+
+/**
+ * @swagger
+ * /admin/division:
+ *   post:
+ *     summary: Create a new division
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: A
+ *     responses:
+ *       200:
+ *         description: Division created successfully
+ */
+router.post('/division', requireAuth(['ADMIN']), createDivision)
 
 export default router
