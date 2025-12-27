@@ -161,7 +161,7 @@ const Login: React.FC = () => {
 
         <footer className="relative z-10 animate-in fade-in slide-in-from-left duration-1000 delay-500 ease-out fill-mode-both">
           <a
-            href="mailto:support@attendly.edu"
+            href="mailto:attendly.system@gmail.com"
             className="text-[10px] font-bold uppercase tracking-[0.4em] text-gray-500 hover:text-primary transition-all duration-300 flex items-center gap-2 group opacity-60 hover:opacity-100"
           >
             <span className="w-1 h-1 rounded-full bg-primary/40 group-hover:bg-primary transition-colors" />

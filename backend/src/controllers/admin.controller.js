@@ -192,6 +192,23 @@ export const createFaculty = async (req, res) => {
   `
 
   res.json({ success: true, id: newUser.id })
+
+  // Send credentials via email
+  try {
+    const mailerUrl = process.env.MAILER_URL || 'http://127.0.0.1:5001/api/send-credentials';
+    fetch(mailerUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email,
+        name,
+        role: 'FACULTY',
+        password
+      })
+    }).catch(err => console.error('Failed to send email:', err))
+  } catch (error) {
+    console.error('Error triggering email service:', error)
+  }
 }
 
 export const createStudent = async (req, res) => {
@@ -249,6 +266,23 @@ export const createStudent = async (req, res) => {
   }
 
   res.json(createdStudent)
+
+  // Send credentials via email
+  try {
+    const mailerUrl = process.env.MAILER_URL || 'http://127.0.0.1:5001/api/send-credentials';
+    fetch(mailerUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email,
+        name,
+        role: 'STUDENT',
+        password
+      })
+    }).catch(err => console.error('Failed to send email:', err))
+  } catch (error) {
+    console.error('Error triggering email service:', error)
+  }
 }
 
 export const createProgram = async (req, res) => {

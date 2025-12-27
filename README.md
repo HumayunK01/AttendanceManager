@@ -128,3 +128,5 @@ npm run dev
 MIT License
 
 **Built by Humayun Khan — engineered for institutions, not demos.**
+
+**Contact: attendly.system@gmail.com**
