@@ -32,6 +32,7 @@ import AttendanceSession from "./pages/faculty/AttendanceSession";
 // Student Pages
 import StudentDashboard from "./pages/student/Dashboard";
 import StudentReports from "./pages/student/Reports";
+import Leaderboard from "./pages/student/Leaderboard";
 
 const queryClient = new QueryClient();
 
@@ -94,6 +95,7 @@ const App = () => (
             {/* Student Routes */}
             <Route path="/student" element={<ProtectedRoute allowedRoles={['STUDENT']}><StudentDashboard /></ProtectedRoute>} />
             <Route path="/student/report" element={<ProtectedRoute allowedRoles={['STUDENT']}><StudentReports /></ProtectedRoute>} />
+            <Route path="/student/leaderboard" element={<ProtectedRoute allowedRoles={['STUDENT']}><Leaderboard /></ProtectedRoute>} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>

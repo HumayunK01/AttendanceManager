@@ -143,6 +143,7 @@ export const studentAPI = {
   getSubjectAttendance: (subjectId: string) => api.get(`/student/attendance/${subjectId}`),
   getOverallPercentage: () => api.get('/student/attendance/percentage'),
   getAttendanceHistory: () => api.get('/student/attendance/history'),
+  getLeaderboard: () => api.get('/student/leaderboard'),
 };
 
 export default api;

@@ -24,6 +24,7 @@ interface SidebarItem {
 const sidebarItems: SidebarItem[] = [
   { label: 'Dashboard', href: '/student', icon: <LayoutDashboard className="w-5 h-5" /> },
   { label: 'Attendance Report', href: '/student/report', icon: <BarChart3 className="w-5 h-5" /> },
+  { label: 'Leaderboard', href: '/student/leaderboard', icon: <GraduationCap className="w-5 h-5" /> },
 ];
 
 interface StudentLayoutProps {

@@ -177,3 +177,95 @@ export const getAttendanceHistory = async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch attendance history' })
   }
 }
+
+export const getLeaderboard = async (req, res) => {
+  const userId = req.user.id
+
+  try {
+    // 1. Get current student details to determine class
+    const studentResult = await sql`
+      SELECT id, class_id as "classId" FROM students WHERE user_id = ${userId} AND is_active = true
+    `
+
+    if (studentResult.length === 0) {
+      return res.status(404).json({ error: 'Student profile not found' })
+    }
+
+    const student = studentResult[0]
+    const classId = student.classId
+
+    // 2. Calculate statistics for ALL students in this class
+    // We need: Name, Roll No, Total Classes (for the class), Attended Classes (per student)
+
+    // First, get Total Classes held for this class
+    const totalSessionsQuery = await sql`
+      SELECT COUNT(DISTINCT asn.id) as count
+      FROM attendance_sessions asn
+      JOIN timetable_slots ts ON ts.id = asn.timetable_slot_id
+      JOIN faculty_subject_map fsm ON fsm.id = ts.faculty_subject_map_id
+      WHERE fsm.class_id = ${classId}
+        AND asn.is_archived = false
+    `
+    const totalClassSessions = parseInt(totalSessionsQuery[0].count || 0)
+
+    // Now get attendance counts for each student in the class
+    const leaderboardUtil = await sql`
+      SELECT 
+        s.id,
+        s.roll_no as "rollNo",
+        u.name,
+        COUNT(DISTINCT ar.id) as attended
+      FROM students s
+      JOIN users u ON u.id = s.user_id
+      LEFT JOIN attendance_records ar 
+        ON ar.student_id = s.id 
+        AND ar.status = 'P'
+        -- Ensure we only count valid sessions for this class
+        AND ar.session_id IN (
+            SELECT asn.id 
+            FROM attendance_sessions asn
+            JOIN timetable_slots ts ON ts.id = asn.timetable_slot_id
+            JOIN faculty_subject_map fsm ON fsm.id = ts.faculty_subject_map_id
+            WHERE fsm.class_id = ${classId} AND asn.is_archived = false
+        )
+      WHERE s.class_id = ${classId} AND s.is_active = true
+      GROUP BY s.id, s.roll_no, u.name
+    `
+
+    // Process and sort
+    const leaderboard = leaderboardUtil.map(entry => {
+      const attended = parseInt(entry.attended)
+      const percentage = totalClassSessions > 0
+        ? Math.round((attended / totalClassSessions) * 100)
+        : 0
+
+      return {
+        id: entry.id,
+        name: entry.name,
+        rollNo: entry.rollNo,
+        attended,
+        totalClasses: totalClassSessions,
+        percentage,
+        isCurrentUser: entry.id === student.id
+      }
+    })
+
+    // Sort by Percentage DESC, then Name ASC
+    leaderboard.sort((a, b) => {
+      if (b.percentage !== a.percentage) return b.percentage - a.percentage
+      return a.name.localeCompare(b.name)
+    })
+
+    // Assign Ranks
+    const rankedLeaderboard = leaderboard.map((item, index) => ({
+      ...item,
+      rank: index + 1
+    }))
+
+    res.json(rankedLeaderboard)
+
+  } catch (error) {
+    console.error('Error fetching leaderboard:', error)
+    res.status(500).json({ error: 'Failed to fetch leaderboard' })
+  }
+}
