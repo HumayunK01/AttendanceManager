@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, ArrowRight, Loader2, ClipboardCheck, Clock, Users, LucideIcon } from 'lucide-react';
 import { useAuth, UserRole } from '@/contexts/AuthContext';
@@ -80,6 +80,26 @@ const Login: React.FC = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  useEffect(() => {
+    // ------------------------------------------------------------------
+    // WAKE-UP CALL: Ping backend immediately to mitigate Render cold starts
+    // ------------------------------------------------------------------
+    const wakeUpBackend = async () => {
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        // Strip '/api' from the end to get the root URL for the /health endpoint
+        const baseUrl = apiUrl.replace(/\/api\/?$/, ''); 
+        
+        // Fire and forget - we don't care about the response, just hitting the server
+        await fetch(`${baseUrl}/health`, { method: 'GET' });
+      } catch (err) {
+        // Silently fail, it's just an optimization
+      }
+    };
+
+    wakeUpBackend();
+  }, []);
 
   const roleRoutes: Record<UserRole, string> = useMemo(() => ({
     ADMIN: '/admin',
