@@ -1,23 +1,23 @@
 import { sql } from '../config/db.js'
 
 export const getAttendance = async (req, res) => {
-    const userId = req.user.id
+  const userId = req.user.id
 
-    try {
-        // Get student details
-        const studentResult = await sql`
-      SELECT id, class_id FROM students WHERE user_id = ${userId} AND is_active = true
+  try {
+    // Get student details
+    const studentResult = await sql`
+      SELECT id, class_id as "classId" FROM students WHERE user_id = ${userId} AND is_active = true
     `
 
-        if (studentResult.length === 0) {
-            return res.status(404).json({ error: 'Student profile not found' })
-        }
+    if (studentResult.length === 0) {
+      return res.status(404).json({ error: 'Student profile not found' })
+    }
 
-        const student = studentResult[0]
+    const student = studentResult[0]
 
-        // Get attendance stats per subject
-        // specific to the student's class
-        const attendanceStats = await sql`
+    // Get attendance stats per subject
+    // specific to the student's class
+    const attendanceStats = await sql`
       WITH SubjectSessions AS (
         SELECT 
           sub.id as subject_id,
@@ -53,42 +53,42 @@ export const getAttendance = async (req, res) => {
       LEFT JOIN StudentAttendance sa ON sa.subject_id = ss.subject_id
     `
 
-        // Format response
-        const formattedStats = attendanceStats.map(stat => ({
-            id: stat.id,
-            name: stat.name,
-            code: stat.name.substring(0, 3).toUpperCase(), // Mock code from name
-            totalClasses: parseInt(stat.totalClasses),
-            attended: parseInt(stat.attended),
-            percentage: stat.totalClasses > 0
-                ? Math.round((stat.attended / stat.totalClasses) * 100)
-                : 0
-        }))
+    // Format response
+    const formattedStats = attendanceStats.map(stat => ({
+      id: stat.id,
+      name: stat.name,
+      code: stat.name.substring(0, 3).toUpperCase(), // Mock code from name
+      totalClasses: parseInt(stat.totalClasses),
+      attended: parseInt(stat.attended),
+      percentage: stat.totalClasses > 0
+        ? Math.round((stat.attended / stat.totalClasses) * 100)
+        : 0
+    }))
 
-        res.json(formattedStats)
-    } catch (error) {
-        console.error('Error fetching student attendance:', error)
-        res.status(500).json({ error: 'Failed to fetch attendance' })
-    }
+    res.json(formattedStats)
+  } catch (error) {
+    console.error('Error fetching student attendance:', error)
+    res.status(500).json({ error: 'Failed to fetch attendance' })
+  }
 }
 
 export const getOverallPercentage = async (req, res) => {
-    const userId = req.user.id
+  const userId = req.user.id
 
-    try {
-        const studentResult = await sql`
-      SELECT id, class_id FROM students WHERE user_id = ${userId} AND is_active = true
+  try {
+    const studentResult = await sql`
+      SELECT id, class_id as "classId" FROM students WHERE user_id = ${userId} AND is_active = true
     `
 
-        if (studentResult.length === 0) {
-            return res.status(404).json({ error: 'Student profile not found' })
-        }
+    if (studentResult.length === 0) {
+      return res.status(404).json({ error: 'Student profile not found' })
+    }
 
-        const student = studentResult[0]
+    const student = studentResult[0]
 
-        // Calculate overall stats
-        // Total sessions for the class
-        const totalSessionsResult = await sql`
+    // Calculate overall stats
+    // Total sessions for the class
+    const totalSessionsResult = await sql`
       SELECT COUNT(DISTINCT asn.id) as count
       FROM attendance_sessions asn
       JOIN timetable_slots ts ON ts.id = asn.timetable_slot_id
@@ -97,8 +97,8 @@ export const getOverallPercentage = async (req, res) => {
         AND asn.is_archived = false
     `
 
-        // Total attended by student
-        const attendedResult = await sql`
+    // Total attended by student
+    const attendedResult = await sql`
       SELECT COUNT(DISTINCT ar.id) as count
       FROM attendance_records ar
       JOIN attendance_sessions asn ON asn.id = ar.session_id
@@ -107,36 +107,46 @@ export const getOverallPercentage = async (req, res) => {
         AND asn.is_archived = false
     `
 
-        const totalClasses = parseInt(totalSessionsResult[0].count)
-        const attended = parseInt(attendedResult[0].count)
-        const percentage = totalClasses > 0 ? Math.round((attended / totalClasses) * 100) : 0
+    // Total subjects for the class
+    const totalSubjectsResult = await sql`
+      SELECT COUNT(DISTINCT subject_id) as count
+      FROM faculty_subject_map
+      WHERE class_id = ${student.classId}
+    `
+    console.log(`Debug getOverallPercentage: StudentClassID=${student.classId}, Count=${totalSubjectsResult[0].count}`);
 
-        res.json({
-            totalClasses,
-            attended,
-            percentage
-        })
-    } catch (error) {
-        console.error('Error fetching overall percentage:', error)
-        res.status(500).json({ error: 'Failed to fetch overall percentage' })
-    }
+    const totalClasses = parseInt(totalSessionsResult[0].count)
+    const attended = parseInt(attendedResult[0].count)
+    const totalSubjects = parseInt(totalSubjectsResult[0].count)
+    const percentage = totalClasses > 0 ? Math.round((attended / totalClasses) * 100) : 0
+
+    res.json({
+      totalClasses,
+      attended,
+      percentage,
+      totalSubjects
+    })
+  } catch (error) {
+    console.error('Error fetching overall percentage:', error)
+    res.status(500).json({ error: 'Failed to fetch overall percentage' })
+  }
 }
 
 export const getAttendanceHistory = async (req, res) => {
-    const userId = req.user.id
+  const userId = req.user.id
 
-    try {
-        const studentResult = await sql`
-      SELECT id, class_id FROM students WHERE user_id = ${userId} AND is_active = true
+  try {
+    const studentResult = await sql`
+      SELECT id, class_id as "classId" FROM students WHERE user_id = ${userId} AND is_active = true
     `
 
-        if (studentResult.length === 0) {
-            return res.status(404).json({ error: 'Student profile not found' })
-        }
+    if (studentResult.length === 0) {
+      return res.status(404).json({ error: 'Student profile not found' })
+    }
 
-        const student = studentResult[0]
+    const student = studentResult[0]
 
-        const history = await sql`
+    const history = await sql`
       SELECT 
         asn.session_date as date,
         sub.name as subject,
@@ -161,9 +171,9 @@ export const getAttendanceHistory = async (req, res) => {
       ORDER BY asn.session_date DESC, ts.start_time DESC
     `
 
-        res.json(history)
-    } catch (error) {
-        console.error('Error fetching attendance history:', error)
-        res.status(500).json({ error: 'Failed to fetch attendance history' })
-    }
+    res.json(history)
+  } catch (error) {
+    console.error('Error fetching attendance history:', error)
+    res.status(500).json({ error: 'Failed to fetch attendance history' })
+  }
 }

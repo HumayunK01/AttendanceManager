@@ -62,7 +62,7 @@ const ProgressRing: React.FC<ProgressRingProps> = ({ percentage, size = 120, str
 const StudentDashboard: React.FC = () => {
   const [subjects, setSubjects] = useState<SubjectAttendance[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [overallStats, setOverallStats] = useState({ percentage: 0, totalClasses: 0, attended: 0 });
+  const [overallStats, setOverallStats] = useState({ percentage: 0, totalClasses: 0, attended: 0, totalSubjects: 0 });
 
   useEffect(() => {
     fetchAttendance();
@@ -75,6 +75,7 @@ const StudentDashboard: React.FC = () => {
         studentAPI.getOverallPercentage()
       ]);
       setSubjects(attendanceRes.data);
+      console.log('Overall Stats Response:', percentageRes.data);
       setOverallStats(percentageRes.data);
     } catch (error) {
       // Mock data
@@ -92,7 +93,8 @@ const StudentDashboard: React.FC = () => {
       setOverallStats({
         percentage: Math.round((totalAttended / totalClasses) * 100),
         totalClasses,
-        attended: totalAttended
+        attended: totalAttended,
+        totalSubjects: mockSubjects.length
       });
     } finally {
       setIsLoading(false);
@@ -167,7 +169,7 @@ const StudentDashboard: React.FC = () => {
                 <BookOpen className="w-5 h-5 text-primary" />
                 <span className="text-sm text-muted-foreground">Total Subjects</span>
               </div>
-              <p className="text-3xl font-bold text-foreground">{subjects.length}</p>
+              <p className="text-3xl font-bold text-foreground">{overallStats.totalSubjects || 0}</p>
             </div>
             <div className="stat-card">
               <div className="flex items-center gap-3 mb-2">
@@ -220,7 +222,7 @@ const StudentDashboard: React.FC = () => {
                         <div className="w-24 h-2 rounded-full bg-muted overflow-hidden">
                           <div
                             className={`h-full rounded-full transition-all duration-500 ${subject.percentage >= 75 ? 'bg-success' :
-                                subject.percentage >= 60 ? 'bg-warning' : 'bg-destructive'
+                              subject.percentage >= 60 ? 'bg-warning' : 'bg-destructive'
                               }`}
                             style={{ width: `${subject.percentage}%` }}
                           />
@@ -232,8 +234,8 @@ const StudentDashboard: React.FC = () => {
                     </td>
                     <td>
                       <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${subject.percentage >= 75
-                          ? 'bg-success/10 text-success'
-                          : 'bg-destructive/10 text-destructive'
+                        ? 'bg-success/10 text-success'
+                        : 'bg-destructive/10 text-destructive'
                         }`}>
                         {subject.percentage >= 75 ? 'Good' : 'Low'}
                       </span>

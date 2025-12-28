@@ -92,10 +92,11 @@ router.delete('/class/:id', requireAuth(['ADMIN']), deleteClass)
  *         application/json:
  *           schema:
  *             type: object
- *             required: [facultyId, subjectId, classId]
+ *             required: [subjectId, classId]
  *             properties:
  *               facultyId:
  *                 type: integer
+ *                 description: Optional. If omitted, subject is assigned to class without faculty.
  *               subjectId:
  *                 type: integer
  *               classId:

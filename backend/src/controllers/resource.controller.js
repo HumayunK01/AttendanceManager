@@ -4,9 +4,28 @@ import { sql } from '../config/db.js'
 export const getSubjects = async (req, res) => {
     try {
         const subjects = await sql`
-      SELECT id, name, created_at as "createdAt"
-      FROM subjects
-      ORDER BY name ASC
+      SELECT 
+        s.id, 
+        s.name, 
+        s.created_at as "createdAt",
+        COALESCE(
+            jsonb_agg(
+                DISTINCT jsonb_build_object(
+                    'id', c.id,
+                    'program', p.name,
+                    'batchYear', c.batch_year,
+                    'division', d.name
+                )
+            ) FILTER (WHERE c.id IS NOT NULL),
+            '[]'
+        ) as classes
+      FROM subjects s
+      LEFT JOIN faculty_subject_map fsm ON fsm.subject_id = s.id
+      LEFT JOIN classes c ON c.id = fsm.class_id
+      LEFT JOIN programs p ON p.id = c.program_id
+      LEFT JOIN divisions d ON d.id = c.division_id
+      GROUP BY s.id
+      ORDER BY s.name ASC
     `
         res.json(subjects)
     } catch (error) {

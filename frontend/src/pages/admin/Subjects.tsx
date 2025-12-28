@@ -8,7 +8,9 @@ import {
   Loader2,
   X,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Network,
+  Users
 } from 'lucide-react';
 import AdminLayout from '@/layouts/AdminLayout';
 import { Button } from '@/components/ui/button';
@@ -32,15 +34,37 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { adminAPI } from '@/lib/api';
 
 // --- Types ---
 
+interface SubjectClass {
+  id: number;
+  program: string;
+  division: string | null;
+  batchYear: number;
+}
+
 interface Subject {
   id: string;
   name: string;
   createdAt: string;
+  classes: SubjectClass[];
+}
+
+interface Class {
+  id: number;
+  program: string;
+  division: string | null;
+  batchYear: number;
 }
 
 // --- Sub-components ---
@@ -65,7 +89,7 @@ const StatsCard = memo(({ title, value, icon: Icon, colorClass, gradientClass, i
 
 StatsCard.displayName = 'StatsCard';
 
-const TableRow = memo(({ subject, onEdit, onDelete }: { subject: Subject; onEdit: (s: Subject) => void; onDelete: (s: Subject) => void }) => (
+const TableRow = memo(({ subject, onEdit, onDelete, onAssign }: { subject: Subject; onEdit: (s: Subject) => void; onDelete: (s: Subject) => void; onAssign: (s: Subject) => void }) => (
   <tr className="group hover:bg-white/5 transition-colors duration-200">
     <td className="py-3 px-6">
       <div className="flex items-center gap-3">
@@ -80,6 +104,20 @@ const TableRow = memo(({ subject, onEdit, onDelete }: { subject: Subject; onEdit
         </div>
       </div>
     </td>
+    <td className="px-6">
+      <div className="flex flex-wrap gap-1.5 max-w-[300px]">
+        {subject.classes && subject.classes.length > 0 ? (
+          subject.classes.map((c, i) => (
+            <div key={`${c.id}-${i}`} className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-secondary/50 border border-border/50 text-[10px] font-bold text-muted-foreground whitespace-nowrap">
+              <Users className="w-3 h-3 opacity-50" />
+              {c.program} Y{c.batchYear}{c.division ? `-${c.division}` : ''}
+            </div>
+          ))
+        ) : (
+          <span className="text-[11px] text-muted-foreground/40 italic">Not Assigned</span>
+        )}
+      </div>
+    </td>
     <td className="px-6 text-muted-foreground text-[12px] font-medium tracking-tight whitespace-nowrap">
       {new Date(subject.createdAt).toLocaleDateString('en-US', {
         year: 'numeric',
@@ -89,6 +127,16 @@ const TableRow = memo(({ subject, onEdit, onDelete }: { subject: Subject; onEdit
     </td>
     <td className="px-6">
       <div className="flex items-center justify-end gap-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => onAssign(subject)}
+          title="Assign to Class"
+          className="w-8 h-8 rounded-lg hover:bg-accent/10 hover:text-accent border border-transparent hover:border-accent/20 transition-all duration-200"
+        >
+          <Network className="w-3.5 h-3.5" />
+        </Button>
+        <div className="w-[1px] h-4 bg-border/50 mx-1" />
         <Button
           variant="ghost"
           size="icon"
@@ -116,30 +164,41 @@ TableRow.displayName = 'TableRow';
 
 const SubjectsPage: React.FC = () => {
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [classes, setClasses] = useState<Class[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Dialog States
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
   const [formData, setFormData] = useState({ name: '' });
+  const [assignData, setAssignData] = useState({ classId: '' });
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
-  const fetchSubjects = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await adminAPI.getSubjects();
-      setSubjects(response.data);
+      const [subjectsRes, classesRes] = await Promise.all([
+        adminAPI.getSubjects(),
+        adminAPI.getClasses()
+      ]);
+      setSubjects(subjectsRes.data);
+      setClasses(classesRes.data);
     } catch (error) {
-      toast({ title: 'Error', description: 'Failed to load subjects.', variant: 'destructive' });
+      toast({ title: 'Error', description: 'Failed to synchronize data.', variant: 'destructive' });
     } finally {
       setIsLoading(false);
     }
   }, [toast]);
 
   useEffect(() => {
-    fetchSubjects();
-  }, [fetchSubjects]);
+    fetchData();
+  }, [fetchData]);
 
   const filteredSubjects = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
@@ -164,6 +223,12 @@ const SubjectsPage: React.FC = () => {
     setIsDialogOpen(true);
   }, []);
 
+  const handleOpenAssignDialog = useCallback((subject: Subject) => {
+    setSelectedSubject(subject);
+    setAssignData({ classId: '' });
+    setIsAssignDialogOpen(true);
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim()) return;
@@ -176,13 +241,49 @@ const SubjectsPage: React.FC = () => {
         toast({ title: 'Success', description: 'Subject updated successfully.' });
       } else {
         const res = await adminAPI.createSubject(formData);
-        const newSubject = res.data;
+        // Add classes: [] to match type
+        const newSubject = { ...res.data, classes: [] };
         setSubjects(prev => [newSubject, ...prev]);
         toast({ title: 'Success', description: 'Subject created successfully.' });
       }
       setIsDialogOpen(false);
     } catch (error: any) {
       toast({ title: 'Error', description: error.response?.data?.message || 'Failed to save subject.', variant: 'destructive' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleAssignSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedSubject || !assignData.classId) return;
+
+    setIsSubmitting(true);
+    try {
+      await adminAPI.createMapping({
+        subjectId: selectedSubject.id,
+        classId: assignData.classId,
+        facultyId: '' // Explicitly empty
+      });
+
+      // Update local state to show new assignment immediately
+      const assignedClass = classes.find(c => String(c.id) === assignData.classId);
+      if (assignedClass) {
+        setSubjects(prev => prev.map(s => {
+          if (s.id === selectedSubject.id) {
+            const currentClasses = s.classes || [];
+            // Check dupe just in case
+            if (currentClasses.some(c => c.id === assignedClass.id)) return s;
+            return { ...s, classes: [...currentClasses, assignedClass] };
+          }
+          return s;
+        }));
+      }
+
+      toast({ title: 'Success', description: `Assigned ${selectedSubject.name} to class.` });
+      setIsAssignDialogOpen(false);
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.response?.data?.error || 'Failed to assign subject.', variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
     }
@@ -304,6 +405,7 @@ const SubjectsPage: React.FC = () => {
                 <thead>
                   <tr className="border-b border-border/50 bg-secondary/20">
                     <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Subject Label</th>
+                    <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 w-[300px]">Assigned Classes</th>
                     <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Created At</th>
                     <th className="text-right py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Actions</th>
                   </tr>
@@ -318,6 +420,7 @@ const SubjectsPage: React.FC = () => {
                         setSelectedSubject(sb);
                         setIsDeleteDialogOpen(true);
                       }}
+                      onAssign={handleOpenAssignDialog}
                     />
                   ))}
                 </tbody>
@@ -342,7 +445,7 @@ const SubjectsPage: React.FC = () => {
               {selectedSubject ? 'Modify Subject' : 'New Subject'}
             </DialogTitle>
             <DialogDescription className="text-[13px] mt-1">
-              Define academic subjects and their institutional labels.
+              {selectedSubject ? 'Update subject details.' : 'Define academic subjects and their institutional labels.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -373,6 +476,57 @@ const SubjectsPage: React.FC = () => {
               <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)} className="rounded-xl font-bold h-10 text-sm">Discard</Button>
               <Button type="submit" disabled={isSubmitting} className="flex-1 rounded-xl font-bold shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90 transition-all h-10 text-sm">
                 {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : (selectedSubject ? 'Update' : 'Confirm')}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Assign Class Dialog */}
+      <Dialog open={isAssignDialogOpen} onOpenChange={setIsAssignDialogOpen}>
+        <DialogContent className="bg-background/95 backdrop-blur-xl border-border/50 sm:max-w-md rounded-3xl shadow-2xl">
+          <DialogHeader className="pt-2 px-1">
+            <DialogTitle className="text-xl font-black tracking-tight flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-accent/10 flex items-center justify-center text-accent">
+                <Network className="w-4 h-4" />
+              </div>
+              Assign to Class
+            </DialogTitle>
+            <DialogDescription className="text-[13px] mt-1">
+              Map <span className="font-bold text-foreground">{selectedSubject?.name}</span> to an academic class curriculum.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleAssignSubmit} className="space-y-5 pt-4">
+            <div className="space-y-4 px-1">
+              <div className="space-y-1.5">
+                <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground ml-1">Select Class</Label>
+                <Select value={assignData.classId} onValueChange={(v) => setAssignData({ classId: v })}>
+                  <SelectTrigger className="h-10 bg-secondary/50 border-border/50 rounded-xl">
+                    <SelectValue placeholder="Select a class..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background/95 backdrop-blur-xl border-border/50 rounded-xl max-h-[200px]">
+                    {classes.map((c) => (
+                      <SelectItem key={c.id} value={String(c.id)} className="py-2.5">
+                        {c.program} Y{c.batchYear}{c.division ? `-${c.division}` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="p-3 rounded-xl bg-accent/5 border border-accent/10 flex items-start gap-3">
+                <AlertCircle className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                <p className="text-[10px] font-bold text-muted-foreground leading-relaxed uppercase tracking-wider italic">
+                  This makes the subject active for the selected class. You can assign a faculty member later.
+                </p>
+              </div>
+            </div>
+
+            <DialogFooter className="pt-4 border-t border-border/20 px-1 gap-2">
+              <Button type="button" variant="ghost" onClick={() => setIsAssignDialogOpen(false)} className="rounded-xl font-bold h-10 text-sm">Cancel</Button>
+              <Button type="submit" disabled={isSubmitting || !assignData.classId} className="flex-1 rounded-xl font-bold shadow-lg shadow-accent/20 bg-accent text-accent-foreground hover:bg-accent/90 transition-all h-10 text-sm">
+                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Assign Class'}
               </Button>
             </DialogFooter>
           </form>

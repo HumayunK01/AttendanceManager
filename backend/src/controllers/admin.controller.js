@@ -81,28 +81,40 @@ export const deleteClass = async (req, res) => {
 export const mapFacultySubject = async (req, res) => {
   const { facultyId, subjectId, classId } = req.body
 
-  if (!facultyId || !subjectId || !classId) {
-    return res.status(400).json({ error: 'facultyId, subjectId, classId required' })
+  if (!subjectId || !classId) {
+    return res.status(400).json({ error: 'subjectId and classId required' })
   }
 
-  // Resolve user_id to faculty_id if needed
-  const facultyProfile = await sql`
-    SELECT id FROM faculty WHERE user_id = ${facultyId} OR id = ${facultyId}
-    LIMIT 1
-  `
+  let actualFacultyId = null
 
-  if (!facultyProfile.length) {
-    return res.status(404).json({ error: 'Faculty profile not found' })
+  if (facultyId) {
+    // Resolve user_id to faculty_id if needed
+    const facultyProfile = await sql`
+      SELECT id FROM faculty WHERE user_id = ${facultyId} OR id = ${facultyId}
+      LIMIT 1
+    `
+
+    if (!facultyProfile.length) {
+      return res.status(404).json({ error: 'Faculty profile not found' })
+    }
+    actualFacultyId = facultyProfile[0].id
   }
-
-  const actualFacultyId = facultyProfile[0].id
 
   // Prevent duplicate mappings
+  // If faculty is provided, check for exact match.
+  // If faculty is NOT provided, check if we already have a generic "unassigned" mapping?
+  // Or should we check if *any* mapping exists?
+  // Let's allow specific (Faculty, Subject, Class) OR (Null, Subject, Class).
+  
   const exists = await sql`
     SELECT id FROM faculty_subject_map
-    WHERE faculty_id = ${actualFacultyId}
-      AND subject_id = ${subjectId}
+    WHERE subject_id = ${subjectId}
       AND class_id = ${classId}
+      AND (
+        (${actualFacultyId}::integer IS NULL AND faculty_id IS NULL)
+        OR
+        (${actualFacultyId}::integer IS NOT NULL AND faculty_id = ${actualFacultyId})
+      )
   `
 
   if (exists.length) {
