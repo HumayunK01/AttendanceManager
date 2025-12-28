@@ -76,6 +76,7 @@ const Login: React.FC = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingText, setLoadingText] = useState('Signing in...');
 
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -89,8 +90,8 @@ const Login: React.FC = () => {
       try {
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
         // Strip '/api' from the end to get the root URL for the /health endpoint
-        const baseUrl = apiUrl.replace(/\/api\/?$/, ''); 
-        
+        const baseUrl = apiUrl.replace(/\/api\/?$/, '');
+
         // Fire and forget - we don't care about the response, just hitting the server
         await fetch(`${baseUrl}/health`, { method: 'GET' });
       } catch (err) {
@@ -111,9 +112,25 @@ const Login: React.FC = () => {
     e.preventDefault();
     if (!formData.email || !formData.password) return;
 
+
+    // Timers for feedback during cold starts
+    let timer1: ReturnType<typeof setTimeout>;
+    let timer2: ReturnType<typeof setTimeout>;
+
     setIsLoading(true);
+    setLoadingText('Signing in...');
+
+    // If it takes longer than 2s, it's likely waking up
+    timer1 = setTimeout(() => setLoadingText('Booting up the matrix...'), 2000);
+    // If it takes longer than 8s, be explicit
+    timer2 = setTimeout(() => setLoadingText('Almost there... spinning up resources!'), 8000);
+
     try {
       await login(formData.email, formData.password);
+
+      // Clear timers immediately upon success
+      clearTimeout(timer1);
+      clearTimeout(timer2);
 
       const token = localStorage.getItem('token');
       if (token) {
@@ -130,6 +147,8 @@ const Login: React.FC = () => {
         variant: 'destructive',
       });
     } finally {
+      clearTimeout(timer1!);
+      clearTimeout(timer2!);
       setIsLoading(false);
     }
   };
@@ -255,7 +274,7 @@ const Login: React.FC = () => {
                     {isLoading ? (
                       <>
                         <Loader2 className="w-5 h-5 animate-spin" />
-                        Connecting...
+                        {loadingText}
                       </>
                     ) : (
                       <>
