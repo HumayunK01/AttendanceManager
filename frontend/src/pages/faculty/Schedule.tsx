@@ -45,15 +45,16 @@ const FacultySchedule: React.FC = () => {
         try {
             setIsLoading(true);
 
-            const response = await api.get('/faculty/today-timetable');
+            const response = await api.get('/faculty/today-timetable', {
+                params: { day: dayNumber }
+            });
             const timetableData = response.data || [];
 
             console.log('All timetable data:', timetableData.map((s: any) => ({ subject: s.subject, day_of_week: s.day_of_week })));
             console.log('Filtering for day:', dayNumber, 'which is', dayName);
 
-            // Filter for the selected day
+            // Backend now filters by day if param provided, but double check doesn't hurt if API returned all
             const daySlots = timetableData
-                .filter((slot: any) => slot.day_of_week === dayNumber)
                 .map((slot: any) => ({
                     id: slot.timetable_slot_id,
                     subjectName: slot.subject,

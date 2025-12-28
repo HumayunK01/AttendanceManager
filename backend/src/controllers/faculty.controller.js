@@ -20,9 +20,12 @@ export const getTodayTimetable = async (req, res) => {
     }
 
     const facultyId = facultyRecord[0].id;
-    const today = new Date().getDay(); // 0=Sun ... 6=Sat
 
-    console.log(`[Faculty Timetable] Faculty ID: ${facultyId}, Today: ${today} (0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat)`);
+    // Allow overriding day via query param, else default to today
+    const queryDay = req.query.day ? parseInt(req.query.day) : null;
+    const todayIndex = queryDay !== null && !isNaN(queryDay) ? queryDay : new Date().getDay(); // 0=Sun, 1=Mon...
+
+    console.log(`[Faculty Timetable] Faculty ID: ${facultyId}, Target Day Index: ${todayIndex}`);
 
     const result = await sql`
       SELECT 
@@ -53,7 +56,8 @@ export const getTodayTimetable = async (req, res) => {
         AND asn.session_date = CURRENT_DATE
         AND asn.is_archived = false
       WHERE fsm.faculty_id = ${facultyId}
-      ORDER BY ts.day_of_week, ts.start_time;
+        AND ts.day_of_week::int = ${todayIndex}
+      ORDER BY ts.start_time;
     `;
 
     console.log(`[Faculty Timetable] Found ${result.length} total slots. Days:`, result.map(r => `${r.subject}=day${r.day_of_week}`));
@@ -364,8 +368,99 @@ export const exportSessionPDF = async (req, res) => {
     // If headers are already sent, we can't send JSON error
     if (!res.headersSent) {
       res.status(500).json({ error: 'Failed to export PDF' });
-    } else {
-      res.end();
     }
+  }
+}
+
+export const getLeaderboardStats = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+
+    // 1. Get Faculty ID
+    const facultyRecord = await sql`SELECT id FROM faculty WHERE user_id = ${userId}`;
+    if (!facultyRecord.length) return res.status(404).json({ error: 'Faculty record not found' });
+    const facultyId = facultyRecord[0].id;
+
+    // 2. Determine Scope
+    const { classId, subjectId } = req.query;
+
+    if (classId && subjectId) {
+      // --- Specific Leaderboard ---
+      const leaderboardData = await sql`
+        SELECT 
+          s.id as student_id,
+          s.roll_no,
+          u.name as student_name,
+          COUNT(DISTINCT ar.session_id) as attended,
+          (
+            SELECT COUNT(DISTINCT asn.id)
+            FROM attendance_sessions asn
+            JOIN timetable_slots ts ON ts.id = asn.timetable_slot_id
+            JOIN faculty_subject_map fsm ON fsm.id = ts.faculty_subject_map_id
+            WHERE fsm.class_id = ${classId} 
+              AND fsm.subject_id = ${subjectId}
+              AND fsm.faculty_id = ${facultyId}
+              AND asn.is_archived = false
+          ) as total_sessions
+        FROM students s
+        JOIN users u ON u.id = s.user_id
+        LEFT JOIN attendance_records ar ON ar.student_id = s.id 
+          AND ar.status = 'P'
+          AND ar.session_id IN (
+             SELECT asn.id
+             FROM attendance_sessions asn
+             JOIN timetable_slots ts ON ts.id = asn.timetable_slot_id
+             JOIN faculty_subject_map fsm ON fsm.id = ts.faculty_subject_map_id
+             WHERE fsm.class_id = ${classId} 
+               AND fsm.subject_id = ${subjectId}
+               AND fsm.faculty_id = ${facultyId}
+               AND asn.is_archived = false
+          )
+        WHERE s.class_id = ${classId} AND s.is_active = true
+        GROUP BY s.id, s.roll_no, u.name
+        ORDER BY attended DESC, s.roll_no ASC
+      `;
+
+      // Enriched process
+      const processed = leaderboardData.map((s, index) => {
+        const total = parseInt(s.total_sessions) || 0;
+        const attended = parseInt(s.attended) || 0;
+        return {
+          rank: index + 1,
+          id: s.student_id,
+          rollNo: s.roll_no,
+          name: s.student_name,
+          attended,
+          total,
+          percentage: total > 0 ? Math.round((attended / total) * 100) : 0
+        };
+      });
+
+      return res.json({ type: 'leaderboard', data: processed });
+
+    } else {
+      // --- List of Classes/Subjects ---
+      const mappings = await sql`
+        SELECT DISTINCT
+          c.id as class_id,
+          CONCAT(p.name, ' Y', c.batch_year, CASE WHEN d.name IS NOT NULL THEN '-' || d.name ELSE '' END) as class_name,
+          s.id as subject_id,
+          s.name as subject_name
+        FROM faculty_subject_map fsm
+        JOIN classes c ON c.id = fsm.class_id
+        JOIN subjects s ON s.id = fsm.subject_id
+        JOIN programs p ON p.id = c.program_id
+        LEFT JOIN divisions d ON d.id = c.division_id
+        WHERE fsm.faculty_id = ${facultyId}
+        ORDER BY class_name, s.name
+      `;
+
+      return res.json({ type: 'options', data: mappings });
+    }
+
+  } catch (error) {
+    console.error('Error fetching leaderboard stats:', error);
+    res.status(500).json({ error: 'Failed to fetch leaderboard stats' });
   }
 }

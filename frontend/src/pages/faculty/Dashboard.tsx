@@ -225,11 +225,19 @@ const FacultyDashboard: React.FC = () => {
         ) : slots.length === 0 ? (
           <div className="glass-card flex flex-col items-center justify-center py-12 text-center rounded-xl">
             <div className="w-14 h-14 rounded-full bg-primary/5 flex items-center justify-center mb-4">
-              <Calendar className="w-7 h-7 text-primary/40" />
+              {new Date().getDay() === 0 ? (
+                <span className="text-3xl">🎉</span>
+              ) : (
+                <Calendar className="w-7 h-7 text-primary/40" />
+              )}
             </div>
-            <h3 className="text-lg font-black text-foreground mb-1">No Lectures Today</h3>
-            <p className="text-[11px] text-muted-foreground max-w-sm">
-              You have no classes scheduled for today. Enjoy your day off!
+            <h3 className="text-lg font-black text-foreground mb-1">
+              {new Date().getDay() === 0 ? "It's Sunday! 🎉" : "No Lectures Today"}
+            </h3>
+            <p className="text-[11px] text-muted-foreground max-w-sm px-4">
+              {new Date().getDay() === 0
+                ? "Relax, recharge, and enjoy your day off! No classes scheduled for today."
+                : "You have no classes scheduled for today. Catch up on grading or take a break!"}
             </p>
           </div>
         ) : (
