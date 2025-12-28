@@ -16,7 +16,8 @@ import {
   Building,
   PanelLeft,
   Circle,
-  User
+  User,
+  Award
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -35,6 +36,7 @@ const sidebarItems: SidebarItem[] = [
   { label: 'Students', href: '/admin/students', icon: <GraduationCap className="w-5 h-5" /> },
   { label: 'Mappings', href: '/admin/mappings', icon: <Link2 className="w-5 h-5" /> },
   { label: 'Timetable', href: '/admin/timetable', icon: <Calendar className="w-5 h-5" /> },
+  { label: 'Gamification', href: '/admin/achievements', icon: <Award className="w-5 h-5" /> },
   { label: 'Abuse Reports', href: '/admin/reports', icon: <AlertTriangle className="w-5 h-5" /> },
 ];
 

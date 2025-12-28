@@ -117,6 +117,11 @@ export const adminAPI = {
   deleteBatch: (id: string) => api.delete(`/admin/batch/${id}`),
   assignStudentBatch: (studentId: string | number, batchId: string | number | null) => api.patch('/admin/student/batch', { studentId, batchId }),
 
+  // Achievements
+  getAchievements: () => api.get('/admin/achievements'),
+  createAchievement: (data: any) => api.post('/admin/achievement', data),
+  deleteAchievement: (id: string | number) => api.delete(`/admin/achievement/${id}`),
+
   // Reports
   getAbuseReports: () => api.get('/reports/abuse'),
   resolveAbuseReport: (id: string) => api.patch(`/reports/abuse/${id}/resolve`),
@@ -144,7 +149,7 @@ export const studentAPI = {
   getOverallPercentage: () => api.get('/student/attendance/percentage'),
   getAttendanceHistory: () => api.get('/student/attendance/history'),
   getLeaderboard: () => api.get('/student/leaderboard'),
+  getAchievements: () => api.get('/student/achievements'),
 };
 
 export default api;
-

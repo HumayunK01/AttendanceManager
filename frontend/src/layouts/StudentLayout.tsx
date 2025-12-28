@@ -9,6 +9,7 @@ import {
   ChevronRight,
   ChevronLeft,
   GraduationCap,
+  Award,
   PanelLeft,
   User
 } from 'lucide-react';
@@ -23,8 +24,9 @@ interface SidebarItem {
 
 const sidebarItems: SidebarItem[] = [
   { label: 'Dashboard', href: '/student', icon: <LayoutDashboard className="w-5 h-5" /> },
-  { label: 'Attendance Report', href: '/student/report', icon: <BarChart3 className="w-5 h-5" /> },
   { label: 'Leaderboard', href: '/student/leaderboard', icon: <GraduationCap className="w-5 h-5" /> },
+  { label: 'Achievements', href: '/student/achievements', icon: <Award className="w-5 h-5" /> },
+  { label: 'Reports', href: '/student/reports', icon: <BarChart3 className="w-5 h-5" /> },
 ];
 
 interface StudentLayoutProps {

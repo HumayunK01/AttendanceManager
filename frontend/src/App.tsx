@@ -22,6 +22,7 @@ import StudentsPage from "./pages/admin/Students";
 import MappingsPage from "./pages/admin/Mappings";
 import TimetablePage from "./pages/admin/Timetable";
 import ReportsPage from "./pages/admin/Reports";
+import AdminAchievementsPage from "./pages/admin/Achievements";
 
 // Faculty Pages
 import FacultyDashboard from "./pages/faculty/Dashboard";
@@ -32,6 +33,7 @@ import AttendanceSession from "./pages/faculty/AttendanceSession";
 // Student Pages
 import StudentDashboard from "./pages/student/Dashboard";
 import StudentReports from "./pages/student/Reports";
+import Achievements from '@/pages/student/Achievements';
 import Leaderboard from "./pages/student/Leaderboard";
 
 const queryClient = new QueryClient();
@@ -85,6 +87,7 @@ const App = () => (
             <Route path="/admin/mappings" element={<ProtectedRoute allowedRoles={['ADMIN']}><MappingsPage /></ProtectedRoute>} />
             <Route path="/admin/timetable" element={<ProtectedRoute allowedRoles={['ADMIN']}><TimetablePage /></ProtectedRoute>} />
             <Route path="/admin/reports" element={<ProtectedRoute allowedRoles={['ADMIN']}><ReportsPage /></ProtectedRoute>} />
+            <Route path="/admin/achievements" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminAchievementsPage /></ProtectedRoute>} />
 
             {/* Faculty Routes */}
             <Route path="/faculty" element={<ProtectedRoute allowedRoles={['FACULTY']}><FacultyDashboard /></ProtectedRoute>} />
@@ -94,8 +97,10 @@ const App = () => (
 
             {/* Student Routes */}
             <Route path="/student" element={<ProtectedRoute allowedRoles={['STUDENT']}><StudentDashboard /></ProtectedRoute>} />
-            <Route path="/student/report" element={<ProtectedRoute allowedRoles={['STUDENT']}><StudentReports /></ProtectedRoute>} />
+
+            <Route path="/student/reports" element={<ProtectedRoute allowedRoles={['STUDENT']}><StudentReports /></ProtectedRoute>} />
             <Route path="/student/leaderboard" element={<ProtectedRoute allowedRoles={['STUDENT']}><Leaderboard /></ProtectedRoute>} />
+            <Route path="/student/achievements" element={<ProtectedRoute allowedRoles={['STUDENT']}><Achievements /></ProtectedRoute>} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>

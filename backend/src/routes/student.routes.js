@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { getAttendance, getOverallPercentage, getAttendanceHistory, getLeaderboard } from '../controllers/student.controller.js'
+import { getAttendance, getOverallPercentage, getAttendanceHistory, getLeaderboard, getAchievements } from '../controllers/student.controller.js'
 import { requireAuth } from '../middleware/auth.middleware.js'
 
 const router = Router()
@@ -51,12 +51,32 @@ router.get('/attendance/history', requireAuth(['STUDENT']), getAttendanceHistory
  * @swagger
  * /student/leaderboard:
  *   get:
- *     summary: Get class leaderboard based on attendance
+ *     summary: Get class leaderboard
  *     tags: [Student]
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: List of students ranked by attendance
+ *         description: Class leaderboard retrieved successfully
+ *       500:
+ *         description: Server error
  */
 router.get('/leaderboard', requireAuth(['STUDENT']), getLeaderboard)
+
+/**
+ * @swagger
+ * /student/achievements:
+ *   get:
+ *     summary: Get student achievements
+ *     tags: [Student]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Achievements retrieved successfully
+ *       500:
+ *         description: Server error
+ */
+router.get('/achievements', requireAuth(['STUDENT']), getAchievements)
 
 export default router

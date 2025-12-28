@@ -18,7 +18,10 @@ import {
   getBatches,
   createBatch,
   deleteBatch,
-  assignBatch
+  assignBatch,
+  createAchievement,
+  deleteAchievement,
+  getAchievements
 } from '../controllers/admin.controller.js'
 
 const router = Router()
@@ -405,5 +408,62 @@ router.delete('/batch/:id', requireAuth(['ADMIN']), deleteBatch)
  *         description: Student assigned to batch
  */
 router.patch('/student/batch', requireAuth(['ADMIN']), assignBatch)
+/**
+ * @swagger
+ * /admin/achievement:
+ *   post:
+ *     summary: Create new achievement
+ *     tags: [Admin]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [title, icon, criteria]
+ *             properties:
+ *               title:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               icon:
+ *                 type: string
+ *               criteria:
+ *                 type: object
+ *     responses:
+ *       200:
+ *         description: Achievement created
+ */
+router.post('/achievement', requireAuth(['ADMIN']), createAchievement)
+
+/**
+ * @swagger
+ * /admin/achievement/{id}:
+ *   delete:
+ *     summary: Delete achievement
+ *     tags: [Admin]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Achievement deleted
+ */
+router.delete('/achievement/:id', requireAuth(['ADMIN']), deleteAchievement)
+
+/**
+ * @swagger
+ * /admin/achievements:
+ *   get:
+ *     summary: Get all achievements
+ *     tags: [Admin]
+ *     responses:
+ *       200:
+ *         description: List of achievements
+ */
+router.get('/achievements', requireAuth(['ADMIN']), getAchievements)
 
 export default router

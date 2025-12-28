@@ -105,7 +105,7 @@ export const mapFacultySubject = async (req, res) => {
   // If faculty is NOT provided, check if we already have a generic "unassigned" mapping?
   // Or should we check if *any* mapping exists?
   // Let's allow specific (Faculty, Subject, Class) OR (Null, Subject, Class).
-  
+
   const exists = await sql`
     SELECT id FROM faculty_subject_map
     WHERE subject_id = ${subjectId}
@@ -414,4 +414,53 @@ export const assignBatch = async (req, res) => {
   `
 
   res.json({ success: true })
+}
+
+export const createAchievement = async (req, res) => {
+  const { title, description, icon, criteria } = req.body;
+
+  if (!title || !icon || !criteria) {
+    return res.status(400).json({ error: 'title, icon, criteria required' });
+  }
+
+  // Validate criteria JSON
+  let criteriaJson;
+  try {
+    criteriaJson = JSON.stringify(criteria);
+    // Ensure specific keys exist for criteria types if needed
+  } catch (e) {
+    return res.status(400).json({ error: 'Invalid criteria format' });
+  }
+
+  const result = await sql`
+    INSERT INTO achievements (title, description, icon, criteria)
+    VALUES (${title}, ${description || ''}, ${icon}, ${criteriaJson})
+    RETURNING *
+  `;
+
+  res.json(result[0]);
+}
+
+export const deleteAchievement = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    await sql`DELETE FROM achievements WHERE id = ${id}`;
+    res.json({ success: true });
+  } catch (error) {
+    if (error.code === '23503') {
+      // If we want to allow deletion even if students have it, we would need cascade delete in schema
+      // Since we didn't add cascade, we can delete dependent records first manually or return error
+      // Let's force delete student_achievements first
+      await sql`DELETE FROM student_achievements WHERE achievement_id = ${id}`;
+      await sql`DELETE FROM achievements WHERE id = ${id}`;
+      return res.json({ success: true });
+    }
+    res.status(500).json({ error: 'Failed to delete achievement' });
+  }
+}
+
+export const getAchievements = async (req, res) => {
+  const result = await sql`SELECT * FROM achievements ORDER BY id`
+  res.json(result)
 }

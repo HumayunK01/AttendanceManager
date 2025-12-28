@@ -83,3 +83,18 @@ export const attendanceAuditLogs = pgTable('attendance_audit_logs', {
   reason: varchar('reason', { length: 255 }),
   editedAt: timestamp('edited_at').defaultNow()
 })
+export const achievements = pgTable('achievements', {
+  id: serial('id').primaryKey(),
+  title: varchar('title', { length: 255 }).notNull(),
+  description: varchar('description', { length: 500 }),
+  icon: varchar('icon', { length: 50 }).notNull(), // Lucide icon name
+  criteria: varchar('criteria', { length: 1000 }), // JSON string for criteria logic
+  createdAt: timestamp('created_at').defaultNow()
+})
+
+export const studentAchievements = pgTable('student_achievements', {
+  id: serial('id').primaryKey(),
+  studentId: integer('student_id').references(() => students.id),
+  achievementId: integer('achievement_id').references(() => achievements.id),
+  unlockedAt: timestamp('unlocked_at').defaultNow()
+})
