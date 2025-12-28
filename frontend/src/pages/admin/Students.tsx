@@ -258,7 +258,7 @@ const StudentsPage: React.FC = () => {
         s.name.toLowerCase().includes(query) ||
         s.email.toLowerCase().includes(query) ||
         s.rollNumber.toLowerCase().includes(query);
-      const matchesClass = filterClass === 'all' || s.classId === filterClass;
+      const matchesClass = filterClass === 'all' || String(s.classId) === filterClass;
       const matchesStatus = filterStatus === 'all' ||
         (filterStatus === 'active' && s.isActive) ||
         (filterStatus === 'inactive' && !s.isActive);
