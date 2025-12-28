@@ -6,7 +6,7 @@ export const login = async (req, res) => {
   const { email, password } = req.body
 
   const user = await sql`
-    SELECT id, password_hash, role, is_first_login FROM users WHERE email = ${email}
+    SELECT id, name, email, password_hash, role, is_first_login FROM users WHERE email = ${email}
   `
 
   if (!user.length) {
@@ -22,6 +22,8 @@ export const login = async (req, res) => {
   const token = jwt.sign(
     {
       id: user[0].id,
+      name: user[0].name,
+      email: user[0].email,
       role: user[0].role,
       isFirstLogin: user[0].is_first_login
     },

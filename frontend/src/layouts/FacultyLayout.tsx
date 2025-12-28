@@ -156,7 +156,7 @@ const FacultyLayout: React.FC<FacultyLayoutProps> = ({ children }) => {
         {/* User Section */}
         <div className="p-3 border-t border-sidebar-border">
           <div className={cn(
-            "flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 hover:bg-sidebar-accent/50 group/user",
+            "flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 hover:bg-sidebar-accent/50 group/user relative",
             isCollapsed && "justify-center px-0"
           )}>
             <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 border border-primary/20 shadow-sm transition-transform group-hover/user:scale-105">
@@ -166,6 +166,14 @@ const FacultyLayout: React.FC<FacultyLayoutProps> = ({ children }) => {
               <div className="flex-1 min-w-0 animate-fade-in">
                 <p className="text-base font-black text-foreground truncate tracking-tight leading-tight">{user?.name}</p>
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.15em] opacity-60">Faculty</p>
+              </div>
+            )}
+
+            {/* Tooltip for collapsed state */}
+            {isCollapsed && (
+              <div className="absolute left-full ml-4 px-3 py-2 bg-popover text-popover-foreground rounded-lg opacity-0 invisible group-hover/user:opacity-100 group-hover/user:visible transition-all whitespace-nowrap z-50 border border-border shadow-md">
+                <p className="text-sm font-bold text-foreground">{user?.name}</p>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Faculty</p>
               </div>
             )}
           </div>
@@ -237,14 +245,49 @@ const FacultyLayout: React.FC<FacultyLayoutProps> = ({ children }) => {
               {item.label}
             </Link>
           ))}
+
+          {/* Week Days Section */}
+          <div className="pt-4 mt-4 border-t border-sidebar-border">
+            <p className="px-3 mb-2 text-[10px] font-black text-muted-foreground uppercase tracking-[0.15em]">
+              Week Schedule
+            </p>
+            {weekDays.map((day) => (
+              <Link
+                key={day.href}
+                to={day.href}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={cn(
+                  'flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200',
+                  isActive(day.href)
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+                )}
+              >
+                <div className="w-1.5 h-1.5 rounded-full bg-current opacity-50" />
+                {day.label}
+              </Link>
+            ))}
+          </div>
         </nav>
 
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-sidebar-border">
+        <div className="absolute bottom-0 left-0 right-0 p-3 border-t border-sidebar-border space-y-2">
+          {/* User Info */}
+          <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-sidebar-accent/50">
+            <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 border border-primary/20 shadow-sm">
+              <User className="w-5 h-5 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-base font-black text-foreground truncate tracking-tight leading-tight">{user?.name}</p>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.15em] opacity-60">Faculty</p>
+            </div>
+          </div>
+
+          {/* Logout Button */}
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-sidebar-accent hover:text-destructive transition-colors"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
           >
-            <LogOut className="w-5 h-5" />
+            <LogOut className="w-4 h-4" />
             Sign out
           </button>
         </div>
