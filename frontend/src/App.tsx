@@ -30,6 +30,7 @@ import FacultySchedule from "./pages/faculty/Schedule";
 import FacultyReports from "./pages/faculty/Reports";
 import FacultyLeaderboard from "./pages/faculty/FacultyLeaderboard";
 import AttendanceSession from "./pages/faculty/AttendanceSession";
+import AttendanceRecords from "./pages/faculty/AttendanceRecords";
 
 // Student Pages
 import StudentDashboard from "./pages/student/Dashboard";
@@ -95,6 +96,7 @@ const App = () => (
             <Route path="/faculty/schedule/:day" element={<ProtectedRoute allowedRoles={['FACULTY']}><FacultySchedule /></ProtectedRoute>} />
             <Route path="/faculty/reports" element={<ProtectedRoute allowedRoles={['FACULTY']}><FacultyReports /></ProtectedRoute>} />
             <Route path="/faculty/leaderboard" element={<ProtectedRoute allowedRoles={['FACULTY']}><FacultyLeaderboard /></ProtectedRoute>} />
+            <Route path="/faculty/attendance-records" element={<ProtectedRoute allowedRoles={['FACULTY']}><AttendanceRecords /></ProtectedRoute>} />
             <Route path="/faculty/attendance/:sessionId" element={<ProtectedRoute allowedRoles={['FACULTY']}><AttendanceSession /></ProtectedRoute>} />
 
             {/* Student Routes */}

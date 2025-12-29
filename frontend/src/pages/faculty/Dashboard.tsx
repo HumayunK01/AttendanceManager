@@ -21,7 +21,7 @@ interface TimetableSlot {
   studentCount?: number;
   classBatches?: { id: number; name: string }[];
   batchName?: string;
-  sessionId?: string;
+  sessionId?: string | null;
   sessionStatus?: 'not_started' | 'in_progress' | 'completed';
 }
 
@@ -59,8 +59,9 @@ const FacultyDashboard: React.FC = () => {
             sessionStatus = 'in_progress';
           }
         } else {
-          // No session yet, check time
-          sessionStatus = determineSessionStatus(slot.start_time, slot.end_time);
+          // No session yet - always show as not_started so user can click "Start"
+          // We don't use time-based status when there's no session
+          sessionStatus = 'not_started';
         }
 
         return {
@@ -72,7 +73,7 @@ const FacultyDashboard: React.FC = () => {
           batchName: slot.batch_name,
           studentCount: 0,
           classBatches: slot.class_batches,
-          sessionId: slot.session_id || undefined,
+          sessionId: slot.session_id || null,
           sessionStatus,
         };
       });
@@ -116,14 +117,17 @@ const FacultyDashboard: React.FC = () => {
 
     try {
       const payload: any = { timetableSlotId: slot.id };
-      if (batchId) payload.batchId = parseInt(batchId);
+      // Only add batchId if it's not 'all' and exists
+      if (batchId && batchId !== 'all') {
+        payload.batchId = parseInt(batchId);
+      }
 
       const response = await api.post('/attendance/session', payload);
 
       const sessionId = response.data?.sessionId;
       toast({
         title: 'Session Started',
-        description: batchId ? 'Batch session created.' : 'Attendance session created.',
+        description: batchId === 'all' ? 'Session created for all students.' : batchId ? 'Batch session created.' : 'Attendance session created.',
       });
       navigate(`/faculty/attendance/${sessionId}`);
     } catch (error: any) {
@@ -291,7 +295,8 @@ const FacultyDashboard: React.FC = () => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => navigate(`/faculty/attendance/${slot.sessionId}`)}
+                          onClick={() => slot.sessionId && navigate(`/faculty/attendance/${slot.sessionId}`)}
+                          disabled={!slot.sessionId}
                           className="h-9 px-4 rounded-xl text-[11px] font-black uppercase tracking-wider"
                         >
                           <FileText className="w-3.5 h-3.5 mr-1.5" />
@@ -306,7 +311,8 @@ const FacultyDashboard: React.FC = () => {
                           In Progress
                         </span>
                         <Button
-                          onClick={() => navigate(`/faculty/attendance/${slot.sessionId}`)}
+                          onClick={() => slot.sessionId && navigate(`/faculty/attendance/${slot.sessionId}`)}
+                          disabled={!slot.sessionId}
                           variant="outline"
                           size="sm"
                           className="h-9 px-4 rounded-xl border-warning text-warning hover:bg-warning/10 text-[11px] font-black uppercase tracking-wider"
@@ -351,12 +357,13 @@ const FacultyDashboard: React.FC = () => {
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
-              <Label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Practical Batch</Label>
+              <Label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Select Attendance Scope</Label>
               <Select value={selectedBatchId} onValueChange={setSelectedBatchId}>
                 <SelectTrigger className="h-10 rounded-xl bg-secondary/50 border-border/50">
-                  <SelectValue placeholder="Choose a batch..." />
+                  <SelectValue placeholder="Choose option..." />
                 </SelectTrigger>
                 <SelectContent className="bg-background/95 backdrop-blur-xl border-border/50 rounded-xl">
+                  <SelectItem value="all">All Students (Entire Class)</SelectItem>
                   {selectedSlotForBatch?.classBatches?.map(b => (
                     <SelectItem key={b.id} value={b.id.toString()}>{b.name}</SelectItem>
                   ))}
@@ -365,7 +372,7 @@ const FacultyDashboard: React.FC = () => {
             </div>
             <div className="flex gap-2 text-[10px] text-muted-foreground font-medium bg-secondary/20 p-2 rounded-lg border border-border/50">
               <AlertCircle className="w-3.5 h-3.5" />
-              <span>Selecting a batch restricts the attendance list to assigned students only.</span>
+              <span>Select 'All Students' for regular lectures or a specific batch for practicals.</span>
             </div>
           </div>
           <DialogFooter className="gap-2 sm:justify-between">

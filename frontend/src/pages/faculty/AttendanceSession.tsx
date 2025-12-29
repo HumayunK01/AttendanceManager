@@ -48,11 +48,26 @@ const AttendanceSession: React.FC = () => {
   const [isLockDialogOpen, setIsLockDialogOpen] = useState(false);
   const [isLocking, setIsLocking] = useState(false);
 
+  // Validate sessionId on mount
   useEffect(() => {
+    if (!sessionId || sessionId === 'undefined' || isNaN(parseInt(sessionId))) {
+      toast({
+        title: 'Invalid Session',
+        description: 'The session ID is invalid. Redirecting to dashboard.',
+        variant: 'destructive',
+      });
+      navigate('/faculty');
+      return;
+    }
     fetchSessionData();
   }, [sessionId]);
 
   const fetchSessionData = async () => {
+    // Double-check sessionId is valid
+    if (!sessionId || sessionId === 'undefined' || isNaN(parseInt(sessionId))) {
+      return;
+    }
+
     try {
       setIsLoading(true);
 

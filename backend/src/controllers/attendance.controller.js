@@ -112,37 +112,48 @@ export const markAttendance = async (req, res) => {
 export const getSessionStudents = async (req, res) => {
   const { sessionId } = req.params
 
-  const result = await sql`
-    SELECT 
-      s.id as student_id,
-      u.name as student_name,
-      s.roll_no,
-      sr.status,
-      sr.edit_count,
-      sub.name as subject_name,
-      CONCAT(p.name, ' Y', c.batch_year, CASE WHEN d.name IS NOT NULL THEN '-' || d.name ELSE '' END) as class_name,
-      b.name as batch_name,
-      asn.session_date,
-      ts.start_time,
-      ts.end_time,
-      asn.locked
-    FROM attendance_sessions asn
-    JOIN timetable_slots ts ON ts.id = asn.timetable_slot_id
-    JOIN faculty_subject_map fsm ON fsm.id = ts.faculty_subject_map_id
-    JOIN subjects sub ON sub.id = fsm.subject_id
-    JOIN classes c ON c.id = fsm.class_id
-    JOIN programs p ON p.id = c.program_id
-    LEFT JOIN divisions d ON d.id = c.division_id
-    LEFT JOIN batches b ON b.id = asn.batch_id
-    JOIN students s ON s.class_id = fsm.class_id AND s.is_active = true
-        AND (asn.batch_id IS NULL OR s.batch_id = asn.batch_id)
-    JOIN users u ON u.id = s.user_id
-    LEFT JOIN attendance_records sr 
-      ON sr.session_id = asn.id AND sr.student_id = s.id
-    WHERE asn.id = ${sessionId}
-      AND asn.is_archived = false
-    ORDER BY s.roll_no;
-  `
+  // Validate sessionId
+  if (!sessionId || sessionId === 'undefined' || isNaN(parseInt(sessionId))) {
+    console.error('Invalid sessionId:', sessionId);
+    return res.status(400).json({ error: 'Invalid session ID provided' });
+  }
 
-  res.json(result)
+  try {
+    const result = await sql`
+      SELECT 
+        s.id as student_id,
+        u.name as student_name,
+        s.roll_no,
+        sr.status,
+        sr.edit_count,
+        sub.name as subject_name,
+        CONCAT(p.name, ' Y', c.batch_year, CASE WHEN d.name IS NOT NULL THEN '-' || d.name ELSE '' END) as class_name,
+        b.name as batch_name,
+        asn.session_date,
+        ts.start_time,
+        ts.end_time,
+        asn.locked
+      FROM attendance_sessions asn
+      JOIN timetable_slots ts ON ts.id = asn.timetable_slot_id
+      JOIN faculty_subject_map fsm ON fsm.id = ts.faculty_subject_map_id
+      JOIN subjects sub ON sub.id = fsm.subject_id
+      JOIN classes c ON c.id = fsm.class_id
+      JOIN programs p ON p.id = c.program_id
+      LEFT JOIN divisions d ON d.id = c.division_id
+      LEFT JOIN batches b ON b.id = ts.batch_id
+      JOIN students s ON s.class_id = fsm.class_id AND s.is_active = true
+          AND (ts.batch_id IS NULL OR s.batch_id = ts.batch_id)
+      JOIN users u ON u.id = s.user_id
+      LEFT JOIN attendance_records sr 
+        ON sr.session_id = asn.id AND sr.student_id = s.id
+      WHERE asn.id = ${parseInt(sessionId)}
+        AND asn.is_archived = false
+      ORDER BY s.roll_no;
+    `
+
+    res.json(result)
+  } catch (error) {
+    console.error('Error in getSessionStudents:', error);
+    res.status(500).json({ error: 'Failed to fetch session students', details: error.message });
+  }
 }

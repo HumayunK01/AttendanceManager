@@ -464,3 +464,142 @@ export const getLeaderboardStats = async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch leaderboard stats' });
   }
 }
+
+export const getAttendanceRecords = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+
+    // Get Faculty ID
+    const facultyRecord = await sql`SELECT id FROM faculty WHERE user_id = ${userId}`;
+    if (!facultyRecord.length) return res.status(404).json({ error: 'Faculty record not found' });
+    const facultyId = facultyRecord[0].id;
+
+    const { classId, batchId, subjectId } = req.query;
+
+    if (!classId || !subjectId) {
+      return res.status(400).json({ error: 'classId and subjectId are required' });
+    }
+
+    // 1. Get all locked sessions for this class, subject, and batch (if specified)
+    const sessionsQuery = batchId
+      ? sql`
+          SELECT 
+            asn.id as session_id,
+            asn.session_date,
+            ts.start_time
+          FROM attendance_sessions asn
+          JOIN timetable_slots ts ON ts.id = asn.timetable_slot_id
+          JOIN faculty_subject_map fsm ON fsm.id = ts.faculty_subject_map_id
+          WHERE fsm.faculty_id = ${facultyId}
+            AND fsm.class_id = ${classId}
+            AND fsm.subject_id = ${subjectId}
+            AND (ts.batch_id = ${batchId} OR ts.batch_id IS NULL)
+            AND asn.locked = true
+            AND asn.is_archived = false
+          ORDER BY asn.session_date ASC, ts.start_time ASC
+        `
+      : sql`
+          SELECT 
+            asn.id as session_id,
+            asn.session_date,
+            ts.start_time
+          FROM attendance_sessions asn
+          JOIN timetable_slots ts ON ts.id = asn.timetable_slot_id
+          JOIN faculty_subject_map fsm ON fsm.id = ts.faculty_subject_map_id
+          WHERE fsm.faculty_id = ${facultyId}
+            AND fsm.class_id = ${classId}
+            AND fsm.subject_id = ${subjectId}
+            AND ts.batch_id IS NULL
+            AND asn.locked = true
+            AND asn.is_archived = false
+          ORDER BY asn.session_date ASC, ts.start_time ASC
+        `;
+
+    const sessions = await sessionsQuery;
+
+    // 2. Get all students in this class/batch
+    const studentsQuery = batchId
+      ? sql`
+          SELECT 
+            s.id as student_id,
+            s.roll_no,
+            u.name as full_name
+          FROM students s
+          JOIN users u ON u.id = s.user_id
+          WHERE s.class_id = ${classId}
+            AND s.batch_id = ${batchId}
+            AND s.is_active = true
+          ORDER BY s.roll_no ASC
+        `
+      : sql`
+          SELECT 
+            s.id as student_id,
+            s.roll_no,
+            u.name as full_name
+          FROM students s
+          JOIN users u ON u.id = s.user_id
+          WHERE s.class_id = ${classId}
+            AND s.is_active = true
+          ORDER BY s.roll_no ASC
+        `;
+
+    const students = await studentsQuery;
+
+    // 3. Get all attendance records for these sessions
+    const sessionIds = sessions.map(s => s.session_id);
+
+    let attendanceRecords = [];
+    if (sessionIds.length > 0) {
+      attendanceRecords = await sql`
+        SELECT 
+          ar.student_id,
+          ar.session_id,
+          ar.status
+        FROM attendance_records ar
+        WHERE ar.session_id = ANY(${sessionIds})
+      `;
+    }
+
+    // 4. Build the response structure
+    // Create a map for quick lookup
+    const attendanceMap = {};
+    attendanceRecords.forEach(record => {
+      const key = `${record.student_id}-${record.session_id}`;
+      attendanceMap[key] = record.status;
+    });
+
+    // Build student records with attendance data
+    const records = students.map((student, index) => {
+      const record = {
+        srNo: index + 1,
+        rollNo: student.roll_no,
+        fullName: student.full_name,
+        attendance: {}
+      };
+
+      // Add attendance for each session
+      sessions.forEach(session => {
+        const key = `${student.student_id}-${session.session_id}`;
+        const dateKey = new Date(session.session_date).toLocaleDateString('en-GB').split('/').join('-');
+        record.attendance[dateKey] = attendanceMap[key] || '-';
+      });
+
+      return record;
+    });
+
+    // 5. Build date headers
+    const dateHeaders = sessions.map(session =>
+      new Date(session.session_date).toLocaleDateString('en-GB').split('/').join('-')
+    );
+
+    res.json({
+      dateHeaders,
+      records
+    });
+
+  } catch (error) {
+    console.error('Error fetching attendance records:', error);
+    res.status(500).json({ error: 'Failed to fetch attendance records' });
+  }
+}

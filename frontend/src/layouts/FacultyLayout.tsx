@@ -12,7 +12,8 @@ import {
   GraduationCap,
   PanelLeft,
   FileText,
-  User
+  User,
+  FileSpreadsheet
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -26,6 +27,7 @@ interface SidebarItem {
 const sidebarItems: SidebarItem[] = [
   { label: 'Today\'s Schedule', href: '/faculty', icon: <Calendar className="w-5 h-5" /> },
   { label: 'Leaderboard', href: '/faculty/leaderboard', icon: <GraduationCap className="w-5 h-5" /> },
+  { label: 'Attendance Records', href: '/faculty/attendance-records', icon: <FileSpreadsheet className="w-5 h-5" /> },
   { label: 'Reports', href: '/faculty/reports', icon: <FileText className="w-5 h-5" /> },
 ];
 

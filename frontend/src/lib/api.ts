@@ -140,6 +140,10 @@ export const facultyAPI = {
     api.post(`/attendance/sessions/${sessionId}/mark`, { studentId, status }),
   lockSession: (sessionId: string) => api.patch(`/attendance/sessions/${sessionId}/lock`),
   getSessionStudents: (sessionId: string) => api.get(`/attendance/sessions/${sessionId}/students`),
+  getAttendanceRecords: (classId: string, subjectId: string, batchId?: string) =>
+    api.get('/faculty/attendance-records', {
+      params: { classId, subjectId, batchId }
+    }),
 };
 
 // Student API
