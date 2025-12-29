@@ -108,14 +108,25 @@ const MobileMappingCard = memo(({
   <div className="glass-card p-5 space-y-5 border-border/30 group">
     <div className="flex items-start justify-between gap-4">
       <div className="flex items-center gap-3 min-w-0 flex-1">
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-success/20 to-success/5 flex items-center justify-center border border-success/20 shrink-0 shadow-inner">
-          <span className="text-[11px] font-black text-success tracking-tighter">
-            {getInitials(mapping.facultyName)}
+        <div className={cn(
+          "w-12 h-12 rounded-2xl flex items-center justify-center border shrink-0 shadow-inner",
+          mapping.facultyName
+            ? "bg-gradient-to-br from-success/20 to-success/5 border-success/20"
+            : "bg-gradient-to-br from-primary/20 to-primary/5 border-primary/20"
+        )}>
+          <span className={cn(
+            "text-[11px] font-black tracking-tighter",
+            mapping.facultyName ? "text-success" : "text-primary"
+          )}>
+            {getInitials(mapping.facultyName || "Self Study")}
           </span>
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[15px] font-bold text-foreground group-hover:text-primary transition-colors tracking-tight truncate">
-            {mapping.facultyName}
+          <p className={cn(
+            "text-[15px] font-bold transition-colors tracking-tight truncate",
+            mapping.facultyName ? "text-foreground group-hover:text-primary" : "text-muted-foreground italic"
+          )}>
+            {mapping.facultyName || "No Instructor (Self Study)"}
           </p>
           <div className="flex items-center gap-1.5 mt-0.5">
             <span className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest shrink-0">Faculty Expert</span>
@@ -176,14 +187,25 @@ const MappingRow = memo(({
   <tr className="group hover:bg-white/5 transition-colors duration-200">
     <td className="py-4 px-6">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-success/20 to-success/5 flex items-center justify-center border border-success/20 group-hover:scale-110 transition-transform duration-300 shadow-inner shrink-0">
-          <span className="text-[11px] font-black text-success tracking-tighter">
-            {getInitials(mapping.facultyName)}
+        <div className={cn(
+          "w-10 h-10 rounded-xl flex items-center justify-center border group-hover:scale-110 transition-transform duration-300 shadow-inner shrink-0",
+          mapping.facultyName
+            ? "bg-gradient-to-br from-success/20 to-success/5 border-success/20"
+            : "bg-gradient-to-br from-primary/20 to-primary/5 border-primary/20"
+        )}>
+          <span className={cn(
+            "text-[11px] font-black tracking-tighter",
+            mapping.facultyName ? "text-success" : "text-primary"
+          )}>
+            {getInitials(mapping.facultyName || "Self Study")}
           </span>
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-bold text-foreground group-hover:text-primary transition-colors tracking-tight truncate max-w-[200px]">
-            {mapping.facultyName}
+          <p className={cn(
+            "text-sm font-bold transition-colors tracking-tight truncate max-w-[200px]",
+            mapping.facultyName ? "text-foreground group-hover:text-primary" : "text-muted-foreground italic"
+          )}>
+            {mapping.facultyName || "No Instructor (Self Study)"}
           </p>
           <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.15em] opacity-40">Personnel</p>
         </div>
@@ -321,10 +343,10 @@ const MappingsPage: React.FC = () => {
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
 
-    if (!formData.facultyId || !formData.subjectId || !formData.classId) {
+    if (!formData.subjectId || !formData.classId) {
       toast({
         title: 'Validation Failed',
-        description: 'Ensure faculty, subject, and class are all selected.',
+        description: 'Ensure subject and class are selected.',
         variant: 'destructive',
       });
       return;
@@ -333,7 +355,7 @@ const MappingsPage: React.FC = () => {
     setIsSubmitting(true);
     try {
       await adminAPI.createMapping({
-        facultyId: formData.facultyId,
+        facultyId: formData.facultyId === 'none' ? '' : formData.facultyId,
         subjectId: formData.subjectId,
         classId: formData.classId
       });
@@ -549,6 +571,7 @@ const MappingsPage: React.FC = () => {
                 <Select value={formData.facultyId} onValueChange={(v) => setFormData({ ...formData, facultyId: v })}>
                   <SelectTrigger className="h-10 bg-secondary/50 border-border/50 rounded-xl"><SelectValue placeholder="Select faculty" /></SelectTrigger>
                   <SelectContent className="bg-background/95 backdrop-blur-xl border-border/50 rounded-xl">
+                    <SelectItem value="none" className="text-muted-foreground italic font-medium">No Instructor (Self Study / Project)</SelectItem>
                     {faculty.map((f) => (
                       <SelectItem key={f.id} value={String(f.id)}>{f.name}</SelectItem>
                     ))}

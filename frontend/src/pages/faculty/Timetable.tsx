@@ -180,63 +180,130 @@ const FacultyTimetable: React.FC = () => {
                         </div>
 
                         {/* Dynamic Course Assignments */}
-                        {timetable.map(slot => {
-                            const startHour = parseInt(slot.start_time.split(':')[0]);
-                            const endHour = parseInt(slot.end_time.split(':')[0]);
-                            const duration = endHour - startHour;
-                            const dayRow = slot.day_of_week + 1;
+                        {(() => {
+                            // Helper to process and group slots
+                            const processedSlots = new Map<string, TimetableSlot[]>();
 
-                            let colStart;
-                            if (startHour <= 12) colStart = startHour - 9 + 2;
-                            else colStart = startHour - 9 + 3;
+                            timetable.forEach(slot => {
+                                const key = `${slot.day_of_week}-${slot.start_time}-${slot.end_time}`;
+                                if (!processedSlots.has(key)) {
+                                    processedSlots.set(key, []);
+                                }
+                                processedSlots.get(key)?.push(slot);
+                            });
 
-                            let colEnd = colStart + duration;
-                            if (startHour < 13 && endHour > 13) colEnd += 1;
+                            return Array.from(processedSlots.values()).map((group, groupIdx) => {
+                                const firstSlot = group[0];
+                                const startHour = parseInt(firstSlot.start_time.split(':')[0]);
+                                const endHour = parseInt(firstSlot.end_time.split(':')[0]);
+                                const duration = endHour - startHour;
+                                const dayRow = firstSlot.day_of_week + 1;
 
-                            if (dayRow < 2 || dayRow > 7) return null;
+                                // Grid starts at line 2 (9:00 AM).
+                                // Formula: startHour - 9 + 2
+                                const colStart = startHour - 9 + 2;
 
-                            return (
-                                <div
-                                    key={slot.timetable_slot_id}
-                                    style={{
-                                        gridRow: `${dayRow}`,
-                                        gridColumn: `${colStart} / ${colEnd}`
-                                    }}
-                                    className="p-1.5 z-10"
-                                >
-                                    <div className={cn(
-                                        "h-full w-full rounded-2xl p-4 flex flex-col justify-center transition-all duration-300 border shadow-lg group relative overflow-hidden",
-                                        slot.batch_name
-                                            ? "bg-[#0F0A16] border-purple-500/10 hover:border-purple-500/30"
-                                            : "bg-[#09090B] border-white/[0.03] hover:border-primary/30",
-                                        "cursor-default"
-                                    )}>
-                                        <div className="space-y-2 relative z-10">
-                                            <h4 className="text-[13px] font-bold text-foreground/90 tracking-tight uppercase leading-[1.3] line-clamp-2">
-                                                {slot.subject}
-                                            </h4>
-                                            <div className="flex items-center gap-2">
-                                                <div className={cn(
-                                                    "w-[3px] h-3 rounded-full",
-                                                    slot.batch_name ? "bg-purple-500/50" : "bg-primary/50"
-                                                )} />
-                                                <p className="text-[9px] font-black text-muted-foreground/50 tracking-[0.15em] uppercase">
-                                                    {slot.class}
-                                                </p>
-                                            </div>
-                                        </div>
+                                // Calculate end column
+                                let colEnd = colStart + duration;
 
-                                        {slot.batch_name && (
-                                            <div className="absolute top-2 right-3">
-                                                <span className="text-[7px] font-black text-purple-500/20 uppercase tracking-widest">
-                                                    {slot.batch_name}
-                                                </span>
-                                            </div>
+                                // If the session crosses the 1:00 PM - 2:00 PM lunch break (Column 6), add 1 to skip it visually if needed,
+                                // BUT since the grid actually has a column for lunch (Col 6), we just span through it if it's continuous.
+                                // However, usually sessions are pre or post lunch.
+                                // If a session is 12-2, it spans 5, 6(Lunch), 7. (3 slots). Duration 2.
+                                // If we want to account for the lunch gap width, the grid handles it.
+                                // The previous logic added +1 to jump lunch? 
+                                // If 12-1 (Start 5, Dur 1 -> End 6). Covers Col 5. Correct.
+                                // If 14-15 (Start 7, Dur 1 -> End 8). Covers Col 7. Correct.
+                                // If 11-13 (Start 4, Dur 2 -> End 6). Covers Col 4, 5. Correct.
+                                // So we don't need the extra +1 jump unless we are SKIPPING the lunch column index.
+                                // Our grid HAS a lunch column (index 6).
+                                // So strictly linear works: colEnd = colStart + duration.
+                                // UNLESS the duration '2 hours' means '2 teaching hours' skipping lunch. 
+                                // But time is continuous. 12:00 to 14:00 IS 2 hours.
+                                // So linear logic is robust.
+
+                                if (startHour < 13 && endHour > 13) {
+                                    // If a class bridges the break (e.g. 12:00 to 14:00), it spans 3 grid units: 12-1, 1-2(Lunch), 2-3.
+                                    // Duration is 2 hours. colStart 5. colEnd would be 7 (Covering 5, 6).
+                                    // But we want it to cover 7 too?
+                                    // Block 1: 12-1. Block 2: 1-2 (Lunch). Block 3: 2-3.
+                                    // We want to cover 5, 6, 7. End line should be 8.
+                                    // 5 + 2 = 7. We need +1.
+                                    colEnd += 1;
+                                }
+
+                                if (dayRow < 2 || dayRow > 7) return null;
+
+                                return (
+                                    <div
+                                        key={`group-${groupIdx}`}
+                                        style={{
+                                            gridRow: `${dayRow}`,
+                                            gridColumn: `${colStart} / ${colEnd}`
+                                        }}
+                                        className={cn(
+                                            "p-1.5 z-10 flex flex-col gap-1",
+                                            duration === 1 ? "w-[160px]" : "w-full"
                                         )}
+                                    >
+                                        {group.map((slot, idx) => (
+                                            <div
+                                                key={slot.timetable_slot_id}
+                                                className={cn(
+                                                    "w-full rounded-lg px-2 flex flex-col justify-center transition-all duration-300 border shadow-lg group relative overflow-hidden",
+                                                    slot.batch_name
+                                                        ? "bg-[#0F0A16] border-purple-500/10 hover:border-purple-500/30"
+                                                        : "bg-[#09090B] border-white/[0.03] hover:border-primary/30",
+                                                    "cursor-default flex-1 py-1"
+                                                )}
+                                            >
+                                                <div className="flex items-center justify-between gap-1.5 relative z-10 min-h-0">
+                                                    <div className="min-w-0 flex-1">
+                                                        <h4 className={cn(
+                                                            "font-bold text-foreground/90 tracking-tight uppercase leading-none line-clamp-2",
+                                                            group.length > 2
+                                                                ? (slot.batch_name ? "text-[10px]" : "text-[10px]")
+                                                                : (slot.batch_name ? "text-[11px]" : "text-[13px]")
+                                                        )}>
+                                                            {slot.subject}
+                                                        </h4>
+                                                        {!slot.batch_name && (
+                                                            <div className="flex items-center gap-1.5 mt-0.5">
+                                                                <div className={cn(
+                                                                    "w-[2px] rounded-full",
+                                                                    "bg-primary/50",
+                                                                    group.length > 1 ? "h-1.5" : "h-2"
+                                                                )} />
+                                                                <p className={cn(
+                                                                    "font-black text-muted-foreground/50 tracking-wider uppercase leading-none line-clamp-1",
+                                                                    group.length > 2 ? "text-[8px]" : "text-[9px]"
+                                                                )}>
+                                                                    {slot.class}
+                                                                </p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {slot.batch_name && (
+                                                        <div className={cn(
+                                                            "flex-shrink-0 rounded bg-purple-500/5 border border-purple-500/10 flex items-center justify-center",
+                                                            group.length > 2 ? "px-1 h-4" : "px-1.5 h-5"
+                                                        )}>
+                                                            <span className={cn(
+                                                                "font-black text-purple-400 uppercase tracking-wider",
+                                                                group.length > 2 ? "text-[8px]" : "text-[9px]"
+                                                            )}>
+                                                                {slot.batch_name}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
-                                </div>
-                            );
-                        })}
+                                );
+                            });
+                        })()}
                     </div>
                 </div>
 

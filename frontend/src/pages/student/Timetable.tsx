@@ -11,7 +11,7 @@ interface TimetableSlot {
     startTime: string;
     endTime: string;
     subjectName: string;
-    facultyName: string;
+    facultyName: string | null;
     batchName: string | null;
     batchId: number | null;
 }
@@ -181,63 +181,110 @@ const StudentTimetable: React.FC = () => {
                         </div>
 
                         {/* Dynamic Course Assignments */}
-                        {timetable.map(slot => {
-                            const startHour = parseInt(slot.startTime.split(':')[0]);
-                            const endHour = parseInt(slot.endTime.split(':')[0]);
-                            const duration = endHour - startHour;
-                            const dayRow = slot.dayOfWeek + 1;
+                        {(() => {
+                            // Helper to process and group slots
+                            const processedSlots = new Map<string, TimetableSlot[]>();
 
-                            let colStart;
-                            if (startHour <= 12) colStart = startHour - 9 + 2;
-                            else colStart = startHour - 9 + 3;
+                            timetable.forEach(slot => {
+                                const key = `${slot.dayOfWeek}-${slot.startTime}-${slot.endTime}`;
+                                if (!processedSlots.has(key)) {
+                                    processedSlots.set(key, []);
+                                }
+                                processedSlots.get(key)?.push(slot);
+                            });
 
-                            let colEnd = colStart + duration;
-                            if (startHour < 13 && endHour > 13) colEnd += 1;
+                            return Array.from(processedSlots.values()).map((group, groupIdx) => {
+                                const firstSlot = group[0];
+                                const startHour = parseInt(firstSlot.startTime.split(':')[0]);
+                                const endHour = parseInt(firstSlot.endTime.split(':')[0]);
+                                const duration = endHour - startHour;
+                                const dayRow = firstSlot.dayOfWeek + 1;
 
-                            if (dayRow < 2 || dayRow > 7) return null;
+                                // Linear Grid Logic
+                                const colStart = startHour - 9 + 2;
+                                let colEnd = colStart + duration;
 
-                            return (
-                                <div
-                                    key={slot.id}
-                                    style={{
-                                        gridRow: `${dayRow}`,
-                                        gridColumn: `${colStart} / ${colEnd}`
-                                    }}
-                                    className="p-1.5 z-10"
-                                >
-                                    <div className={cn(
-                                        "h-full w-full rounded-2xl p-4 flex flex-col justify-center transition-all duration-300 border shadow-lg group relative overflow-hidden",
-                                        slot.batchName
-                                            ? "bg-[#0F0A16] border-purple-500/10 hover:border-purple-500/30"
-                                            : "bg-[#09090B] border-white/[0.03] hover:border-primary/30",
-                                        "cursor-default"
-                                    )}>
-                                        <div className="space-y-2 relative z-10">
-                                            <h4 className="text-[13px] font-bold text-foreground/90 tracking-tight uppercase leading-[1.3] line-clamp-2">
-                                                {slot.subjectName}
-                                            </h4>
-                                            <div className="flex items-center gap-2">
-                                                <div className={cn(
-                                                    "w-[3px] h-3 rounded-full",
-                                                    slot.batchName ? "bg-purple-500/50" : "bg-primary/50"
-                                                )} />
-                                                <p className="text-[9px] font-black text-muted-foreground/50 tracking-[0.15em] uppercase">
-                                                    {slot.facultyName}
-                                                </p>
-                                            </div>
-                                        </div>
+                                // Handle Lunch Crossing (12:00 to 14:00 spans 3 grid units)
+                                if (startHour < 13 && endHour > 13) {
+                                    colEnd += 1;
+                                }
 
-                                        {slot.batchName && (
-                                            <div className="absolute top-2 right-3">
-                                                <span className="text-[7px] font-black text-purple-500/20 uppercase tracking-widest">
-                                                    {slot.batchName}
-                                                </span>
-                                            </div>
+                                if (dayRow < 2 || dayRow > 7) return null;
+
+                                return (
+                                    <div
+                                        key={`group-${groupIdx}`}
+                                        style={{
+                                            gridRow: `${dayRow}`,
+                                            gridColumn: `${colStart} / ${colEnd}`
+                                        }}
+                                        className={cn(
+                                            "p-1.5 z-10 flex flex-col gap-1",
+                                            duration === 1 ? "w-[160px]" : "w-full"
                                         )}
+                                    >
+                                        {group.map((slot, idx) => (
+                                            <div
+                                                key={slot.id}
+                                                className={cn(
+                                                    "w-full rounded-lg px-2 flex flex-col justify-center transition-all duration-300 border shadow-lg group relative overflow-hidden",
+                                                    slot.batchName
+                                                        ? "bg-[#0F0A16] border-purple-500/10 hover:border-purple-500/30"
+                                                        : !slot.facultyName
+                                                            ? "bg-[#0A1610] border-emerald-500/10 hover:border-emerald-500/30"
+                                                            : "bg-[#09090B] border-white/[0.03] hover:border-primary/30",
+                                                    "cursor-default flex-1 py-1"
+                                                )}
+                                            >
+                                                <div className="flex items-center justify-between gap-1.5 relative z-10 min-h-0">
+                                                    <div className="min-w-0 flex-1">
+                                                        <h4 className={cn(
+                                                            "font-bold tracking-tight uppercase leading-none line-clamp-2",
+                                                            slot.batchName ? "text-foreground/90" : !slot.facultyName ? "text-emerald-500" : "text-foreground/90",
+                                                            group.length > 2
+                                                                ? (slot.batchName ? "text-[10px]" : "text-[10px]")
+                                                                : (slot.batchName ? "text-[11px]" : "text-[13px]")
+                                                        )}>
+                                                            {slot.subjectName}
+                                                        </h4>
+                                                        {!slot.batchName && (
+                                                            <div className="flex items-center gap-1.5 mt-0.5">
+                                                                <div className={cn(
+                                                                    "w-[2px] rounded-full",
+                                                                    !slot.facultyName ? "bg-emerald-500/50" : "bg-primary/50",
+                                                                    group.length > 1 ? "h-1.5" : "h-2"
+                                                                )} />
+                                                                <p className={cn(
+                                                                    "font-black tracking-wider uppercase leading-none line-clamp-1",
+                                                                    !slot.facultyName ? "text-emerald-500/50" : "text-muted-foreground/50",
+                                                                    group.length > 2 ? "text-[8px]" : "text-[9px]"
+                                                                )}>
+                                                                    {slot.facultyName || "Self Study"}
+                                                                </p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {slot.batchName && (
+                                                        <div className={cn(
+                                                            "flex-shrink-0 rounded bg-purple-500/5 border border-purple-500/10 flex items-center justify-center",
+                                                            group.length > 2 ? "px-1 h-4" : "px-1.5 h-5"
+                                                        )}>
+                                                            <span className={cn(
+                                                                "font-black text-purple-400 uppercase tracking-wider",
+                                                                group.length > 2 ? "text-[8px]" : "text-[9px]"
+                                                            )}>
+                                                                {slot.batchName}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
-                                </div>
-                            );
-                        })}
+                                );
+                            });
+                        })()}
                     </div>
                 </div>
 
@@ -260,12 +307,16 @@ const StudentTimetable: React.FC = () => {
                                     slots.map(slot => (
                                         <div key={slot.id} className={cn(
                                             "glass-card p-4 border-white/5 relative overflow-hidden group active:scale-[0.98] transition-all duration-300",
-                                            slot.batchName ? "bg-[#0F0A16]/40" : "bg-[#09090B]/40"
+                                            slot.batchName
+                                                ? "bg-[#0F0A16]/40"
+                                                : !slot.facultyName
+                                                    ? "bg-[#0A1610]/40"
+                                                    : "bg-[#09090B]/40"
                                         )}>
                                             <div className="flex items-center gap-4">
                                                 <div className={cn(
                                                     "w-[3px] h-10 rounded-full",
-                                                    slot.batchName ? "bg-purple-500" : "bg-primary"
+                                                    slot.batchName ? "bg-purple-500" : !slot.facultyName ? "bg-emerald-500" : "bg-primary"
                                                 )} />
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center justify-between mb-1">
@@ -275,17 +326,27 @@ const StudentTimetable: React.FC = () => {
                                                                 {formatTime12Hour(slot.startTime)} - {formatTime12Hour(slot.endTime)}
                                                             </span>
                                                         </div>
-                                                        {slot.batchName && (
+                                                        {slot.batchName ? (
                                                             <span className="text-[7px] font-black text-purple-400/40 uppercase tracking-widest">
                                                                 {slot.batchName}
                                                             </span>
+                                                        ) : !slot.facultyName && (
+                                                            <span className="text-[7px] font-black text-emerald-500/40 uppercase tracking-widest">
+                                                                PROJECT
+                                                            </span>
                                                         )}
                                                     </div>
-                                                    <h3 className="text-[14px] font-black text-foreground/90 tracking-tight uppercase leading-tight truncate mb-0.5">
+                                                    <h3 className={cn(
+                                                        "text-[14px] font-black tracking-tight uppercase leading-tight truncate mb-0.5",
+                                                        !slot.facultyName && !slot.batchName ? "text-emerald-500" : "text-foreground/90"
+                                                    )}>
                                                         {slot.subjectName}
                                                     </h3>
-                                                    <p className="text-[10px] font-black text-muted-foreground/60 tracking-wider uppercase truncate">
-                                                        {slot.facultyName}
+                                                    <p className={cn(
+                                                        "text-[10px] font-black tracking-wider uppercase truncate",
+                                                        !slot.facultyName ? "text-emerald-500/50" : "text-muted-foreground/60"
+                                                    )}>
+                                                        {slot.facultyName || "Self Study"}
                                                     </p>
                                                 </div>
                                             </div>

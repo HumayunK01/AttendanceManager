@@ -54,7 +54,7 @@ import { adminAPI } from '@/lib/api';
 interface TimetableSlot {
   id: string;
   mappingId: string;
-  facultyName: string;
+  facultyName?: string | null;
   subjectName: string;
   className: string;
   dayOfWeek: number;
@@ -66,7 +66,7 @@ interface TimetableSlot {
 
 interface Mapping {
   id: string;
-  facultyName: string;
+  facultyName?: string | null;
   subjectName: string;
   className: string;
   classId: string;
@@ -164,8 +164,11 @@ const MobileTimetableCard = memo(({
         <div className="h-[1px] w-full bg-white/5" />
         <div className="flex flex-col gap-1 min-w-0">
           <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] opacity-60">Instructor Assignment</p>
-          <p className="text-[14px] font-black text-foreground tracking-tight truncate leading-tight">
-            {slot.facultyName}
+          <p className={cn(
+            "text-[14px] font-black tracking-tight truncate leading-tight",
+            slot.facultyName ? "text-foreground" : "text-muted-foreground italic"
+          )}>
+            {slot.facultyName || "No Instructor (Project/Self Study)"}
           </p>
         </div>
       </div>
@@ -177,6 +180,10 @@ const MobileTimetableCard = memo(({
         {slot.batchName ? (
           <span className="inline-flex items-center px-3 py-1.5 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 text-[10px] font-black border border-purple-500/20 uppercase tracking-[0.1em] shadow-sm">
             Practical • {slot.batchName}
+          </span>
+        ) : !slot.facultyName ? (
+          <span className="inline-flex items-center px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-black border border-emerald-500/20 uppercase tracking-[0.1em] shadow-sm">
+            Project / Self Study
           </span>
         ) : (
           <span className="inline-flex items-center px-3 py-1.5 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[10px] font-black border border-blue-500/20 uppercase tracking-[0.1em] shadow-sm">
@@ -221,7 +228,12 @@ const TableRow = memo(({
     </td>
     <td className="px-6">
       <div className="flex flex-col gap-0.5 min-w-0">
-        <p className="text-sm font-bold text-foreground tracking-tight truncate max-w-[180px]">{slot.facultyName}</p>
+        <p className={cn(
+          "text-sm font-bold tracking-tight truncate max-w-[180px]",
+          slot.facultyName ? "text-foreground" : "text-muted-foreground italic"
+        )}>
+          {slot.facultyName || "No Instructor"}
+        </p>
         <p className="text-[10px] text-muted-foreground/40 font-black uppercase tracking-tighter">Instructor</p>
       </div>
     </td>
@@ -233,6 +245,10 @@ const TableRow = memo(({
         {slot.batchName ? (
           <span className="inline-flex items-center px-2 py-1 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 text-[9px] font-black border border-purple-500/20 uppercase tracking-wider shadow-sm">
             Practical • {slot.batchName}
+          </span>
+        ) : !slot.facultyName ? (
+          <span className="inline-flex items-center px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[9px] font-black border border-emerald-500/20 uppercase tracking-wider shadow-sm">
+            Project / Self Study
           </span>
         ) : (
           <span className="inline-flex items-center px-2 py-1 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[9px] font-black border border-blue-500/20 uppercase tracking-wider shadow-sm">
@@ -310,7 +326,7 @@ const TimetablePage: React.FC = () => {
     if (searchQuery) {
       const q = searchQuery.toLowerCase().trim();
       result = result.filter(s =>
-        s.facultyName.toLowerCase().includes(q) ||
+        (s.facultyName || '').toLowerCase().includes(q) ||
         s.subjectName.toLowerCase().includes(q) ||
         s.className.toLowerCase().includes(q)
       );
@@ -322,7 +338,7 @@ const TimetablePage: React.FC = () => {
     const total = slots.length;
     const slotsPerDay = DAYS.map((_, idx) => slots.filter(s => s.dayOfWeek === idx + 1).length); // idx+1 because days are 1-6
     const busiestDay = DAYS[slotsPerDay.indexOf(Math.max(...slotsPerDay))] || 'N/A';
-    const uniqueFaculty = new Set(slots.map(s => s.facultyName)).size;
+    const uniqueFaculty = new Set(slots.map(s => s.facultyName).filter(Boolean)).size;
     return { total, busiestDay, uniqueFaculty };
   }, [slots]);
 
@@ -630,13 +646,13 @@ const TimetablePage: React.FC = () => {
                         )}
                       </SelectValue>
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl border-border/50 backdrop-blur-xl max-h-[250px]">
-                      {mappings.map(m => (
-                        <SelectItem key={m.id} value={String(m.id)}>
-                          <div className="flex flex-col text-left py-0.5">
-                            <span className="font-bold">{m.subjectName}</span>
-                            <span className="text-[10px] opacity-60 font-medium">{m.facultyName} • {m.className}</span>
-                          </div>
+                    <SelectContent className="bg-background/95 backdrop-blur-xl border-border/50 rounded-xl max-w-[calc(100vw-4rem)] sm:max-w-[400px]">
+                      {mappings.map((m) => (
+                        <SelectItem key={m.id} value={m.id} className="whitespace-normal py-2.5 leading-relaxed">
+                          <span className="font-bold text-foreground">{m.subjectName}</span>
+                          <span className="block text-xs text-muted-foreground mt-0.5">
+                            {m.facultyName ? `by ${m.facultyName}` : '(No Instructor)'} • {m.className}
+                          </span>
                         </SelectItem>
                       ))}
                     </SelectContent>

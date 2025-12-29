@@ -140,13 +140,13 @@ fsm.id,
     fsm.class_id as "classId",
     CONCAT(p.name, ' Y', c.batch_year, CASE WHEN d.name IS NOT NULL THEN '-' || d.name ELSE '' END) as "className"
       FROM faculty_subject_map fsm
-      JOIN faculty f ON f.id = fsm.faculty_id
-      JOIN users fu ON fu.id = f.user_id
+      LEFT JOIN faculty f ON f.id = fsm.faculty_id
+      LEFT JOIN users fu ON fu.id = f.user_id
       JOIN subjects sub ON sub.id = fsm.subject_id
       JOIN classes c ON c.id = fsm.class_id
       JOIN programs p ON p.id = c.program_id
       LEFT JOIN divisions d ON d.id = c.division_id
-      ORDER BY fu.name ASC, sub.name ASC
+      ORDER BY fu.name ASC NULLS LAST, sub.name ASC
     `
         res.json(mappings)
     } catch (error) {
@@ -172,8 +172,8 @@ ts.id,
     b.name as "batchName"
       FROM timetable_slots ts
       JOIN faculty_subject_map fsm ON fsm.id = ts.faculty_subject_map_id
-      JOIN faculty f ON f.id = fsm.faculty_id
-      JOIN users fu ON fu.id = f.user_id
+      LEFT JOIN faculty f ON f.id = fsm.faculty_id
+      LEFT JOIN users fu ON fu.id = f.user_id
       JOIN subjects sub ON sub.id = fsm.subject_id
       JOIN classes c ON c.id = fsm.class_id
       JOIN programs p ON p.id = c.program_id

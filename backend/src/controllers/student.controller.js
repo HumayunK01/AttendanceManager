@@ -449,8 +449,8 @@ export const getTimetable = async (req, res) => {
       FROM timetable_slots ts
       JOIN faculty_subject_map fsm ON fsm.id = ts.faculty_subject_map_id
       JOIN subjects s ON s.id = fsm.subject_id
-      JOIN faculty f ON f.id = fsm.faculty_id
-      JOIN users u ON u.id = f.user_id
+      LEFT JOIN faculty f ON f.id = fsm.faculty_id
+      LEFT JOIN users u ON u.id = f.user_id
       LEFT JOIN batches b ON b.id = ts.batch_id
       WHERE fsm.class_id = ${student.classId}
       ORDER BY ts.day_of_week, ts.start_time
