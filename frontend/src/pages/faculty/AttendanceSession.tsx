@@ -286,7 +286,7 @@ const AttendanceSession: React.FC = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-sans">
           <div className="glass-card p-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center">
@@ -294,7 +294,7 @@ const AttendanceSession: React.FC = () => {
               </div>
               <div>
                 <p className="text-2xl font-bold text-foreground">{presentCount}</p>
-                <p className="text-sm text-muted-foreground">Present</p>
+                <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider text-[10px]">Present</p>
               </div>
             </div>
           </div>
@@ -305,7 +305,7 @@ const AttendanceSession: React.FC = () => {
               </div>
               <div>
                 <p className="text-2xl font-bold text-foreground">{absentCount}</p>
-                <p className="text-sm text-muted-foreground">Absent</p>
+                <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider text-[10px]">Absent</p>
               </div>
             </div>
           </div>
@@ -316,14 +316,14 @@ const AttendanceSession: React.FC = () => {
               </div>
               <div>
                 <p className="text-2xl font-bold text-foreground">{unmarkedCount}</p>
-                <p className="text-sm text-muted-foreground">Unmarked</p>
+                <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider text-[10px]">Unmarked</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* Search and Bulk Actions */}
-        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+        <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <Input
@@ -335,32 +335,32 @@ const AttendanceSession: React.FC = () => {
           </div>
 
           {!sessionInfo?.isLocked && (
-            <div className="flex gap-2">
+            <div className="flex gap-2 w-full md:w-auto">
               <Button
                 size="sm"
                 variant="outline"
                 onClick={() => handleMarkAll('present')}
-                className="h-9 px-4 rounded-lg text-[11px] font-black uppercase tracking-wider border-success/20 text-success hover:bg-success/10"
+                className="flex-1 md:flex-none h-9 px-4 rounded-lg text-[11px] font-black uppercase tracking-wider border-success/20 text-success hover:bg-success/10"
               >
                 <CheckCircle className="w-3.5 h-3.5 mr-1.5" />
-                Mark All Present
+                <span className="hidden sm:inline">Mark All</span> Present
               </Button>
               <Button
                 size="sm"
                 variant="outline"
                 onClick={() => handleMarkAll('absent')}
-                className="h-9 px-4 rounded-lg text-[11px] font-black uppercase tracking-wider border-destructive/20 text-destructive hover:bg-destructive/10"
+                className="flex-1 md:flex-none h-9 px-4 rounded-lg text-[11px] font-black uppercase tracking-wider border-destructive/20 text-destructive hover:bg-destructive/10"
               >
                 <XCircle className="w-3.5 h-3.5 mr-1.5" />
-                Mark All Absent
+                <span className="hidden sm:inline">Mark All</span> Absent
               </Button>
             </div>
           )}
         </div>
 
         {/* Students List */}
-        <div className="glass-card overflow-hidden">
-          <table className="data-table">
+        <div className="glass-card overflow-x-auto custom-scrollbar">
+          <table className="data-table min-w-[600px]">
             <thead>
               <tr>
                 <th>Roll No.</th>
@@ -375,7 +375,7 @@ const AttendanceSession: React.FC = () => {
                   <td>
                     <span className="font-mono text-sm">{student.rollNumber}</span>
                   </td>
-                  <td className="font-medium text-foreground">{student.name}</td>
+                  <td className="font-medium text-foreground whitespace-nowrap">{student.name}</td>
                   <td>
                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${student.status === 'present' ? 'bg-success/10 text-success' :
                       student.status === 'absent' ? 'bg-destructive/10 text-destructive' :

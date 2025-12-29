@@ -218,14 +218,14 @@ const FacultyLeaderboard: React.FC = () => {
 
                 {/* Leaderboard Table */}
                 <div className="glass-card rounded-xl border border-border/50 overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
+                    <div className="overflow-x-auto custom-scrollbar">
+                        <table className="w-full text-sm min-w-[500px]">
                             <thead>
                                 <tr className="border-b border-border/50 bg-secondary/20">
-                                    <th className="px-4 py-3 text-left font-black text-muted-foreground text-[10px] uppercase tracking-wider w-16">Rank</th>
+                                    <th className="px-4 py-3 text-left font-black text-muted-foreground text-[10px] uppercase tracking-wider w-20">Rank</th>
                                     <th className="px-4 py-3 text-left font-black text-muted-foreground text-[10px] uppercase tracking-wider">Student</th>
-                                    <th className="px-4 py-3 text-center font-black text-muted-foreground text-[10px] uppercase tracking-wider">Attended</th>
-                                    <th className="px-4 py-3 text-right font-black text-muted-foreground text-[10px] uppercase tracking-wider">Percentage</th>
+                                    <th className="px-4 py-3 text-center font-black text-muted-foreground text-[10px] uppercase tracking-wider w-28">Attended</th>
+                                    <th className="px-4 py-3 text-right font-black text-muted-foreground text-[10px] uppercase tracking-wider w-32">Percentage</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border/30">
@@ -245,7 +245,6 @@ const FacultyLeaderboard: React.FC = () => {
                                         </td>
                                     </tr>
                                 ) : (
-
                                     (() => {
                                         // Group by batch if practical or both
                                         if (lectureType === 'practical' || lectureType === 'both') {
@@ -264,16 +263,16 @@ const FacultyLeaderboard: React.FC = () => {
                                                             className="bg-secondary/10 border-y border-border/50 cursor-pointer hover:bg-secondary/20 transition-colors select-none"
                                                             onClick={() => toggleBatch(batchName)}
                                                         >
-                                                            <td colSpan={4} className="px-4 py-2">
+                                                            <td colSpan={4} className="px-4 py-2.5">
                                                                 <div className="flex items-center gap-2">
                                                                     {isExpanded ?
-                                                                        <ChevronDown className="w-4 h-4 text-primary/70" /> :
-                                                                        <ChevronRight className="w-4 h-4 text-primary/70" />
+                                                                        <ChevronDown className="w-4 h-4 text-primary/70 flex-shrink-0" /> :
+                                                                        <ChevronRight className="w-4 h-4 text-primary/70 flex-shrink-0" />
                                                                     }
-                                                                    <span className="text-xs font-black uppercase tracking-widest text-primary/70">
+                                                                    <span className="text-[10px] font-black uppercase tracking-widest text-primary/70 truncate">
                                                                         Batch: {batchName}
                                                                     </span>
-                                                                    <span className="ml-auto inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold">
+                                                                    <span className="ml-auto inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[9px] font-black whitespace-nowrap">
                                                                         {students.length} Students
                                                                     </span>
                                                                 </div>
@@ -287,19 +286,19 @@ const FacultyLeaderboard: React.FC = () => {
                                                                     </div>
                                                                 </td>
                                                                 <td className="px-4 py-3">
-                                                                    <div className="flex flex-col">
-                                                                        <span className="font-bold text-foreground">{student.name}</span>
+                                                                    <div className="flex flex-col min-w-0">
+                                                                        <span className="font-bold text-foreground truncate max-w-[150px] sm:max-w-none">{student.name}</span>
                                                                         <span className="text-[10px] font-mono text-muted-foreground">{student.rollNo}</span>
                                                                     </div>
                                                                 </td>
                                                                 <td className="px-4 py-3 text-center">
-                                                                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-secondary/50 text-xs font-medium">
+                                                                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-secondary/50 text-xs font-medium whitespace-nowrap">
                                                                         {student.attended} <span className="text-muted-foreground text-[10px]">/ {student.total}</span>
                                                                     </span>
                                                                 </td>
                                                                 <td className="px-4 py-3 text-right">
                                                                     <div className="flex items-center justify-end gap-3">
-                                                                        <div className="w-24 h-1.5 bg-secondary rounded-full overflow-hidden hidden sm:block">
+                                                                        <div className="w-16 sm:w-24 h-1.5 bg-secondary rounded-full overflow-hidden hidden xs:block">
                                                                             <div
                                                                                 className={cn(
                                                                                     "h-full rounded-full transition-all duration-500",
@@ -310,7 +309,7 @@ const FacultyLeaderboard: React.FC = () => {
                                                                             />
                                                                         </div>
                                                                         <span className={cn(
-                                                                            "font-black text-sm w-12",
+                                                                            "font-black text-sm whitespace-nowrap",
                                                                             student.percentage >= 75 ? "text-success" :
                                                                                 student.percentage >= 60 ? "text-warning" : "text-destructive"
                                                                         )}>
@@ -333,19 +332,19 @@ const FacultyLeaderboard: React.FC = () => {
                                                         </div>
                                                     </td>
                                                     <td className="px-4 py-3">
-                                                        <div className="flex flex-col">
-                                                            <span className="font-bold text-foreground">{student.name}</span>
+                                                        <div className="flex flex-col min-w-0">
+                                                            <span className="font-bold text-foreground truncate max-w-[150px] sm:max-w-none">{student.name}</span>
                                                             <span className="text-[10px] font-mono text-muted-foreground">{student.rollNo}</span>
                                                         </div>
                                                     </td>
                                                     <td className="px-4 py-3 text-center">
-                                                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-secondary/50 text-xs font-medium">
+                                                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-secondary/50 text-xs font-medium whitespace-nowrap">
                                                             {student.attended} <span className="text-muted-foreground text-[10px]">/ {student.total}</span>
                                                         </span>
                                                     </td>
                                                     <td className="px-4 py-3 text-right">
                                                         <div className="flex items-center justify-end gap-3">
-                                                            <div className="w-24 h-1.5 bg-secondary rounded-full overflow-hidden hidden sm:block">
+                                                            <div className="w-16 sm:w-24 h-1.5 bg-secondary rounded-full overflow-hidden hidden xs:block">
                                                                 <div
                                                                     className={cn(
                                                                         "h-full rounded-full transition-all duration-500",
@@ -356,7 +355,7 @@ const FacultyLeaderboard: React.FC = () => {
                                                                 />
                                                             </div>
                                                             <span className={cn(
-                                                                "font-black text-sm w-12",
+                                                                "font-black text-sm whitespace-nowrap",
                                                                 student.percentage >= 75 ? "text-success" :
                                                                     student.percentage >= 60 ? "text-warning" : "text-destructive"
                                                             )}>

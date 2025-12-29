@@ -6,7 +6,8 @@ import {
     exportSessionCSV,
     exportSessionPDF,
     getLeaderboardStats,
-    getAttendanceRecords
+    getAttendanceRecords,
+    getClassBatches
 } from '../controllers/faculty.controller.js'
 
 const router = Router()
@@ -17,5 +18,6 @@ router.get('/attendance-sessions/:sessionId/export/csv', requireAuth(['FACULTY']
 router.get('/attendance-sessions/:sessionId/export/pdf', requireAuth(['FACULTY']), exportSessionPDF)
 router.get('/leaderboard', requireAuth(['FACULTY']), getLeaderboardStats)
 router.get('/attendance-records', requireAuth(['FACULTY']), getAttendanceRecords)
+router.get('/classes/:classId/batches', requireAuth(['FACULTY']), getClassBatches)
 
 export default router

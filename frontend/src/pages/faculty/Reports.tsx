@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/lib/api';
+import { cn } from '@/lib/utils';
 import { formatTime12Hour } from '@/lib/timeUtils';
 
 interface AttendanceSession {
@@ -244,110 +245,112 @@ const FacultyReports: React.FC = () => {
                         </p>
                     </div>
                 ) : (
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                         {filteredSessions.map((session) => {
                             const percentage = getAttendancePercentage(session);
                             return (
                                 <div
                                     key={session.id}
-                                    className="glass-card p-4 rounded-xl border border-border/50 transition-all duration-300 hover:border-primary/20"
+                                    className="glass-card group p-5 rounded-2xl border border-white/5 transition-all duration-500 hover:bg-white/[0.04] hover:shadow-2xl hover:border-primary/20"
                                 >
-                                    <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-                                        {/* Session Info */}
-                                        <div className="flex-1">
-                                            <div className="flex items-start gap-3 mb-2">
-                                                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20 flex-shrink-0">
-                                                    <Calendar className="w-5 h-5 text-primary" />
+                                    <div className="flex flex-col lg:flex-row lg:items-center gap-6">
+                                        {/* Session Identifiers */}
+                                        <div className="flex items-start gap-4 flex-1 min-w-0">
+                                            <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20 flex-shrink-0 shadow-inner group-hover:scale-105 transition-transform duration-500">
+                                                <Calendar className="w-6 h-6 text-primary" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <h3 className="text-lg font-black text-foreground tracking-tight truncate">
+                                                    {session.subjectName}
+                                                </h3>
+                                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-[11px] text-muted-foreground font-medium">
+                                                    <span className="flex items-center gap-1.5 whitespace-nowrap">
+                                                        <Users className="w-3.5 h-3.5" />
+                                                        {session.className}
+                                                    </span>
+                                                    <span className="hidden xs:inline text-muted-foreground/30">•</span>
+                                                    <span className="whitespace-nowrap">{session.sessionDate}</span>
+                                                    <span className="hidden xs:inline text-muted-foreground/30">•</span>
+                                                    <span className="whitespace-nowrap">{formatTime12Hour(session.startTime)}</span>
                                                 </div>
-                                                <div className="flex-1">
-                                                    <h3 className="text-[15px] font-black text-foreground tracking-tight">
-                                                        {session.subjectName}
-                                                    </h3>
-                                                    <div className="flex flex-wrap items-center gap-2 mt-1 text-[11px] text-muted-foreground font-medium">
-                                                        <span className="flex items-center gap-1">
-                                                            <Users className="w-3 h-3" />
-                                                            {session.className}
-                                                        </span>
-                                                        <span>•</span>
-                                                        <span>{session.sessionDate}</span>
-                                                        <span>•</span>
-                                                        <span>{formatTime12Hour(session.startTime)}</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Stats and Status */}
+                                        <div className="flex flex-col sm:flex-row sm:items-center gap-4 lg:gap-8">
+                                            <div className="flex flex-wrap items-center gap-4">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="p-1 rounded-md bg-success/10">
+                                                        <CheckCircle className="w-3.5 h-3.5 text-success" />
                                                     </div>
+                                                    <span className="text-sm font-black text-foreground">
+                                                        {session.presentCount} <span className="text-[10px] text-muted-foreground uppercase font-medium">Present</span>
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="p-1 rounded-md bg-destructive/10">
+                                                        <XCircle className="w-3.5 h-3.5 text-destructive" />
+                                                    </div>
+                                                    <span className="text-sm font-black text-foreground">
+                                                        {session.absentCount} <span className="text-[10px] text-muted-foreground uppercase font-medium">Absent</span>
+                                                    </span>
                                                 </div>
                                             </div>
 
-                                            {/* Stats */}
-                                            <div className="flex items-center gap-4 ml-13">
-                                                <div className="flex items-center gap-1.5">
-                                                    <CheckCircle className="w-3.5 h-3.5 text-success" />
-                                                    <span className="text-[12px] font-bold text-success">
-                                                        {session.presentCount}
+                                            <div className="flex items-center gap-4">
+                                                <div className="h-8 w-px bg-white/10 hidden sm:block" />
+                                                <div className="flex flex-col">
+                                                    <span className={cn(
+                                                        "text-lg font-black tracking-tighter leading-none",
+                                                        percentage >= 75 ? 'text-success' : percentage >= 50 ? 'text-warning' : 'text-destructive'
+                                                    )}>
+                                                        {percentage}%
                                                     </span>
+                                                    <span className="text-[9px] uppercase font-black tracking-widest text-muted-foreground/60">Attendance</span>
                                                 </div>
-                                                <div className="flex items-center gap-1.5">
-                                                    <XCircle className="w-3.5 h-3.5 text-destructive" />
-                                                    <span className="text-[12px] font-bold text-destructive">
-                                                        {session.absentCount}
-                                                    </span>
-                                                </div>
-                                                <div className="flex items-center gap-1.5">
-                                                    <Users className="w-3.5 h-3.5 text-muted-foreground" />
-                                                    <span className="text-[12px] font-bold text-foreground">
-                                                        {session.totalStudents} Total
-                                                    </span>
-                                                </div>
-                                                <div className="ml-auto">
-                                                    <span className={`text-[12px] font-black ${percentage >= 75 ? 'text-success' :
-                                                        percentage >= 50 ? 'text-warning' :
-                                                            'text-destructive'
-                                                        }`}>
-                                                        {percentage}% Present
-                                                    </span>
-                                                </div>
+
+                                                {session.locked && (
+                                                    <div className="ml-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-success/10 text-success border border-success/20 shadow-[0_0_15px_-5px_rgba(34,197,94,0.3)]">
+                                                        <CheckCircle className="w-3 h-3" />
+                                                        <span className="text-[9px] font-black uppercase tracking-widest">Locked</span>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
 
                                         {/* Actions */}
-                                        <div className="flex items-center gap-2 lg:flex-col lg:items-stretch">
+                                        <div className="flex flex-row lg:flex-col items-center lg:items-stretch gap-2 lg:min-w-[140px] border-t lg:border-t-0 lg:border-l border-white/5 pt-4 lg:pt-0 lg:pl-6">
                                             <Button
                                                 size="sm"
                                                 variant="outline"
                                                 onClick={() => navigate(`/faculty/attendance/${session.id}`)}
-                                                className="h-8 px-3 rounded-lg text-[10px] font-black uppercase tracking-wider flex-1 lg:flex-none"
+                                                className="h-9 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest flex-1 bg-white/5 hover:bg-white/10 border-white/10 transition-all duration-300"
                                             >
-                                                <Eye className="w-3 h-3 mr-1.5" />
-                                                View
+                                                <Eye className="w-3.5 h-3.5 mr-2" />
+                                                View Details
                                             </Button>
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                onClick={() => handleExportCSV(session.id)}
-                                                className="h-8 px-3 rounded-lg text-[10px] font-black uppercase tracking-wider border-success/20 text-success hover:bg-success/10 flex-1 lg:flex-none"
-                                            >
-                                                <Download className="w-3 h-3 mr-1.5" />
-                                                CSV
-                                            </Button>
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                onClick={() => handleExportPDF(session.id)}
-                                                className="h-8 px-3 rounded-lg text-[10px] font-black uppercase tracking-wider border-destructive/20 text-destructive hover:bg-destructive/10 flex-1 lg:flex-none"
-                                            >
-                                                <Download className="w-3 h-3 mr-1.5" />
-                                                PDF
-                                            </Button>
+                                            <div className="flex gap-2 flex-1 lg:flex-none">
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() => handleExportCSV(session.id)}
+                                                    className="h-9 px-3 rounded-xl text-[10px] font-black uppercase tracking-widest border-success/20 text-success bg-success/5 hover:bg-success/10 transition-all duration-300 flex-1"
+                                                    title="Export CSV"
+                                                >
+                                                    <Download className="w-3.5 h-3.5" />
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() => handleExportPDF(session.id)}
+                                                    className="h-9 px-3 rounded-xl text-[10px] font-black uppercase tracking-widest border-destructive/20 text-destructive bg-destructive/5 hover:bg-destructive/10 transition-all duration-300 flex-1"
+                                                    title="Export PDF"
+                                                >
+                                                    <FileText className="w-3.5 h-3.5" />
+                                                </Button>
+                                            </div>
                                         </div>
                                     </div>
-
-                                    {/* Status Badge */}
-                                    {session.locked && (
-                                        <div className="mt-3 pt-3 border-t border-border/30">
-                                            <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-success/10 text-success border border-success/20 text-[9px] font-black uppercase tracking-wider">
-                                                <CheckCircle className="w-2.5 h-2.5" />
-                                                Locked & Finalized
-                                            </span>
-                                        </div>
-                                    )}
                                 </div>
                             );
                         })}

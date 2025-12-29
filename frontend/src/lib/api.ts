@@ -144,6 +144,7 @@ export const facultyAPI = {
     api.get('/faculty/attendance-records', {
       params: { classId, subjectId, batchId, type }
     }),
+  getBatches: (classId: string) => api.get(`/faculty/classes/${classId}/batches`),
 };
 
 // Student API

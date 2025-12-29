@@ -297,7 +297,7 @@ const FacultyLayout: React.FC<FacultyLayoutProps> = ({ children }) => {
 
       {/* Main Content */}
       <main className="flex-1 lg:pt-0 pt-16 overflow-auto custom-scrollbar">
-        <div className="p-6 lg:p-8">
+        <div className="p-4 sm:p-6 lg:p-8">
           {children}
         </div>
       </main>

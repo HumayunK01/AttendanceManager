@@ -4,7 +4,7 @@ import FacultyLayout from '@/layouts/FacultyLayout';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { facultyAPI, api, adminAPI } from '@/lib/api';
+import { facultyAPI, api } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { formatTime12Hour } from '@/lib/timeUtils';
 import * as XLSX from 'xlsx';
@@ -35,16 +35,14 @@ interface Batch {
 
 const RecordsTable = ({ data, isLoading, emptyMessage }: { data: AttendanceData | null, isLoading: boolean, emptyMessage: string }) => (
     <div className="glass-card rounded-xl border border-border/50 overflow-hidden mt-4">
-        <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+        <div className="overflow-x-auto custom-scrollbar">
+            <table className="w-full text-sm min-w-[800px]">
                 <thead>
                     <tr className="border-b border-border/50 bg-secondary/20">
-                        <th className="px-4 py-3 text-left font-black text-muted-foreground text-[10px] uppercase tracking-wider sticky left-0 bg-secondary/20 z-20 shadow-[1px_0_0_0_rgba(0,0,0,0.05)]">Sr No</th>
-                        <th className="px-4 py-3 text-left font-black text-muted-foreground text-[10px] uppercase tracking-wider sticky left-[60px] bg-secondary/20 z-20 shadow-[1px_0_0_0_rgba(0,0,0,0.05)]">Roll No</th>
-                        <th className="px-4 py-3 text-left font-black text-muted-foreground text-[10px] uppercase tracking-wider sticky left-[140px] bg-secondary/20 z-20 shadow-[1px_0_0_0_rgba(0,0,0,0.05)]">Full Name</th>
+                        <th className="px-4 py-3 text-left font-black text-muted-foreground text-[10px] uppercase tracking-wider sticky left-0 bg-secondary z-20 shadow-[1px_0_0_0_rgba(0,0,0,0.05)]">Sr No</th>
+                        <th className="px-4 py-3 text-left font-black text-muted-foreground text-[10px] uppercase tracking-wider sticky left-[60px] bg-secondary z-20 shadow-[1px_0_0_0_rgba(0,0,0,0.05)]">Roll No</th>
+                        <th className="px-4 py-3 text-left font-black text-muted-foreground text-[10px] uppercase tracking-wider sticky left-[140px] bg-secondary z-20 shadow-[1px_0_0_0_rgba(0,0,0,0.05)]">Full Name</th>
                         {data?.dateHeaders.map((dateTime) => {
-                            // Extract date, time range, and optional batch info
-                            // Format: "DD-MM-YYYY HH:mm-HH:mm (Batch Name)" or "DD-MM-YYYY HH:mm-HH:mm"
                             const parts = dateTime.match(/^(\d{2}-\d{2}-\d{4}) (\d{2}:\d{2}-\d{2}:\d{2})(?: \((.*)\))?$/);
                             const date = parts ? parts[1] : dateTime.split(' ')[0];
                             const timeRange = parts ? parts[2] : (dateTime.split(' ')[1] || '');
@@ -80,19 +78,21 @@ const RecordsTable = ({ data, isLoading, emptyMessage }: { data: AttendanceData 
                         </tr>
                     ) : !data || data.records.length === 0 ? (
                         <tr>
-                            <td colSpan={100} className="px-4 py-12 text-center text-muted-foreground">{emptyMessage}</td>
+                            <td colSpan={100} className="px-4 py-12 text-center text-muted-foreground">
+                                <span className="text-[11px] font-medium uppercase tracking-widest opacity-50">{emptyMessage}</span>
+                            </td>
                         </tr>
                     ) : (
                         data.records.map((record) => (
                             <tr key={record.srNo} className="group hover:bg-secondary/30 transition-colors">
                                 <td className="px-4 py-3 font-medium sticky left-0 bg-background group-hover:bg-secondary/30 transition-colors z-10 shadow-[1px_0_0_0_rgba(0,0,0,0.05)]">{record.srNo}</td>
                                 <td className="px-4 py-3 font-mono text-xs sticky left-[60px] bg-background group-hover:bg-secondary/30 transition-colors z-10 shadow-[1px_0_0_0_rgba(0,0,0,0.05)]">{record.rollNo}</td>
-                                <td className="px-4 py-3 font-bold sticky left-[140px] bg-background group-hover:bg-secondary/30 transition-colors z-10 shadow-[1px_0_0_0_rgba(0,0,0,0.05)]">{record.fullName}</td>
+                                <td className="px-4 py-3 font-bold sticky left-[140px] bg-background group-hover:bg-secondary/30 transition-colors z-10 shadow-[1px_0_0_0_rgba(0,0,0,0.05)] whitespace-nowrap">{record.fullName}</td>
                                 {data.dateHeaders.map((date) => (
                                     <td key={date} className="px-4 py-3 text-center">
                                         <span className={`inline-flex items-center justify-center w-8 h-8 rounded-lg font-black text-xs ${record.attendance[date] === 'P' ? 'bg-success/20 text-success border border-success/30' :
-                                                record.attendance[date] === 'A' ? 'bg-destructive/20 text-destructive border border-destructive/30' :
-                                                    'bg-secondary/50 text-muted-foreground'
+                                            record.attendance[date] === 'A' ? 'bg-destructive/20 text-destructive border border-destructive/30' :
+                                                'bg-secondary/50 text-muted-foreground'
                                             }`}>
                                             {record.attendance[date] || '-'}
                                         </span>
@@ -166,7 +166,7 @@ const AttendanceRecords: React.FC = () => {
 
     const fetchBatches = async (classId: string) => {
         try {
-            const response = await adminAPI.getBatches(classId);
+            const response = await facultyAPI.getBatches(classId);
             setBatches(response.data);
             setSelectedBatch('all'); // Default to all
         } catch (error) {
@@ -299,19 +299,21 @@ const AttendanceRecords: React.FC = () => {
 
                 {selectedOpt && (
                     <Tabs defaultValue="theory" className="w-full">
-                        <TabsList className="bg-secondary/50 p-1 rounded-xl w-full sm:w-auto h-auto">
-                            <TabsTrigger value="theory" className="rounded-lg px-6 py-2 text-xs font-black uppercase tracking-wider data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                                Theory
-                            </TabsTrigger>
-                            <TabsTrigger value="practical" className="rounded-lg px-6 py-2 text-xs font-black uppercase tracking-wider data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                                Practical
-                            </TabsTrigger>
-                        </TabsList>
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <TabsList className="bg-secondary/50 p-1 rounded-xl w-full sm:w-auto h-auto">
+                                <TabsTrigger value="theory" className="flex-1 sm:flex-none rounded-lg px-6 py-2 text-xs font-black uppercase tracking-wider data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                                    Theory
+                                </TabsTrigger>
+                                <TabsTrigger value="practical" className="flex-1 sm:flex-none rounded-lg px-6 py-2 text-xs font-black uppercase tracking-wider data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                                    Practical
+                                </TabsTrigger>
+                            </TabsList>
+                        </div>
 
                         <TabsContent value="theory" className="mt-4 space-y-4">
                             <div className="flex justify-end">
-                                <Button onClick={() => exportToExcel('theory')} disabled={!theoryData?.records.length} className="h-9 text-xs rounded-xl font-bold bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20">
-                                    <Download className="w-3.5 h-3.5 mr-2" /> Export Theory
+                                <Button onClick={() => exportToExcel('theory')} disabled={!theoryData?.records.length} className="w-full sm:w-auto h-10 text-[11px] rounded-xl font-black uppercase tracking-wider bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20">
+                                    <Download className="w-4 h-4 mr-2" /> Export Theory
                                 </Button>
                             </div>
                             <RecordsTable data={theoryData} isLoading={isLoadingTheory} emptyMessage="No theory attendance records found." />
@@ -319,8 +321,8 @@ const AttendanceRecords: React.FC = () => {
 
                         <TabsContent value="practical" className="mt-4 space-y-4">
                             <div className="flex justify-end">
-                                <Button onClick={() => exportToExcel('practical')} disabled={!practicalData?.records.length} className="h-9 text-xs rounded-xl font-bold bg-purple-500/10 text-purple-600 hover:bg-purple-500/20 border border-purple-500/20">
-                                    <Download className="w-3.5 h-3.5 mr-2" /> Export Practical
+                                <Button onClick={() => exportToExcel('practical')} disabled={!practicalData?.records.length} className="w-full sm:w-auto h-10 text-[11px] rounded-xl font-black uppercase tracking-wider bg-purple-500/10 text-purple-600 hover:bg-purple-500/20 border border-purple-500/20">
+                                    <Download className="w-4 h-4 mr-2" /> Export Practical
                                 </Button>
                             </div>
                             <RecordsTable data={practicalData} isLoading={isLoadingPractical} emptyMessage="No practical attendance records found." />

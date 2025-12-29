@@ -237,9 +237,9 @@ const FacultyDashboard: React.FC = () => {
                   slot.sessionStatus === 'in_progress' && "border-l-4 border-warning bg-warning/5"
                 )}
               >
-                <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+                <div className="flex flex-col md:flex-row md:items-center gap-3">
                   {/* Time */}
-                  <div className="flex items-center gap-2.5 lg:min-w-[120px]">
+                  <div className="flex items-center gap-2.5 md:min-w-[120px]">
                     <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
                       <Clock className="w-5 h-5 text-primary" />
                     </div>
@@ -250,7 +250,7 @@ const FacultyDashboard: React.FC = () => {
                   </div>
 
                   {/* Divider */}
-                  <div className="hidden lg:block h-10 w-px bg-border" />
+                  <div className="hidden md:block h-10 w-px bg-border" />
 
                   {/* Subject Info */}
                   <div className="flex-1">

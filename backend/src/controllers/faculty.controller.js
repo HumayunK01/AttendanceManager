@@ -661,3 +661,19 @@ export const getAttendanceRecords = async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch attendance records' });
   }
 }
+
+export const getClassBatches = async (req, res) => {
+  try {
+    const { classId } = req.params;
+    const batches = await sql`
+      SELECT id, name 
+      FROM batches 
+      WHERE class_id = ${classId}
+      ORDER BY name
+    `;
+    res.json(batches);
+  } catch (error) {
+    console.error('Error fetching class batches:', error);
+    res.status(500).json({ error: 'Failed to fetch batches' });
+  }
+}
