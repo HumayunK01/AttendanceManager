@@ -103,7 +103,8 @@ const StudentRow = memo(({
   onEdit,
   onDelete,
   getInitials,
-  getAttendanceColor
+  getAttendanceColor,
+  getBatchColor
 }: {
   student: Student;
   isSelected: boolean;
@@ -113,6 +114,7 @@ const StudentRow = memo(({
   onDelete: (s: Student) => void;
   getInitials: (name: string) => string;
   getAttendanceColor: (att?: number, total?: number) => string;
+  getBatchColor: (batchName: string) => { bg: string; text: string; border: string };
 }) => (
   <tr className="group hover:bg-white/5 transition-colors duration-200">
     <td className="py-3 px-6">
@@ -152,11 +154,14 @@ const StudentRow = memo(({
       </p>
     </td>
     <td className="px-6">
-      {student.batchName ? (
-        <span className="inline-flex items-center px-2 py-1 rounded-md bg-accent/10 text-accent text-[10px] font-black border border-accent/20 shadow-sm">
-          {student.batchName}
-        </span>
-      ) : (
+      {student.batchName ? (() => {
+        const color = getBatchColor(student.batchName);
+        return (
+          <span className={`inline-flex items-center px-2 py-1 rounded-md ${color.bg} ${color.text} text-[10px] font-black border ${color.border} shadow-sm`}>
+            {student.batchName}
+          </span>
+        );
+      })() : (
         <span className="text-muted-foreground/30 text-[10px] font-medium italic">No Batch</span>
       )}
     </td>
@@ -219,6 +224,7 @@ const StudentsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterClass, setFilterClass] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [filterBatch, setFilterBatch] = useState<string>('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState({ name: '', email: '', password: '', rollNo: '', classId: '', batchId: '' });
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
@@ -286,9 +292,28 @@ const StudentsPage: React.FC = () => {
       const matchesStatus = filterStatus === 'all' ||
         (filterStatus === 'active' && s.isActive) ||
         (filterStatus === 'inactive' && !s.isActive);
-      return matchesSearch && matchesClass && matchesStatus;
+      const matchesBatch = filterBatch === 'all' ||
+        (filterBatch === 'no-batch' && !s.batchName) ||
+        s.batchName === filterBatch;
+      return matchesSearch && matchesClass && matchesStatus && matchesBatch;
+    }).sort((a, b) => {
+      // Sort by roll number (numeric comparison)
+      const rollA = parseInt(a.rollNumber) || 0;
+      const rollB = parseInt(b.rollNumber) || 0;
+      return rollA - rollB;
     });
-  }, [students, searchQuery, filterClass, filterStatus]);
+  }, [students, searchQuery, filterClass, filterStatus, filterBatch]);
+
+  // Get unique batches from all students
+  const uniqueBatches = useMemo(() => {
+    const batchSet = new Set<string>();
+    students.forEach(s => {
+      if (s.batchName) {
+        batchSet.add(s.batchName);
+      }
+    });
+    return Array.from(batchSet).sort();
+  }, [students]);
 
   const stats = useMemo(() => {
     const activeStudents = students.filter(s => s.isActive).length;
@@ -313,6 +338,30 @@ const StudentsPage: React.FC = () => {
     if (attendance >= 75) return 'text-success';
     if (attendance >= 60) return 'text-warning';
     return 'text-destructive';
+  }, []);
+
+  const getBatchColor = useCallback((batchName: string) => {
+    // Generate consistent color based on batch name
+    const colors = [
+      { bg: 'bg-blue-500/10', text: 'text-blue-500', border: 'border-blue-500/20' },
+      { bg: 'bg-purple-500/10', text: 'text-purple-500', border: 'border-purple-500/20' },
+      { bg: 'bg-green-500/10', text: 'text-green-500', border: 'border-green-500/20' },
+      { bg: 'bg-orange-500/10', text: 'text-orange-500', border: 'border-orange-500/20' },
+      { bg: 'bg-pink-500/10', text: 'text-pink-500', border: 'border-pink-500/20' },
+      { bg: 'bg-cyan-500/10', text: 'text-cyan-500', border: 'border-cyan-500/20' },
+      { bg: 'bg-yellow-500/10', text: 'text-yellow-500', border: 'border-yellow-500/20' },
+      { bg: 'bg-rose-500/10', text: 'text-rose-500', border: 'border-rose-500/20' },
+      { bg: 'bg-indigo-500/10', text: 'text-indigo-500', border: 'border-indigo-500/20' },
+      { bg: 'bg-teal-500/10', text: 'text-teal-500', border: 'border-teal-500/20' },
+    ];
+
+    // Simple hash function to get consistent color for same batch name
+    let hash = 0;
+    for (let i = 0; i < batchName.length; i++) {
+      hash = batchName.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % colors.length;
+    return colors[index];
   }, []);
 
   const handleToggleStatus = async (student: Student) => {
@@ -735,7 +784,7 @@ const StudentsPage: React.FC = () => {
         </div>
 
         {/* Filters */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-3">
           <div className="relative lg:col-span-2 group">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
             <Input
@@ -774,6 +823,29 @@ const StudentsPage: React.FC = () => {
               <SelectItem value="inactive">Inactive</SelectItem>
             </SelectContent>
           </Select>
+          <Select value={filterBatch} onValueChange={setFilterBatch}>
+            <SelectTrigger className="h-9 bg-secondary/30 border-border/50 rounded-xl text-[12px] font-bold">
+              <div className="flex items-center gap-2">
+                <Filter className="w-3 h-3 opacity-50" />
+                <SelectValue placeholder="All Batches" />
+              </div>
+            </SelectTrigger>
+            <SelectContent className="bg-background/95 backdrop-blur-xl border-border/50 rounded-xl">
+              <SelectItem value="all" className="font-bold">All Batches</SelectItem>
+              <SelectItem value="no-batch" className="italic text-muted-foreground">No Batch Assigned</SelectItem>
+              {uniqueBatches.map((batch) => {
+                const color = getBatchColor(batch);
+                return (
+                  <SelectItem key={batch} value={batch}>
+                    <div className="flex items-center gap-2">
+                      <span className={`w-2 h-2 rounded-full ${color.bg.replace('/10', '')}`}></span>
+                      {batch}
+                    </div>
+                  </SelectItem>
+                );
+              })}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Content */}
@@ -806,10 +878,10 @@ const StudentsPage: React.FC = () => {
             </div>
             <h3 className="text-lg font-bold text-foreground mb-1.5">No results found</h3>
             <p className="text-[13px] text-muted-foreground max-w-sm mb-6"> Refine your search parameters or check your active filters.</p>
-            {(searchQuery || filterClass !== 'all' || filterStatus !== 'all') && (
+            {(searchQuery || filterClass !== 'all' || filterStatus !== 'all' || filterBatch !== 'all') && (
               <Button
                 variant="outline"
-                onClick={() => { setSearchQuery(''); setFilterClass('all'); setFilterStatus('all'); }}
+                onClick={() => { setSearchQuery(''); setFilterClass('all'); setFilterStatus('all'); setFilterBatch('all'); }}
                 className="rounded-xl border-border/50 font-bold px-6 h-9 text-xs"
               >
                 Clear all filters
@@ -851,6 +923,7 @@ const StudentsPage: React.FC = () => {
                       onDelete={handleDeletePrompt}
                       getInitials={getInitials}
                       getAttendanceColor={getAttendanceColor}
+                      getBatchColor={getBatchColor}
                     />
                   ))}
                 </tbody>
