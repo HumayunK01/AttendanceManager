@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { getAttendance, getOverallPercentage, getAttendanceHistory, getLeaderboard, getAchievements } from '../controllers/student.controller.js'
+import { getAttendance, getOverallPercentage, getAttendanceHistory, getLeaderboard, getAchievements, getTimetable } from '../controllers/student.controller.js'
 import { requireAuth } from '../middleware/auth.middleware.js'
 
 const router = Router()
@@ -78,5 +78,6 @@ router.get('/leaderboard', requireAuth(['STUDENT']), getLeaderboard)
  *         description: Server error
  */
 router.get('/achievements', requireAuth(['STUDENT']), getAchievements)
+router.get('/timetable', requireAuth(['STUDENT']), getTimetable)
 
 export default router

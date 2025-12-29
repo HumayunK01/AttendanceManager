@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
+  Calendar,
   BarChart3,
   LogOut,
   Menu,
@@ -24,6 +25,7 @@ interface SidebarItem {
 
 const sidebarItems: SidebarItem[] = [
   { label: 'Dashboard', href: '/student', icon: <LayoutDashboard className="w-5 h-5" /> },
+  { label: 'Timetable', href: '/student/timetable', icon: <Calendar className="w-5 h-5" /> },
   { label: 'Leaderboard', href: '/student/leaderboard', icon: <GraduationCap className="w-5 h-5" /> },
   { label: 'Achievements', href: '/student/achievements', icon: <Award className="w-5 h-5" /> },
   { label: 'Reports', href: '/student/reports', icon: <BarChart3 className="w-5 h-5" /> },

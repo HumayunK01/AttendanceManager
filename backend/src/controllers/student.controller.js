@@ -421,3 +421,44 @@ VALUES(${student.id}, ${ach.id})
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+export const getTimetable = async (req, res) => {
+  const userId = req.user.id
+
+  try {
+    const studentResult = await sql`
+      SELECT id, class_id as "classId", batch_id as "batchId" FROM students WHERE user_id = ${userId} AND is_active = true
+    `
+
+    if (studentResult.length === 0) {
+      return res.status(404).json({ error: 'Student profile not found' })
+    }
+
+    const student = studentResult[0]
+
+    const timetable = await sql`
+      SELECT 
+        ts.id,
+        ts.day_of_week as "dayOfWeek",
+        ts.start_time as "startTime",
+        ts.end_time as "endTime",
+        s.name as "subjectName",
+        u.name as "facultyName",
+        b.name as "batchName",
+        ts.batch_id as "batchId"
+      FROM timetable_slots ts
+      JOIN faculty_subject_map fsm ON fsm.id = ts.faculty_subject_map_id
+      JOIN subjects s ON s.id = fsm.subject_id
+      JOIN faculty f ON f.id = fsm.faculty_id
+      JOIN users u ON u.id = f.user_id
+      LEFT JOIN batches b ON b.id = ts.batch_id
+      WHERE fsm.class_id = ${student.classId}
+      ORDER BY ts.day_of_week, ts.start_time
+    `
+
+    res.json(timetable)
+  } catch (error) {
+    console.error('Error fetching student timetable:', error)
+    res.status(500).json({ error: 'Failed to fetch timetable' })
+  }
+}

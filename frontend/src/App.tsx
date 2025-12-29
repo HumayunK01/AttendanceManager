@@ -29,6 +29,7 @@ import FacultyDashboard from "./pages/faculty/Dashboard";
 import FacultySchedule from "./pages/faculty/Schedule";
 import FacultyReports from "./pages/faculty/Reports";
 import FacultyLeaderboard from "./pages/faculty/FacultyLeaderboard";
+import FacultyTimetable from "./pages/faculty/Timetable";
 import AttendanceSession from "./pages/faculty/AttendanceSession";
 import AttendanceRecords from "./pages/faculty/AttendanceRecords";
 
@@ -37,6 +38,7 @@ import StudentDashboard from "./pages/student/Dashboard";
 import StudentReports from "./pages/student/Reports";
 import Achievements from '@/pages/student/Achievements';
 import Leaderboard from "./pages/student/Leaderboard";
+import StudentTimetable from "./pages/student/Timetable";
 
 const queryClient = new QueryClient();
 
@@ -95,13 +97,14 @@ const App = () => (
             <Route path="/faculty" element={<ProtectedRoute allowedRoles={['FACULTY']}><FacultyDashboard /></ProtectedRoute>} />
             <Route path="/faculty/schedule/:day" element={<ProtectedRoute allowedRoles={['FACULTY']}><FacultySchedule /></ProtectedRoute>} />
             <Route path="/faculty/reports" element={<ProtectedRoute allowedRoles={['FACULTY']}><FacultyReports /></ProtectedRoute>} />
+            <Route path="/faculty/timetable" element={<ProtectedRoute allowedRoles={['FACULTY']}><FacultyTimetable /></ProtectedRoute>} />
             <Route path="/faculty/leaderboard" element={<ProtectedRoute allowedRoles={['FACULTY']}><FacultyLeaderboard /></ProtectedRoute>} />
             <Route path="/faculty/attendance-records" element={<ProtectedRoute allowedRoles={['FACULTY']}><AttendanceRecords /></ProtectedRoute>} />
             <Route path="/faculty/attendance/:sessionId" element={<ProtectedRoute allowedRoles={['FACULTY']}><AttendanceSession /></ProtectedRoute>} />
 
             {/* Student Routes */}
             <Route path="/student" element={<ProtectedRoute allowedRoles={['STUDENT']}><StudentDashboard /></ProtectedRoute>} />
-
+            <Route path="/student/timetable" element={<ProtectedRoute allowedRoles={['STUDENT']}><StudentTimetable /></ProtectedRoute>} />
             <Route path="/student/reports" element={<ProtectedRoute allowedRoles={['STUDENT']}><StudentReports /></ProtectedRoute>} />
             <Route path="/student/leaderboard" element={<ProtectedRoute allowedRoles={['STUDENT']}><Leaderboard /></ProtectedRoute>} />
             <Route path="/student/achievements" element={<ProtectedRoute allowedRoles={['STUDENT']}><Achievements /></ProtectedRoute>} />

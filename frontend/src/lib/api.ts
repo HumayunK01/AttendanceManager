@@ -145,6 +145,7 @@ export const facultyAPI = {
       params: { classId, subjectId, batchId, type }
     }),
   getBatches: (classId: string) => api.get(`/faculty/classes/${classId}/batches`),
+  getTimetable: () => api.get('/faculty/timetable'),
 };
 
 // Student API
@@ -155,6 +156,7 @@ export const studentAPI = {
   getAttendanceHistory: () => api.get('/student/attendance/history'),
   getLeaderboard: () => api.get('/student/leaderboard'),
   getAchievements: () => api.get('/student/achievements'),
+  getTimetable: () => api.get('/student/timetable'),
 };
 
 export default api;

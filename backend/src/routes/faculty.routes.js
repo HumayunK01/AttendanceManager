@@ -7,7 +7,8 @@ import {
     exportSessionPDF,
     getLeaderboardStats,
     getAttendanceRecords,
-    getClassBatches
+    getClassBatches,
+    getFullTimetable
 } from '../controllers/faculty.controller.js'
 
 const router = Router()
@@ -19,5 +20,6 @@ router.get('/attendance-sessions/:sessionId/export/pdf', requireAuth(['FACULTY']
 router.get('/leaderboard', requireAuth(['FACULTY']), getLeaderboardStats)
 router.get('/attendance-records', requireAuth(['FACULTY']), getAttendanceRecords)
 router.get('/classes/:classId/batches', requireAuth(['FACULTY']), getClassBatches)
+router.get('/timetable', requireAuth(['FACULTY']), getFullTimetable)
 
 export default router
