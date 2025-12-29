@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { AlertTriangle, TrendingUp, BookOpen, Loader2 } from 'lucide-react';
+import { AlertTriangle, TrendingUp, BookOpen, Loader2, Zap } from 'lucide-react';
 import StudentLayout from '@/layouts/StudentLayout';
 import { studentAPI } from '@/lib/api';
+import { cn } from '@/lib/utils';
 
 interface SubjectAttendance {
   id: string;
@@ -24,16 +25,22 @@ const ProgressRing: React.FC<ProgressRingProps> = ({ percentage, size = 120, str
   const offset = circumference - (percentage / 100) * circumference;
 
   const getColor = (pct: number) => {
-    if (pct >= 75) return 'stroke-success';
+    if (pct >= 75) return 'stroke-primary';
     if (pct >= 60) return 'stroke-warning';
     return 'stroke-destructive';
   };
 
   return (
-    <div className="progress-ring relative" style={{ width: size, height: size }}>
-      <svg width={size} height={size}>
+    <div className="progress-ring relative group" style={{ width: size, height: size }}>
+      {/* Outer Glow */}
+      <div className={cn(
+        "absolute inset-0 rounded-full opacity-20 blur-xl transition-all duration-1000 group-hover:opacity-40",
+        percentage >= 75 ? "bg-primary" : percentage >= 60 ? "bg-warning" : "bg-destructive"
+      )} />
+
+      <svg width={size} height={size} className="relative z-10">
         <circle
-          className="stroke-muted"
+          className="stroke-muted/30"
           fill="transparent"
           strokeWidth={strokeWidth}
           r={radius}
@@ -41,7 +48,7 @@ const ProgressRing: React.FC<ProgressRingProps> = ({ percentage, size = 120, str
           cy={size / 2}
         />
         <circle
-          className={`${getColor(percentage)} transition-all duration-1000 ease-out`}
+          className={`${getColor(percentage)} transition-all duration-[1500ms] ease-out`}
           fill="transparent"
           strokeWidth={strokeWidth}
           strokeLinecap="round"
@@ -50,10 +57,59 @@ const ProgressRing: React.FC<ProgressRingProps> = ({ percentage, size = 120, str
           r={radius}
           cx={size / 2}
           cy={size / 2}
+          filter="drop-shadow(0 0 4px currentColor)"
         />
       </svg>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-2xl font-bold text-foreground">{percentage}%</span>
+      <div className="absolute inset-0 flex flex-col items-center justify-center z-10">
+        <span className="text-3xl font-black text-foreground tracking-tighter leading-none">{percentage}%</span>
+      </div>
+    </div>
+  );
+};
+
+interface StatCardProps {
+  title: string;
+  value: string | number;
+  icon: React.ElementType;
+  subtitle?: string;
+  color?: 'primary' | 'success' | 'warning' | 'destructive';
+  loading?: boolean;
+}
+
+const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, subtitle, color = 'primary', loading }) => {
+  const colorMap = {
+    primary: 'text-primary bg-primary/10 border-primary/20',
+    success: 'text-success bg-success/10 border-success/20',
+    warning: 'text-warning bg-warning/10 border-warning/20',
+    destructive: 'text-destructive bg-destructive/10 border-destructive/20',
+  };
+
+  return (
+    <div className="group relative glass-card p-5 transition-all duration-500 hover:scale-[1.02] active:scale-[0.98]">
+      <div className={cn(
+        "absolute -inset-px rounded-[24px] opacity-0 group-hover:opacity-10 transition-opacity duration-500",
+        color === 'primary' ? "bg-primary" :
+          color === 'success' ? "bg-success" :
+            color === 'warning' ? "bg-warning" :
+              "bg-destructive"
+      )} />
+
+      <div className="relative flex items-center justify-between gap-3 text-left">
+        <div className="space-y-1 min-w-0">
+          <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] truncate">{title}</p>
+          {loading ? (
+            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground/30" />
+          ) : (
+            <h3 className="text-2xl font-black text-foreground tracking-tighter truncate">{value}</h3>
+          )}
+          {subtitle && <p className="text-[10px] text-muted-foreground/60 font-medium truncate uppercase tracking-wider">{subtitle}</p>}
+        </div>
+        <div className={cn(
+          "w-10 h-10 rounded-xl flex items-center justify-center border transition-all duration-500 group-hover:rotate-6 shrink-0",
+          colorMap[color] || colorMap.primary
+        )}>
+          <Icon className="w-5 h-5" />
+        </div>
       </div>
     </div>
   );
@@ -75,7 +131,6 @@ const StudentDashboard: React.FC = () => {
         studentAPI.getOverallPercentage()
       ]);
       setSubjects(attendanceRes.data);
-      console.log('Overall Stats Response:', percentageRes.data);
       setOverallStats(percentageRes.data);
     } catch (error) {
       // Mock data
@@ -102,7 +157,7 @@ const StudentDashboard: React.FC = () => {
   };
 
   const getPercentageColor = (pct: number) => {
-    if (pct >= 75) return 'text-success';
+    if (pct >= 75) return 'text-primary';
     if (pct >= 60) return 'text-warning';
     return 'text-destructive';
   };
@@ -122,144 +177,265 @@ const StudentDashboard: React.FC = () => {
 
   return (
     <StudentLayout>
-      <div className="space-y-6 animate-fade-in">
-        {/* Header */}
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Attendance Dashboard</h1>
-          <p className="text-muted-foreground mt-1">Track your attendance across all subjects</p>
-        </div>
+      <div className="max-w-[1600px] mx-auto space-y-6 animate-fade-in pb-8">
 
         {/* Defaulter Warning */}
         {isDefaulter && (
-          <div className="defaulter-warning glass-card p-4 flex items-center gap-4 border">
-            <div className="w-12 h-12 rounded-xl bg-destructive/10 flex items-center justify-center flex-shrink-0">
+          <div className="defaulter-warning glass-card p-5 flex items-center gap-4 border border-destructive/20 bg-destructive/5">
+            <div className="w-12 h-12 rounded-2xl bg-destructive/10 flex items-center justify-center flex-shrink-0 border border-destructive/20 shadow-lg shadow-destructive/10">
               <AlertTriangle className="w-6 h-6 text-destructive" />
             </div>
-            <div>
-              <p className="font-semibold text-destructive">Defaulter Warning</p>
-              <p className="text-sm text-muted-foreground">
-                Your overall attendance is below 75%. You may face academic penalties if attendance doesn't improve.
+            <div className="flex-1">
+              <h3 className="text-sm font-black text-destructive uppercase tracking-widest mb-1">Critical Performance Alert</h3>
+              <p className="text-xs text-muted-foreground leading-relaxed max-w-2xl font-medium">
+                Your cumulative attendance is at <span className="text-destructive font-bold">{overallStats.percentage}%</span>, falling below the mandatory <span className="text-foreground font-bold">75%</span> threshold. Urgent improvement is required.
               </p>
             </div>
           </div>
         )}
 
-        {/* Overall Stats */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1 glass-card p-6 flex flex-col items-center justify-center">
-            <p className="text-sm text-muted-foreground mb-4">Overall Attendance</p>
-            {overallStats.totalClasses > 0 ? (
-              <>
-                <ProgressRing percentage={overallStats.percentage} size={140} strokeWidth={10} />
-                <p className={`mt-4 text-sm font-medium ${getPercentageColor(overallStats.percentage)}`}>
-                  {overallStats.percentage >= 75 ? 'Good Standing' : 'Below Required'}
-                </p>
-              </>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-[140px] text-muted-foreground">
-                <span className="text-4xl font-bold mb-2">--</span>
-                <span className="text-sm">No classes yet</span>
+        {/* Metrics Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+          <div className="lg:col-span-1 glass-card p-6 flex flex-col items-center justify-center group relative overflow-hidden bg-background/40 backdrop-blur-xl border-primary/10">
+            {/* Background glow for progress card */}
+            <div className={cn(
+              "absolute -inset-24 opacity-10 blur-3xl rounded-full transition-all duration-1000 group-hover:opacity-20",
+              overallStats.percentage >= 75 ? "bg-primary" : "bg-destructive"
+            )} />
+
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-6 relative z-10">Your Total Attendance</p>
+            <div className="relative z-10 flex flex-col items-center">
+              <ProgressRing percentage={overallStats.percentage} size={150} strokeWidth={12} />
+              <div className={cn(
+                "mt-6 px-4 py-1.5 rounded-full text-xs font-bold border text-center transition-all",
+                overallStats.percentage >= 75
+                  ? 'bg-success/10 text-success border-success/20'
+                  : overallStats.totalClasses > 0 ? 'bg-destructive/10 text-destructive border-destructive/20' : 'bg-muted/10 text-muted-foreground border-border/20'
+              )}>
+                {overallStats.percentage >= 75 ? 'Great Job!' : overallStats.totalClasses > 0 ? 'Action Required' : 'No Data Yet'}
               </div>
-            )}
+            </div>
           </div>
 
-          <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="stat-card">
-              <div className="flex items-center gap-3 mb-2">
-                <BookOpen className="w-5 h-5 text-primary" />
-                <span className="text-sm text-muted-foreground">Total Subjects</span>
+          <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <StatCard
+              title="Total subjects"
+              value={overallStats.totalSubjects || 0}
+              icon={BookOpen}
+              subtitle="Enrolled this term"
+              color="primary"
+            />
+            <StatCard
+              title="Subjects on Track"
+              value={subjects.filter(s => s.percentage >= 75).length}
+              icon={TrendingUp}
+              subtitle="Above 75% target"
+              color="success"
+            />
+            <StatCard
+              title="Low Attendance"
+              value={lowAttendanceSubjects.length}
+              icon={AlertTriangle}
+              subtitle="Below 75% target"
+              color={lowAttendanceSubjects.length > 0 ? "destructive" : "primary"}
+            />
+
+            {/* Detailed Stats Bar - High Density */}
+            <div className="sm:col-span-3 glass-card p-5 border-border/30 bg-background/20">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Present Classes</p>
+                  <p className="text-2xl font-black text-foreground tracking-tighter">
+                    {overallStats.attended} <span className="text-sm font-medium text-muted-foreground uppercase tracking-normal font-medium">Out of</span> {overallStats.totalClasses}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-1">Total sessions logged</p>
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Attendance Score</p>
+                  <p className="text-2xl font-black text-foreground tracking-tighter">{overallStats.percentage}%</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">Average across all</p>
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Current Status</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className={cn(
+                      "text-2xl font-black tracking-tighter uppercase",
+                      overallStats.percentage >= 75 ? "text-success" : "text-destructive"
+                    )}>
+                      {overallStats.percentage >= 75 ? "Active" : "Alert"}
+                    </p>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-1">System connectivity ok</p>
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Academic Standing</p>
+                  <p className={cn(
+                    "text-2xl font-black tracking-tighter uppercase",
+                    overallStats.percentage >= 75 ? "text-primary" : overallStats.totalClasses > 0 ? "text-destructive" : "text-muted-foreground"
+                  )}>
+                    {overallStats.percentage >= 75 ? "Excellent" : overallStats.totalClasses > 0 ? "Warning" : "Neutral"}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-1">Based on compliance</p>
+                </div>
               </div>
-              <p className="text-3xl font-bold text-foreground">{overallStats.totalSubjects || 0}</p>
-            </div>
-            <div className="stat-card">
-              <div className="flex items-center gap-3 mb-2">
-                <TrendingUp className="w-5 h-5 text-success" />
-                <span className="text-sm text-muted-foreground">Good Attendance</span>
-              </div>
-              <p className="text-3xl font-bold text-foreground">
-                {subjects.filter(s => s.percentage >= 75).length}
-              </p>
-            </div>
-            <div className="stat-card">
-              <div className="flex items-center gap-3 mb-2">
-                <AlertTriangle className="w-5 h-5 text-destructive" />
-                <span className="text-sm text-muted-foreground">Low Attendance</span>
-              </div>
-              <p className="text-3xl font-bold text-foreground">{lowAttendanceSubjects.length}</p>
             </div>
           </div>
         </div>
 
-        {/* Subject-wise Attendance */}
-        <div className="glass-card overflow-hidden">
-          <div className="p-4 border-b border-border">
-            <h2 className="text-lg font-semibold text-foreground">Subject-wise Attendance</h2>
+        {/* Subject Insights */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between px-1">
+            <h2 className="text-base font-black text-foreground tracking-tight flex items-center gap-2">
+              <Zap className="w-4 h-4 text-primary" />
+              Subject Performance
+            </h2>
           </div>
-          <div className="overflow-x-auto">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Subject</th>
-                  <th>Classes Attended</th>
-                  <th>Total Classes</th>
-                  <th>Percentage</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {subjects.map((subject) => (
-                  <tr key={subject.id}>
-                    <td>
-                      <div>
-                        <p className="font-medium text-foreground">{subject.name}</p>
-                        <p className="text-sm text-muted-foreground">{subject.code}</p>
-                      </div>
-                    </td>
-                    <td className="text-foreground">{subject.attended}</td>
-                    <td className="text-muted-foreground">{subject.totalClasses}</td>
-                    <td>
-                      <div className="flex items-center gap-3">
-                        <div className="w-24 h-2 rounded-full bg-muted overflow-hidden">
-                          <div
-                            className={`h-full rounded-full transition-all duration-500 ${subject.percentage >= 75 ? 'bg-success' :
-                              subject.percentage >= 60 ? 'bg-warning' : 'bg-destructive'
-                              }`}
-                            style={{ width: `${subject.percentage}%` }}
-                          />
-                        </div>
-                        <span className={`font-medium ${getPercentageColor(subject.percentage)}`}>
-                          {subject.percentage}%
-                        </span>
-                      </div>
-                    </td>
-                    <td>
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${subject.percentage >= 75
-                        ? 'bg-success/10 text-success'
-                        : 'bg-destructive/10 text-destructive'
-                        }`}>
-                        {subject.percentage >= 75 ? 'Good' : 'Low'}
-                      </span>
-                    </td>
+
+          <div className="glass-card overflow-hidden border-border/30">
+            {/* Desktop Table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="data-table">
+                <thead>
+                  <tr className="bg-muted/30">
+                    <th className="py-4 font-bold text-xs uppercase tracking-wider">Subject Name & Code</th>
+                    <th className="py-4 font-bold text-xs uppercase tracking-wider">Present</th>
+                    <th className="py-4 font-bold text-xs uppercase tracking-wider">Total</th>
+                    <th className="py-4 font-bold text-xs uppercase tracking-wider">Attendance %</th>
+                    <th className="py-4 font-bold text-xs uppercase tracking-wider text-right">Standing</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-border/20">
+                  {subjects.map((subject) => (
+                    <tr key={subject.id} className="group hover:bg-primary/5 transition-colors">
+                      <td>
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center border border-border/50 text-[10px] font-black text-muted-foreground group-hover:text-primary group-hover:border-primary/30 transition-colors uppercase">
+                            {subject.code.substring(0, 2)}
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">{subject.name}</p>
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mt-0.5 opacity-60">{subject.code}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="text-foreground font-bold tabular-nums">{subject.attended}</td>
+                      <td className="text-muted-foreground font-medium tabular-nums">{subject.totalClasses}</td>
+                      <td className="min-w-[140px]">
+                        <div className="flex items-center gap-3">
+                          <div className="flex-1 h-1.5 rounded-full bg-muted/30 overflow-hidden">
+                            <div
+                              className={cn(
+                                "h-full rounded-full transition-all duration-1000",
+                                subject.percentage >= 75 ? 'bg-primary shadow-[0_0_8px_rgba(var(--primary),0.5)]' :
+                                  subject.percentage >= 60 ? 'bg-warning' : 'bg-destructive'
+                              )}
+                              style={{ width: `${subject.percentage}%` }}
+                            />
+                          </div>
+                          <span className={cn(
+                            "text-xs font-black tabular-nums transition-colors w-10 text-right",
+                            getPercentageColor(subject.percentage)
+                          )}>
+                            {subject.percentage}%
+                          </span>
+                        </div>
+                      </td>
+                      <td className="text-right">
+                        <span className={cn(
+                          "inline-flex items-center px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-[0.15em]",
+                          subject.percentage >= 75
+                            ? 'bg-primary/10 text-primary border border-primary/20'
+                            : 'bg-destructive/10 text-destructive border border-destructive/20'
+                        )}>
+                          {subject.percentage >= 75 ? 'Secure' : 'Alert'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile List View */}
+            <div className="md:hidden divide-y divide-border/20 px-4">
+              {subjects.map((subject) => (
+                <div key={subject.id} className="py-5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center border border-border/50 text-[10px] font-black text-muted-foreground uppercase">
+                        {subject.code.substring(0, 2)}
+                      </div>
+                      <div>
+                        <p className="text-[13px] font-black text-foreground leading-tight">{subject.name}</p>
+                        <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mt-0.5 opacity-60">{subject.code}</p>
+                      </div>
+                    </div>
+                    <span className={cn(
+                      "px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-[0.1em] border",
+                      subject.percentage >= 75
+                        ? 'bg-primary/10 text-primary border-primary/20'
+                        : 'bg-destructive/10 text-destructive border-destructive/20'
+                    )}>
+                      {subject.percentage >= 75 ? 'Secure' : 'Alert'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    <div className="flex-1 h-2 rounded-full bg-muted/30 overflow-hidden">
+                      <div
+                        className={cn(
+                          "h-full rounded-full transition-all duration-1000",
+                          subject.percentage >= 75 ? 'bg-primary' :
+                            subject.percentage >= 60 ? 'bg-warning' : 'bg-destructive'
+                        )}
+                        style={{ width: `${subject.percentage}%` }}
+                      />
+                    </div>
+                    <span className={cn(
+                      "text-sm font-black tabular-nums min-w-[36px] text-right",
+                      getPercentageColor(subject.percentage)
+                    )}>
+                      {subject.percentage}%
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1">
+                    <div className="flex gap-4">
+                      <div className="flex flex-col">
+                        <span className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-0.5">Attended</span>
+                        <span className="text-xs font-bold text-foreground">{subject.attended} sessions</span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-0.5">Total</span>
+                        <span className="text-xs font-bold text-muted-foreground">{subject.totalClasses} sessions</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
         {/* Warning for low attendance subjects */}
         {lowAttendanceSubjects.length > 0 && (
-          <div className="glass-card p-4">
-            <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
+          <div className="glass-card p-5 border-warning/20 bg-warning/5 overflow-hidden relative">
+            <div className="absolute top-0 right-0 p-4 opacity-5">
+              <AlertTriangle className="w-32 h-32 text-warning -mr-8 -mt-8" />
+            </div>
+            <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2 relative z-10 uppercase tracking-wider">
               <AlertTriangle className="w-5 h-5 text-warning" />
-              Subjects Requiring Attention
+              Low Attendance Analysis
             </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 relative z-10">
               {lowAttendanceSubjects.map((subject) => (
-                <div key={subject.id} className="p-3 rounded-lg bg-destructive/5 border border-destructive/20">
-                  <p className="font-medium text-foreground">{subject.name}</p>
-                  <p className="text-sm text-muted-foreground">
-                    Need {Math.ceil((0.75 * subject.totalClasses) - subject.attended)} more classes to reach 75%
+                <div key={subject.id} className="p-4 rounded-xl bg-background/50 border border-warning/20 group hover:border-warning/50 transition-all duration-300">
+                  <p className="text-[13px] font-black text-foreground mb-1 group-hover:text-warning transition-colors">{subject.name}</p>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Attendance deficit: <span className="text-warning font-bold">{Math.ceil((0.75 * subject.totalClasses) - subject.attended)} units</span> required for 75% compliance.
                   </p>
                 </div>
               ))}
