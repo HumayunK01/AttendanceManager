@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -40,6 +41,7 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { adminAPI } from '@/lib/api';
+import { cn } from '@/lib/utils';
 import * as XLSX from 'xlsx';
 
 // --- Types ---
@@ -73,27 +75,131 @@ interface Batch {
 
 // --- Sub-components ---
 
-const StatsCard = memo(({ title, value, icon: Icon, colorClass, gradientClass, iconBgClass, suffix = "" }: any) => (
-  <div className={`glass-card p-4 rounded-xl border border-border/50 ${gradientClass} flex flex-col justify-between overflow-hidden relative group transition-all duration-300 hover:shadow-lg hover:shadow-${colorClass}/5`}>
-    <div className={`absolute -right-4 -top-4 w-20 h-20 ${iconBgClass} rounded-full blur-2xl group-hover:opacity-70 transition-opacity duration-500`} />
-    <div className="relative">
-      <div className="flex items-center gap-2.5 mb-3">
-        <div className={`w-9 h-9 rounded-xl ${iconBgClass} flex items-center justify-center border border-${colorClass}/20 shadow-inner`}>
-          <Icon className={`w-5 h-5 text-${colorClass}`} />
+const MobileStudentCard = memo(({
+  student,
+  isSelected,
+  onToggleSelect,
+  onEdit,
+  onDelete,
+  onToggle,
+  getInitials,
+  getAttendanceColor,
+  getBatchColor
+}: {
+  student: Student;
+  isSelected: boolean;
+  onToggleSelect: () => void;
+  onEdit: (s: Student) => void;
+  onDelete: (s: Student) => void;
+  onToggle: (s: Student) => void;
+  getInitials: (name: string) => string;
+  getAttendanceColor: (att?: number, total?: number) => string;
+  getBatchColor: (batchName: string) => { bg: string; text: string; border: string };
+}) => (
+  <div className={cn(
+    "glass-card p-5 space-y-5 border-border/30 group relative transition-all duration-300",
+    isSelected && "ring-2 ring-primary/50 bg-primary/5 border-primary/20"
+  )}>
+    <div className="flex items-start justify-between gap-4">
+      <div className="flex items-center gap-3 min-w-0 flex-1">
+        <div className="relative shrink-0">
+          <Checkbox
+            checked={isSelected}
+            onCheckedChange={onToggleSelect}
+            className="absolute -top-1 -left-1 w-5 h-5 rounded-lg border-primary/30 data-[state=checked]:bg-primary data-[state=checked]:border-primary shadow-lg transition-all duration-300 z-10"
+          />
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center border border-primary/20 shadow-inner">
+            <span className="text-[11px] font-black text-primary tracking-tighter">
+              {getInitials(student.name)}
+            </span>
+          </div>
         </div>
-        <div className="space-y-0.5">
-          <p className="text-[10px] font-bold text-muted-foreground tracking-widest uppercase">{title}</p>
-          <div className={`h-0.5 w-6 bg-${colorClass} rounded-full`} />
+        <div className="min-w-0 flex-1">
+          <p className="text-[15px] font-bold text-foreground group-hover:text-primary transition-colors tracking-tight truncate">
+            {student.name}
+          </p>
+          <p className="text-[11px] text-muted-foreground flex items-center gap-1.5 opacity-60 truncate">
+            <Mail className="w-3 h-3 flex-shrink-0" />
+            <span className="truncate">{student.email}</span>
+          </p>
         </div>
       </div>
-      <p className={`text-2xl font-black text-${colorClass === 'foreground' ? 'foreground' : colorClass} tracking-tight`}>
-        {value}{suffix}
-      </p>
+      <div className="flex items-center gap-1 shrink-0 pt-1">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => onEdit(student)}
+          className="w-8 h-8 rounded-lg hover:bg-primary/10 text-primary transition-all"
+        >
+          <Pencil className="w-4 h-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => onDelete(student)}
+          className="w-8 h-8 rounded-lg hover:bg-destructive/10 text-destructive transition-all"
+        >
+          <Trash2 className="w-4 h-4" />
+        </Button>
+      </div>
     </div>
-  </div>
-));
 
-StatsCard.displayName = 'StatsCard';
+    <div className="grid grid-cols-3 gap-3">
+      <div className="bg-secondary/20 rounded-2xl p-3.5 border border-white/5 text-center flex flex-col justify-center gap-1 shadow-inner">
+        <p className="text-[8px] font-black text-muted-foreground uppercase tracking-[0.2em] opacity-60">Roll No</p>
+        <p className="text-sm font-black text-foreground tracking-tight leading-none truncate px-1">{student.rollNumber}</p>
+      </div>
+      <div className="bg-secondary/20 rounded-2xl p-3.5 border border-white/5 text-center flex flex-col justify-center gap-1 shadow-inner">
+        <p className="text-[8px] font-black text-muted-foreground uppercase tracking-[0.2em] opacity-60">Attendance</p>
+        <p className={cn(
+          "text-sm font-black tracking-tight leading-none",
+          getAttendanceColor(student.attendance, student.totalSessions)
+        )}>
+          {student.attendance || 0}%
+        </p>
+      </div>
+      <div className="bg-secondary/30 rounded-2xl p-3 border border-white/5 text-center flex flex-col justify-center gap-1.5">
+        <div className="flex flex-col gap-1 items-center">
+          <Switch
+            checked={student.isActive}
+            onCheckedChange={() => onToggle(student)}
+            className="scale-[0.6] origin-center -my-1"
+          />
+          <span className={cn(
+            "text-[8px] font-black uppercase tracking-widest",
+            student.isActive ? "text-success" : "text-muted-foreground/40"
+          )}>
+            {student.isActive ? 'Active' : 'Locked'}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div className="flex items-center justify-between gap-3 pt-4 border-t border-white/5">
+      <div className="min-w-0">
+        <p className="text-[8px] font-black text-muted-foreground/40 uppercase tracking-[0.2em] mb-1">Academic Profile</p>
+        <div className="flex flex-wrap gap-1.5 items-center">
+          <span className="text-[10px] font-bold text-foreground/80 bg-secondary/30 px-2 py-0.5 rounded-md border border-border/30 truncate max-w-[120px]">
+            {student.className}
+          </span>
+          {student.batchName && (
+            <span className={cn(
+              "text-[10px] font-bold px-2 py-0.5 rounded-md border truncate max-w-[80px]",
+              getBatchColor(student.batchName).bg,
+              getBatchColor(student.batchName).text,
+              getBatchColor(student.batchName).border
+            )}>
+              {student.batchName}
+            </span>
+          )}
+        </div>
+      </div>
+      <span className="text-muted-foreground/40 text-[9px] font-black uppercase tracking-wider shrink-0 mt-auto">
+        Verified v1.0
+      </span>
+    </div>
+  </div >
+));
 
 const StudentRow = memo(({
   student,
@@ -116,80 +222,97 @@ const StudentRow = memo(({
   getAttendanceColor: (att?: number, total?: number) => string;
   getBatchColor: (batchName: string) => { bg: string; text: string; border: string };
 }) => (
-  <tr className="group hover:bg-white/5 transition-colors duration-200">
-    <td className="py-3 px-6">
-      <input
-        type="checkbox"
+  <tr className={cn(
+    "group transition-all duration-200 border-l-2 border-transparent",
+    isSelected ? "bg-primary/5 border-l-primary" : "hover:bg-white/5"
+  )}>
+    <td className="py-4 px-6">
+      <Checkbox
         checked={isSelected}
-        onChange={onToggleSelect}
-        className="w-4 h-4 rounded border-border/50 text-primary focus:ring-2 focus:ring-primary/50 cursor-pointer"
+        onCheckedChange={onToggleSelect}
+        className="w-5 h-5 rounded-lg border-primary/30 data-[state=checked]:bg-primary data-[state=checked]:border-primary shadow-sm transition-all duration-300"
       />
     </td>
-    <td className="py-3 px-6">
+    <td className="py-4 px-6">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center border border-primary/20 group-hover:scale-110 transition-transform duration-300 shadow-inner">
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center border border-primary/20 group-hover:scale-110 transition-transform duration-300 shadow-inner shrink-0">
           <span className="text-[11px] font-black text-primary tracking-tighter">
             {getInitials(student.name)}
           </span>
         </div>
-        <div>
-          <p className="text-sm font-bold text-foreground tracking-tight group-hover:text-primary transition-colors">
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-foreground tracking-tight group-hover:text-primary transition-colors truncate">
             {student.name}
           </p>
-          <p className="text-[11px] text-muted-foreground flex items-center gap-1.5 opacity-60">
+          <p className="text-[11px] text-muted-foreground flex items-center gap-1.5 opacity-60 truncate">
             <Mail className="w-3 h-3 flex-shrink-0" />
-            {student.email}
+            <span className="truncate">{student.email}</span>
           </p>
         </div>
       </div>
     </td>
     <td className="px-6">
-      <span className="inline-flex items-center px-2.5 py-1.5 rounded-lg bg-secondary/80 text-foreground text-[10px] font-black border border-border/50 uppercase tracking-wider">
+      <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-secondary/80 text-foreground text-[10px] font-black border border-border/50 uppercase tracking-wider tabular-nums">
         {student.rollNumber}
       </span>
     </td>
     <td className="px-6">
-      <p className="text-[12px] font-medium text-muted-foreground whitespace-nowrap md:whitespace-normal md:max-w-[250px] lg:max-w-[400px]" title={student.className}>
+      <span className="text-xs font-bold text-foreground/80 truncate max-w-[150px] inline-block">
         {student.className}
-      </p>
-    </td>
-    <td className="px-6">
-      {student.batchName ? (() => {
-        const color = getBatchColor(student.batchName);
-        return (
-          <span className={`inline-flex items-center px-2 py-1 rounded-md ${color.bg} ${color.text} text-[10px] font-black border ${color.border} shadow-sm`}>
-            {student.batchName}
-          </span>
-        );
-      })() : (
-        <span className="text-muted-foreground/30 text-[10px] font-medium italic">No Batch</span>
-      )}
-    </td>
-    <td className="px-6">
-      <div className="flex flex-col gap-0.5">
-        <span className={`text-sm font-black ${getAttendanceColor(student.attendance, student.totalSessions)}`}>
-          {student.attendance !== undefined && (student.totalSessions || 0) > 0 ? `${student.attendance}%` : 'N/A'}
-        </span>
-        {student.attendance !== undefined && (student.totalSessions || 0) > 0 && student.attendance < 75 && (
-          <span className="text-[9px] font-black uppercase text-destructive tracking-widest whitespace-nowrap">Defaulter</span>
-        )}
-      </div>
-    </td>
-    <td className="px-6">
-      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border ${student.isActive
-        ? 'bg-success/10 text-success border-success/20'
-        : 'bg-destructive/10 text-destructive border-destructive/20'
-        }`}>
-        {student.isActive ? 'Active' : 'Inactive'}
       </span>
     </td>
     <td className="px-6">
-      <div className="flex items-center justify-end gap-2">
+      {student.batchName ? (
+        <span className={cn(
+          "inline-flex items-center px-2.5 py-1 rounded-md text-[10px] font-black border uppercase tracking-wider",
+          getBatchColor(student.batchName).bg,
+          getBatchColor(student.batchName).text,
+          getBatchColor(student.batchName).border
+        )}>
+          {student.batchName}
+        </span>
+      ) : (
+        <span className="text-[10px] text-muted-foreground/30 font-black tracking-widest uppercase">Unmatched</span>
+      )}
+    </td>
+    <td className="px-6">
+      <div className="flex flex-col gap-1 min-w-[100px]">
+        <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-tight">
+          <span className={getAttendanceColor(student.attendance, student.totalSessions)}>
+            {student.attendance || 0}%
+          </span>
+          <span className="text-muted-foreground/40">{student.totalSessions || 0} Sessions</span>
+        </div>
+        <div className="w-full bg-secondary/50 rounded-full h-1 overflow-hidden">
+          <div
+            className={cn("h-full transition-all duration-500", getAttendanceColor(student.attendance, student.totalSessions).replace('text-', 'bg-'))}
+            style={{ width: `${student.attendance || 0}%` }}
+          />
+        </div>
+      </div>
+    </td>
+    <td className="px-6">
+      <div className="flex items-center gap-3">
+        <Switch
+          checked={student.isActive}
+          onCheckedChange={() => onToggle(student)}
+          className="scale-75"
+        />
+        <span className={cn(
+          "text-[9px] font-black uppercase tracking-widest hidden lg:inline-block",
+          student.isActive ? "text-success" : "text-muted-foreground/40"
+        )}>
+          {student.isActive ? 'Active' : 'Locked'}
+        </span>
+      </div>
+    </td>
+    <td className="px-6 text-right">
+      <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
         <Button
           variant="ghost"
           size="icon"
           onClick={() => onEdit(student)}
-          className="w-8 h-8 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+          className="w-8 h-8 rounded-lg hover:bg-primary/10 text-primary transition-all border border-transparent hover:border-primary/20"
         >
           <Pencil className="w-3.5 h-3.5" />
         </Button>
@@ -197,21 +320,16 @@ const StudentRow = memo(({
           variant="ghost"
           size="icon"
           onClick={() => onDelete(student)}
-          className="w-8 h-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+          className="w-8 h-8 rounded-lg hover:bg-destructive/10 text-destructive transition-all border border-transparent hover:border-destructive/20"
         >
           <Trash2 className="w-3.5 h-3.5" />
         </Button>
-        <div className="w-[1px] h-4 bg-border/50 mx-1" />
-        <Switch
-          checked={student.isActive}
-          onCheckedChange={() => onToggle(student)}
-          className="data-[state=checked]:bg-success scale-75"
-        />
       </div>
     </td>
   </tr>
 ));
 
+MobileStudentCard.displayName = 'MobileStudentCard';
 StudentRow.displayName = 'StudentRow';
 
 // --- Main Component ---
@@ -727,21 +845,21 @@ const StudentsPage: React.FC = () => {
       <div className="space-y-6 animate-fade-in pb-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="space-y-0.5">
-            <h1 className="text-2xl font-black text-foreground flex items-center gap-2.5 tracking-tight">
-              <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
-                <GraduationCap className="w-5 h-5 text-primary" />
+          <div className="space-y-1">
+            <h1 className="text-2xl sm:text-3xl font-black text-foreground flex items-center gap-2.5 tracking-tight">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20 shadow-sm shrink-0">
+                <GraduationCap className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
               </div>
-              Students
+              <span className="truncate">Students</span>
             </h1>
-            <p className="text-[13px] text-muted-foreground ml-1">Manage enrollments and monitor academic attendance</p>
+            <p className="text-[11px] sm:text-[13px] text-muted-foreground ml-1 font-medium opacity-70">Manage enrollment and academic profiles</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2 shrink-0">
             {selectedStudents.size > 0 && (
               <Button
                 variant="destructive"
                 onClick={() => setIsBulkDeleteDialogOpen(true)}
-                className="h-9 gap-2 rounded-lg px-4 text-sm"
+                className="h-11 sm:h-10 gap-2 rounded-xl px-4 text-sm font-bold w-full sm:w-auto"
               >
                 <Trash2 className="w-4 h-4" />
                 Delete Selected ({selectedStudents.size})
@@ -756,10 +874,10 @@ const StudentsPage: React.FC = () => {
                 setBulkBatchId('');
                 setIsBulkDialogOpen(true);
               }}
-              className="h-9 gap-2 rounded-lg px-4 text-sm border-primary/30 hover:bg-primary/5"
+              className="h-11 sm:h-10 gap-2 rounded-xl px-4 text-sm border-primary/30 hover:bg-primary/5 font-bold transition-all w-full sm:w-auto"
             >
               <Upload className="w-4 h-4" />
-              <span className="font-bold">Bulk Upload</span>
+              <span>Bulk Action</span>
             </Button>
             <Button
               onClick={() => {
@@ -767,91 +885,141 @@ const StudentsPage: React.FC = () => {
                 setFormData({ name: '', email: '', password: '0123456789', rollNo: '', classId: '', batchId: '' });
                 setIsDialogOpen(true);
               }}
-              className="h-9 gap-2 shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all duration-300 rounded-lg px-6 text-sm"
+              className="h-11 sm:h-10 gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all duration-300 rounded-xl px-6 text-sm font-bold w-full sm:w-auto"
             >
               <Plus className="w-4 h-4" />
-              <span className="font-bold">Add Student</span>
+              <span>Add Student</span>
             </Button>
           </div>
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatsCard title="Total Students" value={students.length} icon={GraduationCap} colorClass="primary" gradientClass="bg-gradient-to-br from-primary/5 to-transparent" iconBgClass="bg-primary/10" />
-          <StatsCard title="Active Students" value={stats.activeStudents} icon={UserCheck} colorClass="success" gradientClass="bg-gradient-to-br from-success/5 to-transparent" iconBgClass="bg-success/10" />
-          <StatsCard title="Avg Attendance" value={stats.avgAttendance} icon={TrendingUp} colorClass="accent" gradientClass="bg-gradient-to-br from-accent/5 to-transparent" iconBgClass="bg-accent/10" suffix="%" />
-          <StatsCard title="Defaulters" value={stats.defaulters} icon={TrendingDown} colorClass="destructive" gradientClass="bg-gradient-to-br from-destructive/5 to-transparent" iconBgClass="bg-destructive/10" />
+          <div className="glass-card p-5 rounded-2xl border border-border/30 bg-gradient-to-br from-primary/10 to-transparent group hover:shadow-xl hover:shadow-primary/5 transition-all duration-500 relative overflow-hidden">
+            <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/10 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+            <div className="flex items-center justify-between relative z-10">
+              <div className="space-y-1">
+                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] opacity-60">Total Enrollment</p>
+                <p className="text-3xl font-black text-foreground tracking-tighter tabular-nums">{students.length}</p>
+                <div className="h-1 w-6 bg-primary rounded-full" />
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center border border-primary/20 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-inner">
+                <GraduationCap className="w-6 h-6 text-primary" />
+              </div>
+            </div>
+          </div>
+          <div className="glass-card p-5 rounded-2xl border border-border/30 bg-gradient-to-br from-success/10 to-transparent group hover:shadow-xl hover:shadow-success/5 transition-all duration-500 relative overflow-hidden">
+            <div className="absolute -right-4 -top-4 w-24 h-24 bg-success/10 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+            <div className="flex items-center justify-between relative z-10">
+              <div className="space-y-1">
+                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] opacity-60">Term Active</p>
+                <p className="text-3xl font-black text-foreground tracking-tighter tabular-nums">{stats.activeStudents}</p>
+                <div className="h-1 w-6 bg-success rounded-full" />
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-success/20 flex items-center justify-center border border-success/20 group-hover:scale-110 group-hover:-rotate-6 transition-all duration-500 shadow-inner">
+                <UserCheck className="w-6 h-6 text-success" />
+              </div>
+            </div>
+          </div>
+          <div className="glass-card p-5 rounded-2xl border border-border/30 bg-gradient-to-br from-accent/10 to-transparent group hover:shadow-xl hover:shadow-accent/5 transition-all duration-500 relative overflow-hidden">
+            <div className="absolute -right-4 -top-4 w-24 h-24 bg-accent/10 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+            <div className="flex items-center justify-between relative z-10">
+              <div className="space-y-1">
+                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] opacity-60">Network Avg</p>
+                <p className="text-3xl font-black text-foreground tracking-tighter tabular-nums">{stats.avgAttendance}%</p>
+                <div className="h-1 w-6 bg-accent rounded-full" />
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-accent/20 flex items-center justify-center border border-accent/20 group-hover:scale-110 transition-all duration-500 shadow-inner">
+                <TrendingUp className="w-6 h-6 text-accent" />
+              </div>
+            </div>
+          </div>
+          <div className="glass-card p-5 rounded-2xl border border-border/30 bg-gradient-to-br from-destructive/10 to-transparent group hover:shadow-xl hover:shadow-destructive/5 transition-all duration-500 relative overflow-hidden">
+            <div className="absolute -right-4 -top-4 w-24 h-24 bg-destructive/10 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+            <div className="flex items-center justify-between relative z-10">
+              <div className="space-y-1">
+                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] opacity-60">System Risks</p>
+                <p className="text-3xl font-black text-foreground tracking-tighter tabular-nums">{stats.defaulters}</p>
+                <div className="h-1 w-6 bg-destructive rounded-full" />
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-destructive/20 flex items-center justify-center border border-destructive/20 group-hover:scale-110 transition-all duration-500 shadow-inner">
+                <TrendingDown className="w-6 h-6 text-destructive" />
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Filters */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-3">
-          <div className="relative lg:col-span-2 group">
+        <div className="flex flex-col lg:flex-row gap-3">
+          <div className="relative flex-1 group">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
             <Input
               placeholder="Search by ID, name, or mail..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-9 bg-secondary/30 border-border/50 focus:border-primary/50 rounded-xl transition-all shadow-sm text-sm"
+              className="pl-10 h-10 bg-secondary/30 border-border/50 focus:border-primary/50 rounded-xl transition-all shadow-sm text-sm"
             />
           </div>
-          <Select value={filterClass} onValueChange={setFilterClass}>
-            <SelectTrigger className="h-9 bg-secondary/30 border-border/50 rounded-xl text-[12px] font-bold">
-              <div className="flex items-center gap-2">
-                <Filter className="w-3 h-3 opacity-50" />
-                <SelectValue placeholder="All Classes" />
-              </div>
-            </SelectTrigger>
-            <SelectContent className="bg-background/95 backdrop-blur-xl border-border/50 rounded-xl max-w-[calc(100vw-2rem)] sm:max-w-[400px]">
-              <SelectItem value="all" className="font-bold">All Classes</SelectItem>
-              {classes.map((c) => (
-                <SelectItem key={c.id} value={String(c.id)} className="whitespace-normal py-2.5 leading-relaxed">
-                  {c.program} Y{c.batchYear}{c.division ? `-${c.division}` : ''}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="h-9 bg-secondary/30 border-border/50 rounded-xl text-[12px] font-bold">
-              <div className="flex items-center gap-2">
-                <UsersIcon className="w-3 h-3 opacity-50" />
-                <SelectValue placeholder="All Status" />
-              </div>
-            </SelectTrigger>
-            <SelectContent className="bg-background/95 backdrop-blur-xl border-border/50 rounded-xl">
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={filterBatch} onValueChange={setFilterBatch}>
-            <SelectTrigger className="h-9 bg-secondary/30 border-border/50 rounded-xl text-[12px] font-bold">
-              <div className="flex items-center gap-2">
-                <Filter className="w-3 h-3 opacity-50" />
-                <SelectValue placeholder="All Batches" />
-              </div>
-            </SelectTrigger>
-            <SelectContent className="bg-background/95 backdrop-blur-xl border-border/50 rounded-xl">
-              <SelectItem value="all" className="font-bold">All Batches</SelectItem>
-              <SelectItem value="no-batch" className="italic text-muted-foreground">No Batch Assigned</SelectItem>
-              {uniqueBatches.map((batch) => {
-                const color = getBatchColor(batch);
-                return (
-                  <SelectItem key={batch} value={batch}>
-                    <div className="flex items-center gap-2">
-                      <span className={`w-2 h-2 rounded-full ${color.bg.replace('/10', '')}`}></span>
-                      {batch}
-                    </div>
+          <div className="flex flex-wrap sm:flex-nowrap gap-3">
+            <Select value={filterClass} onValueChange={setFilterClass}>
+              <SelectTrigger className="h-10 min-w-[140px] bg-secondary/30 border-border/50 rounded-xl text-[12px] font-bold">
+                <div className="flex items-center gap-2">
+                  <Filter className="w-3.5 h-3.5 opacity-50" />
+                  <SelectValue placeholder="All Classes" />
+                </div>
+              </SelectTrigger>
+              <SelectContent className="bg-background/95 backdrop-blur-xl border-border/50 rounded-xl max-w-[calc(100vw-2rem)] sm:max-w-[400px]">
+                <SelectItem value="all" className="font-bold">All Classes</SelectItem>
+                {classes.map((c) => (
+                  <SelectItem key={c.id} value={String(c.id)} className="whitespace-normal py-2.5 leading-relaxed">
+                    {c.program} Y{c.batchYear}{c.division ? `-${c.division}` : ''}
                   </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <SelectTrigger className="h-10 min-w-[120px] bg-secondary/30 border-border/50 rounded-xl text-[12px] font-bold">
+                <div className="flex items-center gap-2">
+                  <UsersIcon className="w-3.5 h-3.5 opacity-50" />
+                  <SelectValue placeholder="Status" />
+                </div>
+              </SelectTrigger>
+              <SelectContent className="bg-background/95 backdrop-blur-xl border-border/50 rounded-xl">
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={filterBatch} onValueChange={setFilterBatch}>
+              <SelectTrigger className="h-10 min-w-[130px] bg-secondary/30 border-border/50 rounded-xl text-[12px] font-bold">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-3.5 h-3.5 opacity-50" />
+                  <SelectValue placeholder="All Batches" />
+                </div>
+              </SelectTrigger>
+              <SelectContent className="bg-background/95 backdrop-blur-xl border-border/50 rounded-xl">
+                <SelectItem value="all" className="font-bold">All Batches</SelectItem>
+                <SelectItem value="no-batch" className="italic text-muted-foreground">No Batch Assigned</SelectItem>
+                {uniqueBatches.map((batch) => {
+                  const color = getBatchColor(batch);
+                  return (
+                    <SelectItem key={batch} value={batch}>
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full ${color.bg.replace('/10', '')}`}></span>
+                        {batch}
+                      </div>
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {/* Content */}
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-16 glass-card rounded-2xl border-dashed">
-            <Loader2 className="w-10 h-10 animate-spin text-primary mb-3 opacity-50" />
+          <div className="flex flex-col items-center justify-center py-20 glass-card rounded-2xl border-dashed">
+            <Loader2 className="w-12 h-12 animate-spin text-primary mb-4 opacity-50" />
             <p className="text-[13px] text-muted-foreground font-medium animate-pulse">Scanning student records...</p>
           </div>
         ) : students.length === 0 ? (
@@ -889,47 +1057,74 @@ const StudentsPage: React.FC = () => {
             )}
           </div>
         ) : (
-          <div className="glass-card overflow-hidden rounded-2xl border-border/50 shadow-xl">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border/50 bg-secondary/20">
-                    <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">
-                      <input
-                        type="checkbox"
-                        checked={selectedStudents.size === filteredStudents.length && filteredStudents.length > 0}
-                        onChange={toggleSelectAll}
-                        className="w-4 h-4 rounded border-border/50 text-primary focus:ring-2 focus:ring-primary/50 cursor-pointer"
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden md:block glass-card overflow-hidden rounded-2xl border-border/50 shadow-xl bg-background/50 backdrop-blur-sm">
+              <div className="overflow-x-auto custom-scrollbar">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border/50 bg-secondary/20">
+                      <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 w-[50px]">
+                        <Checkbox
+                          checked={selectedStudents.size === filteredStudents.length && filteredStudents.length > 0}
+                          onCheckedChange={toggleSelectAll}
+                          className="w-5 h-5 rounded-lg border-primary/30 data-[state=checked]:bg-primary data-[state=checked]:border-primary transition-all shadow-sm"
+                        />
+                      </th>
+                      <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Student Profile</th>
+                      <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 w-[120px]">Roll No</th>
+                      <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 w-[180px]">Academic Class</th>
+                      <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 w-[120px]">Batch</th>
+                      <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 w-[160px]">Attendance</th>
+                      <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 w-[100px]">Status</th>
+                      <th className="text-right py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 w-[100px]">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/30">
+                    {filteredStudents.map((s) => (
+                      <StudentRow
+                        key={s.id}
+                        student={s}
+                        isSelected={selectedStudents.has(s.id)}
+                        onToggleSelect={() => toggleStudentSelection(s.id)}
+                        onToggle={handleToggleStatus}
+                        onEdit={handleEdit}
+                        onDelete={handleDeletePrompt}
+                        getInitials={getInitials}
+                        getAttendanceColor={getAttendanceColor}
+                        getBatchColor={getBatchColor}
                       />
-                    </th>
-                    <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Student Info</th>
-                    <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 whitespace-nowrap">Roll No</th>
-                    <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 whitespace-nowrap">Academic Class</th>
-                    <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 whitespace-nowrap">Batch</th>
-                    <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 whitespace-nowrap">Attendance</th>
-                    <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 whitespace-nowrap">Status</th>
-                    <th className="text-right py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/30">
-                  {filteredStudents.map((s) => (
-                    <StudentRow
-                      key={s.id}
-                      student={s}
-                      isSelected={selectedStudents.has(s.id)}
-                      onToggleSelect={() => toggleStudentSelection(s.id)}
-                      onToggle={handleToggleStatus}
-                      onEdit={handleEdit}
-                      onDelete={handleDeletePrompt}
-                      getInitials={getInitials}
-                      getAttendanceColor={getAttendanceColor}
-                      getBatchColor={getBatchColor}
-                    />
-                  ))}
-                </tbody>
-              </table>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="bg-secondary/10 py-3 px-6 border-t border-border/50 flex items-center justify-between text-[10px] font-bold text-muted-foreground/40 tracking-[0.25em] uppercase">
+                <span>Database Sync Active</span>
+                <span>{filteredStudents.length} Records Loaded</span>
+              </div>
             </div>
-          </div>
+
+            {/* Mobile Card View */}
+            <div className="grid grid-cols-1 gap-4 md:hidden">
+              {filteredStudents.map((s) => (
+                <MobileStudentCard
+                  key={s.id}
+                  student={s}
+                  isSelected={selectedStudents.has(s.id)}
+                  onToggleSelect={() => toggleStudentSelection(s.id)}
+                  onEdit={handleEdit}
+                  onDelete={handleDeletePrompt}
+                  onToggle={handleToggleStatus}
+                  getInitials={getInitials}
+                  getAttendanceColor={getAttendanceColor}
+                  getBatchColor={getBatchColor}
+                />
+              ))}
+              <div className="py-2 text-center text-[10px] font-bold text-muted-foreground/40 uppercase tracking-[0.2em]">
+                End of Academic Registry
+              </div>
+            </div>
+          </>
         )}
       </div>
 

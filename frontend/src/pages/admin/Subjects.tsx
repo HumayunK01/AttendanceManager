@@ -89,6 +89,77 @@ const StatsCard = memo(({ title, value, icon: Icon, colorClass, gradientClass, i
 
 StatsCard.displayName = 'StatsCard';
 
+const MobileSubjectCard = memo(({ subject, onEdit, onDelete, onAssign }: { subject: Subject; onEdit: (s: Subject) => void; onDelete: (s: Subject) => void; onAssign: (s: Subject) => void }) => (
+  <div className="glass-card p-4 space-y-4 border-border/30 group">
+    <div className="flex items-start justify-between gap-3">
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center border border-primary/20 shrink-0 shadow-inner">
+          <BookOpen className="w-5 h-5 text-primary" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-bold text-foreground group-hover:text-primary transition-colors tracking-tight truncate">
+            {subject.name}
+          </p>
+          <p className="text-[9px] text-muted-foreground font-medium uppercase tracking-widest opacity-60 truncate">Academic Subject</p>
+        </div>
+      </div>
+      <div className="flex items-center gap-1 shrink-0">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onAssign(subject)}
+          className="w-8 h-8 rounded-lg hover:bg-accent/10 text-accent p-0"
+        >
+          <Network className="w-3.5 h-3.5" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onEdit(subject)}
+          className="w-8 h-8 rounded-lg hover:bg-primary/10 text-primary p-0"
+        >
+          <Pencil className="w-3.5 h-3.5" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onDelete(subject)}
+          className="w-8 h-8 rounded-lg hover:bg-destructive/10 text-destructive p-0"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </Button>
+      </div>
+    </div>
+
+    <div className="space-y-2.5">
+      <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest opacity-50">Assigned Classes</p>
+      <div className="flex flex-wrap gap-1.5">
+        {subject.classes && subject.classes.length > 0 ? (
+          subject.classes.map((c, i) => (
+            <div key={`${c.id}-${i}`} className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-secondary/50 border border-border/50 text-[10px] font-bold text-muted-foreground">
+              <Users className="w-3 h-3 opacity-50" />
+              {c.program} Y{c.batchYear}{c.division ? `-${c.division}` : ''}
+            </div>
+          ))
+        ) : (
+          <span className="text-[10px] text-muted-foreground/40 italic">No classes assigned</span>
+        )}
+      </div>
+    </div>
+
+    <div className="pt-3 border-t border-border/20 flex items-center justify-between text-[10px] text-muted-foreground font-medium">
+      <span className="uppercase tracking-widest text-[9px] opacity-40">Created At</span>
+      <span>
+        {new Date(subject.createdAt).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        })}
+      </span>
+    </div>
+  </div>
+));
+
 const TableRow = memo(({ subject, onEdit, onDelete, onAssign }: { subject: Subject; onEdit: (s: Subject) => void; onDelete: (s: Subject) => void; onAssign: (s: Subject) => void }) => (
   <tr className="group hover:bg-white/5 transition-colors duration-200">
     <td className="py-3 px-6">
@@ -104,8 +175,8 @@ const TableRow = memo(({ subject, onEdit, onDelete, onAssign }: { subject: Subje
         </div>
       </div>
     </td>
-    <td className="px-6">
-      <div className="flex flex-wrap gap-1.5 max-w-[300px]">
+    <td className="px-6 py-3">
+      <div className="flex flex-wrap gap-1.5 max-w-[400px]">
         {subject.classes && subject.classes.length > 0 ? (
           subject.classes.map((c, i) => (
             <div key={`${c.id}-${i}`} className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-secondary/50 border border-border/50 text-[10px] font-bold text-muted-foreground whitespace-nowrap">
@@ -118,14 +189,14 @@ const TableRow = memo(({ subject, onEdit, onDelete, onAssign }: { subject: Subje
         )}
       </div>
     </td>
-    <td className="px-6 text-muted-foreground text-[12px] font-medium tracking-tight whitespace-nowrap">
+    <td className="px-6 py-3 text-muted-foreground text-[12px] font-medium tracking-tight whitespace-nowrap">
       {new Date(subject.createdAt).toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'short',
         day: 'numeric'
       })}
     </td>
-    <td className="px-6">
+    <td className="px-6 py-3">
       <div className="flex items-center justify-end gap-2">
         <Button
           variant="ghost"
@@ -158,6 +229,7 @@ const TableRow = memo(({ subject, onEdit, onDelete, onAssign }: { subject: Subje
   </tr>
 ));
 
+MobileSubjectCard.displayName = 'MobileSubjectCard';
 TableRow.displayName = 'TableRow';
 
 // --- Main Component ---
@@ -308,26 +380,26 @@ const SubjectsPage: React.FC = () => {
       <div className="space-y-6 animate-fade-in pb-6">
         {/* Header Section */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="space-y-0.5">
-            <h1 className="text-2xl font-black text-foreground flex items-center gap-2.5 tracking-tight">
-              <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20 text-primary">
-                <BookOpen className="w-5 h-5" />
+          <div className="space-y-1">
+            <h1 className="text-2xl sm:text-3xl font-black text-foreground flex items-center gap-2.5 tracking-tight">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20 text-primary shadow-sm">
+                <BookOpen className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
               Subjects
             </h1>
-            <p className="text-[13px] text-muted-foreground ml-1">Manage institutional curriculum and course definitions</p>
+            <p className="text-[11px] sm:text-[13px] text-muted-foreground ml-1 opacity-70">Manage institutional curriculum and course definitions</p>
           </div>
           <Button
             onClick={() => handleOpenDialog()}
-            className="h-9 gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all duration-300 rounded-lg px-6 text-sm"
+            className="h-11 sm:h-10 gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all duration-300 rounded-xl px-6 text-sm font-bold w-full sm:w-auto"
           >
             <Plus className="w-4 h-4" />
-            <span className="font-bold">Add Subject</span>
+            Add Subject
           </Button>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <StatsCard
             title="Total Subjects"
             value={stats.total}
@@ -399,38 +471,60 @@ const SubjectsPage: React.FC = () => {
             )}
           </div>
         ) : (
-          <div className="glass-card overflow-hidden rounded-2xl border-border/50 shadow-xl">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border/50 bg-secondary/20">
-                    <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Subject Label</th>
-                    <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 w-[300px]">Assigned Classes</th>
-                    <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Created At</th>
-                    <th className="text-right py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/30">
-                  {filteredSubjects.map((s) => (
-                    <TableRow
-                      key={s.id}
-                      subject={s}
-                      onEdit={handleOpenDialog}
-                      onDelete={(sb) => {
-                        setSelectedSubject(sb);
-                        setIsDeleteDialogOpen(true);
-                      }}
-                      onAssign={handleOpenAssignDialog}
-                    />
-                  ))}
-                </tbody>
-              </table>
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden md:block glass-card overflow-hidden rounded-2xl border-border/50 shadow-xl bg-background/50 backdrop-blur-sm">
+              <div className="overflow-x-auto custom-scrollbar">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border/50 bg-secondary/20">
+                      <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Subject Label</th>
+                      <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Assigned Classes</th>
+                      <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 w-[150px]">Created At</th>
+                      <th className="text-right py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 w-[150px]">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/30">
+                    {filteredSubjects.map((s) => (
+                      <TableRow
+                        key={s.id}
+                        subject={s}
+                        onEdit={handleOpenDialog}
+                        onDelete={(sb) => {
+                          setSelectedSubject(sb);
+                          setIsDeleteDialogOpen(true);
+                        }}
+                        onAssign={handleOpenAssignDialog}
+                      />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="bg-secondary/10 py-3.5 px-6 border-t border-border/50 flex items-center justify-between text-[10px] font-bold text-muted-foreground/50 tracking-widest uppercase">
+                <span>Total: {filteredSubjects.length} Curriculum Units</span>
+                <span className="text-[9px] bg-secondary/30 px-2 py-0.5 rounded-md border border-border/50">Curriculum v1.0.4</span>
+              </div>
             </div>
-            <div className="bg-secondary/10 py-3 px-6 border-t border-border/50 flex items-center justify-between text-[10px] font-bold text-muted-foreground/50 tracking-widest uppercase">
-              <span>Showing {filteredSubjects.length} Results</span>
-              <span className="text-[9px] bg-secondary/30 px-2 py-0.5 rounded-md border border-border/50">Admin Console v1.0</span>
+
+            {/* Mobile Card View */}
+            <div className="grid grid-cols-1 gap-4 md:hidden">
+              {filteredSubjects.map((s) => (
+                <MobileSubjectCard
+                  key={s.id}
+                  subject={s}
+                  onEdit={handleOpenDialog}
+                  onDelete={(sb) => {
+                    setSelectedSubject(sb);
+                    setIsDeleteDialogOpen(true);
+                  }}
+                  onAssign={handleOpenAssignDialog}
+                />
+              ))}
+              <div className="py-2 text-center text-[10px] font-bold text-muted-foreground/40 uppercase tracking-[0.2em]">
+                Showing {filteredSubjects.length} Curriculum Records
+              </div>
             </div>
-          </div>
+          </>
         )}
       </div>
 

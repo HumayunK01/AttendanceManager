@@ -62,43 +62,47 @@ const StatCard: React.FC<StatCardProps> = React.memo(({
     <div
       onClick={onClick}
       className={cn(
-        "group relative glass-card p-4 transition-all duration-500 hover:scale-[1.02] active:scale-[0.98]",
+        "group relative glass-card p-4 sm:p-5 transition-all duration-500 hover:scale-[1.02] active:scale-[0.98]",
         onClick ? "cursor-pointer" : ""
       )}
     >
       {/* Glow Effect */}
       <div className={cn(
         "absolute -inset-px rounded-[24px] opacity-0 group-hover:opacity-10 transition-opacity duration-500",
-        `bg-${color}`
+        color === 'primary' ? "bg-primary" :
+          color === 'success' ? "bg-success" :
+            color === 'warning' ? "bg-warning" :
+              color === 'accent' ? "bg-accent" :
+                "bg-destructive"
       )} />
 
-      <div className="relative flex items-center justify-between">
-        <div className="space-y-0.5">
-          <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em]">{title}</p>
-          <div className="flex items-baseline gap-1.5">
+      <div className="relative flex items-center justify-between gap-3">
+        <div className="space-y-0.5 min-w-0">
+          <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] truncate">{title}</p>
+          <div className="flex items-baseline flex-wrap gap-1.5 min-w-0">
             {loading ? (
               <Loader2 className="w-5 h-5 animate-spin text-muted-foreground/30" />
             ) : (
-              <h3 className="text-2xl font-black text-foreground tracking-tighter">{value}</h3>
+              <h3 className="text-xl sm:text-2xl font-black text-foreground tracking-tighter truncate">{value}</h3>
             )}
             {trend && !loading && (
               <span className={cn(
-                "text-[9px] font-black flex items-center gap-0.5 px-1 py-0.5 rounded-md",
+                "text-[8px] sm:text-[9px] font-black flex items-center gap-0.5 px-1 py-0.5 rounded-md shrink-0",
                 trendUp ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"
               )}>
-                {trendUp ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
+                {trendUp ? <TrendingUp className="w-2 h-2 sm:w-2.5 sm:h-2.5" /> : <TrendingDown className="w-2 h-2 sm:w-2.5 sm:h-2.5" />}
                 {trend}
               </span>
             )}
           </div>
-          {subtitle && <p className="text-[10px] text-muted-foreground/60 font-medium">{subtitle}</p>}
+          {subtitle && <p className="text-[10px] text-muted-foreground/60 font-medium truncate">{subtitle}</p>}
         </div>
 
         <div className={cn(
-          "w-10 h-10 rounded-xl flex items-center justify-center border transition-all duration-500 group-hover:rotate-6",
+          "w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center border transition-all duration-500 group-hover:rotate-6 shrink-0",
           colorMap[color]
         )}>
-          <Icon className="w-5 h-5" />
+          <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
         </div>
       </div>
 
@@ -279,44 +283,27 @@ const AdminDashboard: React.FC = () => {
     <AdminLayout>
       <div className="max-w-[1600px] mx-auto space-y-6 animate-fade-in pb-8">
         {/* Elite Header */}
-        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
-          <div className="space-y-0.5">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 sm:gap-4">
+          <div className="space-y-1">
             <div className="flex items-center gap-2 mb-1">
               <span className="px-1.5 py-0.5 rounded-md bg-primary/10 text-primary text-[9px] font-black uppercase tracking-widest border border-primary/20">
                 System Active
               </span>
-              <div className="w-1 h-1 rounded-full bg-success animate-pulse" />
+              <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
             </div>
-            <h1 className="text-2xl lg:text-3xl font-black text-foreground tracking-tighter">
+            <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tighter">
               Welcome back, <span className="text-primary">{user?.name?.split(' ')[0]}</span>
             </h1>
-            <p className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
+            <p className="text-xs text-muted-foreground font-medium flex items-center gap-1.5 opacity-70">
               <ShieldCheck className="w-3.5 h-3.5 text-primary" />
-              System operational.
+              Infrastructure operational.
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            <Button
-              onClick={() => navigate('/admin/students')}
-              className="rounded-xl bg-foreground text-background hover:bg-foreground/90 font-black uppercase tracking-wider text-[10px] h-10 px-4 shadow-lg shadow-foreground/5 group"
-            >
-              <UserPlus className="w-3.5 h-3.5 mr-2 group-hover:scale-110 transition-transform" />
-              Enroll Student
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => navigate('/admin/reports')}
-              className="rounded-xl border-border/50 bg-background/50 backdrop-blur-sm font-black uppercase tracking-wider text-[10px] h-10 px-4 transition-all hover:bg-primary/5 hover:border-primary/30"
-            >
-              <FileText className="w-3.5 h-3.5 mr-2" />
-              Audit Reports
-            </Button>
-          </div>
         </div>
 
         {/* Technical Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             title="Active Students"
             value={stats.students}
@@ -362,8 +349,8 @@ const AdminDashboard: React.FC = () => {
         {/* Analytics Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Attendance Area Chart */}
-          <div className="lg:col-span-2 glass-card p-5">
-            <div className="flex items-center justify-between mb-6">
+          <div className="lg:col-span-2 glass-card p-4 sm:p-5 overflow-hidden">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
               <div>
                 <h2 className="text-[11px] font-black text-foreground uppercase tracking-widest">Network Pulse</h2>
                 <p className="text-[10px] text-muted-foreground mt-0.5">Real-time attendance ingestion</p>
@@ -376,9 +363,9 @@ const AdminDashboard: React.FC = () => {
               </div>
             </div>
 
-            <div className="h-[200px] w-full">
+            <div className="h-[220px] sm:h-[260px] lg:h-[200px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={attendanceTrendData}>
+                <AreaChart data={attendanceTrendData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.15} />
@@ -405,6 +392,7 @@ const AdminDashboard: React.FC = () => {
                       borderRadius: '8px',
                       fontSize: '11px',
                       fontWeight: 700,
+                      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
                     }}
                   />
                   <Area
@@ -476,27 +464,27 @@ const AdminDashboard: React.FC = () => {
               </Button>
             </div>
 
-            <div className="overflow-hidden rounded-2xl border border-border/30">
-              <table className="w-full text-left border-collapse">
+            <div className="overflow-x-auto rounded-2xl border border-border/30 bg-background/50 backdrop-blur-sm shadow-sm custom-scrollbar">
+              <table className="w-full text-left border-collapse min-w-[500px]">
                 <thead className="bg-muted/30">
                   <tr>
-                    <th className="p-3 text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em]">Source</th>
-                    <th className="p-3 text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em]">Action</th>
-                    <th className="p-3 text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em]">Time</th>
-                    <th className="p-3 text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] text-right">Status</th>
+                    <th className="p-3 sm:p-4 text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] w-1/4">Source</th>
+                    <th className="p-3 sm:p-4 text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] w-1/2">Action</th>
+                    <th className="p-3 sm:p-4 text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] w-1/6">Time</th>
+                    <th className="p-3 sm:p-4 text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] text-right">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/20">
                   {systemLogs.length > 0 ? systemLogs.map((log, idx) => (
                     <tr key={idx} className="group hover:bg-primary/5 transition-colors">
-                      <td className="p-3">
-                        <span className="text-[10px] font-mono font-bold text-muted-foreground">{log.source}</span>
+                      <td className="p-3 sm:p-4">
+                        <span className="text-[10px] font-mono font-bold text-muted-foreground truncate block">{log.source}</span>
                       </td>
-                      <td className="p-3">
-                        <span className="text-[13px] font-bold text-foreground">{log.action}</span>
+                      <td className="p-3 sm:p-4">
+                        <span className="text-[12px] sm:text-[13px] font-bold text-foreground block truncate">{log.action}</span>
                       </td>
-                      <td className="p-3 text-[11px] font-medium text-muted-foreground">{log.time}</td>
-                      <td className="p-3 text-right">
+                      <td className="p-3 sm:p-4 text-[11px] font-medium text-muted-foreground whitespace-nowrap">{log.time}</td>
+                      <td className="p-3 sm:p-4 text-right">
                         <span className={cn(
                           "text-[8px] font-black px-1.5 py-0.5 rounded-md tracking-widest",
                           log.type === 'SUCCESS' ? "bg-success/10 text-success" : "bg-warning/10 text-warning"
@@ -507,8 +495,8 @@ const AdminDashboard: React.FC = () => {
                     </tr>
                   )) : (
                     <tr>
-                      <td colSpan={4} className="p-4 text-center text-sm text-muted-foreground">
-                        No recent activity
+                      <td colSpan={4} className="p-8 text-center text-sm text-muted-foreground animate-pulse">
+                        Synchronizing logs...
                       </td>
                     </tr>
                   )}

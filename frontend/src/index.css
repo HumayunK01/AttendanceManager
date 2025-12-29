@@ -266,7 +266,7 @@
 
   /* Scrollbar */
   .custom-scrollbar::-webkit-scrollbar {
-    @apply w-2;
+    @apply w-1 h-1;
   }
 
   .custom-scrollbar::-webkit-scrollbar-track {
@@ -274,11 +274,7 @@
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    @apply bg-border rounded-full;
-  }
-
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    @apply bg-muted-foreground/50;
+    @apply bg-muted-foreground/20 rounded-full hover:bg-muted-foreground/40 transition-colors;
   }
 
   .scrollbar-none {

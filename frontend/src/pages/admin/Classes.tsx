@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { Plus, Pencil, Trash2, Search, Building, Loader2, X, GraduationCap, Users, Layers } from 'lucide-react';
 import AdminLayout from '@/layouts/AdminLayout';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -101,6 +102,92 @@ const StatsCard = memo(({ title, value, subValue, icon: Icon, colorClass, gradie
 
 StatsCard.displayName = 'StatsCard';
 
+const MobileClassCard = memo(({ cls, onEdit, onDelete, onManageBatches }: { cls: Class; onEdit: (cls: Class) => void; onDelete: (cls: Class) => void; onManageBatches: (cls: Class) => void }) => (
+  <div className="glass-card p-5 space-y-5 border-border/30 group">
+    <div className="flex items-start justify-between gap-4">
+      <div className="min-w-0 flex-1 space-y-1.5">
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-black border border-primary/20 uppercase tracking-wider shrink-0 max-w-[180px]">
+            <span className="truncate">{cls.program}</span>
+          </span>
+          {cls.isActive ? (
+            <span className="w-1.5 h-1.5 rounded-full bg-success shadow-[0_0_8px_rgba(34,197,94,0.6)] shrink-0" />
+          ) : (
+            <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40 shrink-0" />
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <h3 className="text-lg font-black text-foreground tracking-tight">
+            Batch {cls.batchYear}
+          </h3>
+          {cls.division && (
+            <span className="text-[11px] font-black text-accent uppercase tracking-widest bg-accent/5 px-2 py-0.5 rounded-md border border-accent/10">
+              {cls.division}
+            </span>
+          )}
+        </div>
+      </div>
+      <div className="flex items-center gap-1.5 shrink-0 pt-0.5">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => onManageBatches(cls)}
+          className="w-8 h-8 rounded-lg hover:bg-accent/10 text-accent transition-colors"
+        >
+          <Layers className="w-4 h-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => onEdit(cls)}
+          className="w-8 h-8 rounded-lg hover:bg-success/10 text-success transition-colors"
+        >
+          <Pencil className="w-4 h-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => onDelete(cls)}
+          className="w-8 h-8 rounded-lg hover:bg-destructive/10 text-destructive transition-colors"
+        >
+          <Trash2 className="w-4 h-4" />
+        </Button>
+      </div>
+    </div>
+
+    <div className="grid grid-cols-3 gap-3">
+      <div className="bg-secondary/20 rounded-2xl p-3.5 border border-white/5 text-center flex flex-col justify-center gap-1.5 shadow-inner">
+        <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] opacity-60">Students</p>
+        <p className="text-xl font-black text-foreground tracking-tight leading-none">{cls.totalStudents || 0}</p>
+      </div>
+      <div className="bg-secondary/20 rounded-2xl p-3.5 border border-white/5 text-center flex flex-col justify-center gap-1.5 shadow-inner">
+        <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] opacity-60">Batches</p>
+        <p className="text-xl font-black text-blue-500 tracking-tight leading-none">{cls.totalBatches || 0}</p>
+      </div>
+      <div className="bg-secondary/20 rounded-2xl p-3.5 border border-white/5 text-center flex flex-col justify-center gap-1.5 shadow-inner">
+        <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] opacity-60">Status</p>
+        <p className={cn(
+          "text-[10px] font-black uppercase tracking-widest",
+          cls.isActive ? "text-success" : "text-muted-foreground/40"
+        )}>
+          {cls.isActive ? 'Active' : 'Offline'}
+        </p>
+      </div>
+    </div>
+
+    <div className="pt-4 border-t border-white/5 flex items-center justify-between text-[10px] text-muted-foreground/40 font-black uppercase tracking-[0.2em]">
+      <span>Record Stamped</span>
+      <span className="text-muted-foreground/60">
+        {new Date(cls.createdAt).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric'
+        })}
+      </span>
+    </div>
+  </div>
+));
+
 const TableRow = memo(({ cls, onEdit, onDelete, onManageBatches }: { cls: Class; onEdit: (cls: Class) => void; onDelete: (cls: Class) => void; onManageBatches: (cls: Class) => void }) => (
   <tr className="group hover:bg-white/5 transition-colors duration-200">
     <td className="py-3 px-6">
@@ -117,7 +204,7 @@ const TableRow = memo(({ cls, onEdit, onDelete, onManageBatches }: { cls: Class;
         </Tooltip>
       </TooltipProvider>
     </td>
-    <td className="px-6">
+    <td className="px-6 py-3">
       {cls.division ? (
         <span className="inline-flex items-center px-2 py-1 rounded-md bg-accent/10 text-accent text-[10px] font-black border border-accent/20 shadow-sm tracking-wider">
           {cls.division}
@@ -126,19 +213,19 @@ const TableRow = memo(({ cls, onEdit, onDelete, onManageBatches }: { cls: Class;
         <span className="text-muted-foreground/40 text-[11px] font-medium">—</span>
       )}
     </td>
-    <td className="px-6 font-bold text-foreground tabular-nums tracking-tight text-sm">{cls.batchYear}</td>
-    <td className="px-6">
+    <td className="px-6 py-3 font-bold text-foreground tabular-nums tracking-tight text-sm">{cls.batchYear}</td>
+    <td className="px-6 py-3">
       <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-secondary/40 text-xs font-bold border border-border/50 text-muted-foreground">
         <Users className="w-3 h-3 text-muted-foreground/70" />
         {cls.totalStudents || 0}
       </div>
     </td>
-    <td className="px-6">
+    <td className="px-6 py-3">
       <button
         onClick={() => onManageBatches(cls)}
         className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold border transition-all duration-200 ${(cls.totalBatches || 0) > 0
-            ? 'bg-accent/10 text-accent border-accent/20 hover:bg-accent/20'
-            : 'bg-secondary/40 text-muted-foreground border-border/50 hover:bg-secondary/60'
+          ? 'bg-accent/10 text-accent border-accent/20 hover:bg-accent/20'
+          : 'bg-secondary/40 text-muted-foreground border-border/50 hover:bg-secondary/60'
           }`}
         title="Manage Batches"
       >
@@ -146,7 +233,7 @@ const TableRow = memo(({ cls, onEdit, onDelete, onManageBatches }: { cls: Class;
         {cls.totalBatches || 0}
       </button>
     </td>
-    <td className="px-6">
+    <td className="px-6 py-3 text-right">
       {cls.isActive ? (
         <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-success/10 text-success border border-success/20 shadow-sm">
           <span className="w-1 h-1 rounded-full bg-success animate-pulse" />
@@ -159,14 +246,7 @@ const TableRow = memo(({ cls, onEdit, onDelete, onManageBatches }: { cls: Class;
         </span>
       )}
     </td>
-    <td className="px-6 text-muted-foreground text-[12px]">
-      {new Date(cls.createdAt).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      })}
-    </td>
-    <td className="px-6">
+    <td className="px-6 py-3">
       <div className="flex items-center justify-end gap-2">
         <Button
           variant="ghost"
@@ -198,6 +278,7 @@ const TableRow = memo(({ cls, onEdit, onDelete, onManageBatches }: { cls: Class;
   </tr>
 ));
 
+MobileClassCard.displayName = 'MobileClassCard';
 TableRow.displayName = 'TableRow';
 
 // --- Main Component ---
@@ -392,26 +473,26 @@ const ClassesPage: React.FC = () => {
       <div className="space-y-6 animate-fade-in pb-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="space-y-0.5">
-            <h1 className="text-2xl font-black text-foreground flex items-center gap-2.5 tracking-tight">
-              <div className="w-9 h-9 rounded-xl bg-accent/10 flex items-center justify-center border border-accent/20">
-                <Building className="w-5 h-5 text-accent" />
+          <div className="space-y-1">
+            <h1 className="text-2xl sm:text-3xl font-black text-foreground flex items-center gap-2.5 tracking-tight">
+              <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center border border-accent/20 shadow-sm shrink-0">
+                <Building className="w-5 h-5 sm:w-6 sm:h-6 text-accent" />
               </div>
-              Classes
+              <span className="truncate">Classes</span>
             </h1>
-            <p className="text-[13px] text-muted-foreground ml-1">Manage academic programs and divisions</p>
+            <p className="text-[11px] sm:text-[13px] text-muted-foreground ml-1 opacity-70">Manage academic programs and divisions</p>
           </div>
           <Button
             onClick={() => handleOpenDialog()}
-            className="h-9 gap-2 bg-success hover:bg-success/90 text-success-foreground shadow-lg shadow-success/20 hover:shadow-xl hover:shadow-success/30 transition-all duration-300 rounded-lg px-6 text-sm"
+            className="h-11 sm:h-10 gap-2 bg-success hover:bg-success/90 text-success-foreground shadow-lg shadow-success/20 hover:shadow-xl hover:shadow-success/30 transition-all duration-300 rounded-xl px-6 text-sm font-bold w-full sm:w-auto shrink-0"
           >
             <Plus className="w-4 h-4" />
-            <span className="font-bold">Add Class</span>
+            Add Class
           </Button>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <StatsCard
             title="Total Classes"
             value={stats.total}
@@ -484,39 +565,57 @@ const ClassesPage: React.FC = () => {
             )}
           </div>
         ) : (
-          <div className="glass-card overflow-hidden rounded-2xl border-border/50 shadow-xl">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border/50 bg-secondary/20">
-                    <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Program</th>
-                    <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Division</th>
-                    <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Batch Year</th>
-                    <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Students</th>
-                    <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Batches</th>
-                    <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Status</th>
-                    <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Created</th>
-                    <th className="text-right py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/30">
-                  {filteredClasses.map(cls => (
-                    <TableRow
-                      key={cls.id}
-                      cls={cls}
-                      onEdit={handleOpenDialog}
-                      onDelete={(c) => { setSelectedClass(c); setIsDeleteDialogOpen(true); }}
-                      onManageBatches={handleManageBatches}
-                    />
-                  ))}
-                </tbody>
-              </table>
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden md:block glass-card overflow-hidden rounded-2xl border-border/50 shadow-xl bg-background/50 backdrop-blur-sm">
+              <div className="overflow-x-auto custom-scrollbar">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border/50 bg-secondary/20">
+                      <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 focus:outline-none">Program</th>
+                      <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 font-black">Division</th>
+                      <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 w-[120px]">Batch Year</th>
+                      <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 w-[100px]">Students</th>
+                      <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 w-[100px]">Batches</th>
+                      <th className="text-right py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 w-[100px]">Status</th>
+                      <th className="text-right py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 w-[150px]">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/30">
+                    {filteredClasses.map(cls => (
+                      <TableRow
+                        key={cls.id}
+                        cls={cls}
+                        onEdit={handleOpenDialog}
+                        onDelete={(c) => { setSelectedClass(c); setIsDeleteDialogOpen(true); }}
+                        onManageBatches={handleManageBatches}
+                      />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="bg-secondary/10 py-3.5 px-6 border-t border-border/50 flex items-center justify-between text-[10px] font-bold text-muted-foreground/50 tracking-widest uppercase">
+                <span>Total: {filteredClasses.length} Active Records</span>
+                <span className="text-[9px] bg-secondary/30 px-2 py-0.5 rounded-md border border-border/50">Core System v1.1.2</span>
+              </div>
             </div>
-            <div className="bg-secondary/10 py-3 px-6 border-t border-border/50 flex items-center justify-between text-[10px] font-bold text-muted-foreground/50 tracking-widest uppercase">
-              <span>Showing {filteredClasses.length} Results</span>
-              <span className="text-[9px] bg-secondary/30 px-2 py-0.5 rounded-md border border-border/50">Admin Console v1.0</span>
+
+            {/* Mobile Card View */}
+            <div className="grid grid-cols-1 gap-4 md:hidden">
+              {filteredClasses.map(cls => (
+                <MobileClassCard
+                  key={cls.id}
+                  cls={cls}
+                  onEdit={handleOpenDialog}
+                  onDelete={(c) => { setSelectedClass(c); setIsDeleteDialogOpen(true); }}
+                  onManageBatches={handleManageBatches}
+                />
+              ))}
+              <div className="py-2 text-center text-[10px] font-bold text-muted-foreground/40 uppercase tracking-[0.2em]">
+                End of Academic Inventory
+              </div>
             </div>
-          </div>
+          </>
         )}
       </div>
 

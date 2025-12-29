@@ -36,6 +36,7 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { adminAPI } from '@/lib/api';
+import { cn } from '@/lib/utils';
 
 // --- Types ---
 
@@ -73,67 +74,150 @@ const StatsCard = memo(({ title, value, icon: Icon, colorClass, gradientClass, i
 
 StatsCard.displayName = 'StatsCard';
 
+const MobileReportCard = memo(({ report, onView, onResolve, formatDate }: {
+  report: AbuseReport;
+  onView: (r: AbuseReport) => void;
+  onResolve: (r: AbuseReport) => void;
+  formatDate: (d: string) => string;
+}) => (
+  <div className="glass-card p-5 space-y-5 border-border/30 group relative overflow-hidden">
+    <div className="absolute top-0 right-0 w-24 h-24 bg-destructive/5 blur-3xl rounded-full -mr-8 -mt-8" />
+
+    <div className="flex items-start justify-between gap-4 relative z-10">
+      <div className="flex items-center gap-3 min-w-0 flex-1">
+        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center border border-primary/20 shrink-0 shadow-inner">
+          <User className="w-6 h-6 text-primary" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[15px] font-black text-foreground group-hover:text-primary transition-colors tracking-tight truncate">
+            {report.studentName}
+          </p>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <span className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest shrink-0">#{report.studentId}</span>
+            <div className="h-[1px] w-4 bg-muted-foreground/10" />
+            <span className={cn(
+              "inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter border",
+              report.status === 'pending'
+                ? "bg-warning/10 text-warning border-warning/20 animate-pulse"
+                : "bg-success/10 text-success border-success/20"
+            )}>
+              {report.status === 'pending' ? <AlertTriangle className="w-2.5 h-2.5" /> : <CheckCircle2 className="w-2.5 h-2.5" />}
+              {report.status}
+            </span>
+          </div>
+        </div>
+      </div>
+      <div className="flex items-center gap-1">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => onView(report)}
+          className="w-9 h-9 rounded-xl hover:bg-primary/10 text-primary transition-all border border-transparent hover:border-primary/20 shrink-0"
+        >
+          <Eye className="w-4.5 h-4.5" />
+        </Button>
+        {report.status === 'pending' && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => onResolve(report)}
+            className="w-9 h-9 rounded-xl hover:bg-success/10 text-success transition-all border border-transparent hover:border-success/20 shrink-0"
+          >
+            <CheckCircle2 className="w-4.5 h-4.5" />
+          </Button>
+        )}
+      </div>
+    </div>
+
+    <div className="grid grid-cols-2 gap-3 relative z-10">
+      <div className="bg-secondary/20 rounded-2xl p-4 border border-white/5 flex flex-col gap-1.5 shadow-inner min-w-0">
+        <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] opacity-60">Academic Context</p>
+        <p className="text-[13px] font-black text-foreground tracking-tight leading-tight truncate px-0.5">
+          {report.subjectName}
+        </p>
+      </div>
+      <div className="bg-secondary/20 rounded-2xl p-4 border border-white/5 flex flex-col gap-1.5 shadow-inner min-w-0 text-right">
+        <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] opacity-60">Report Category</p>
+        <span className="text-[11px] font-black text-orange-500 tracking-tight uppercase px-0.5 truncate">
+          {report.reason.replace('_', ' ')}
+        </span>
+      </div>
+    </div>
+
+    <div className="pt-4 border-t border-white/5 flex items-center justify-between text-[10px] text-muted-foreground/40 font-black uppercase tracking-[0.2em] relative z-10">
+      <div className="flex items-center gap-1.5">
+        <Calendar className="w-3 h-3 opacity-40" />
+        <span>{formatDate(report.createdAt)}</span>
+      </div>
+      <span className="text-muted-foreground/60">{report.facultyName}</span>
+    </div>
+  </div>
+));
+
 const ReportRow = memo(({ report, onView, onResolve, formatDate }: {
   report: AbuseReport;
   onView: (r: AbuseReport) => void;
   onResolve: (r: AbuseReport) => void;
   formatDate: (d: string) => string;
 }) => (
-  <tr className="group hover:bg-white/5 transition-colors duration-200">
-    <td className="py-3 px-6">
+  <tr className="group hover:bg-white/5 transition-colors duration-200 border-l-2 border-transparent hover:border-l-primary/30">
+    <td className="py-4 px-6">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20 group-hover:scale-110 transition-transform duration-300 shadow-inner">
-          <User className="w-5 h-5 text-primary" />
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center border border-primary/20 group-hover:scale-110 transition-transform duration-300 shadow-inner shrink-0 text-primary">
+          <User className="w-5 h-5" />
         </div>
-        <div>
-          <p className="text-sm font-bold text-foreground group-hover:text-primary transition-colors tracking-tight">
+        <div className="min-w-0">
+          <p className="text-sm font-black text-foreground group-hover:text-primary transition-colors tracking-tight truncate max-w-[200px]">
             {report.studentName}
           </p>
-          <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider opacity-60">#{report.studentId}</p>
+          <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.15em] opacity-40">#{report.studentId}</p>
         </div>
       </div>
     </td>
     <td className="px-6">
-      <div className="flex flex-col">
-        <p className="text-sm font-bold text-foreground tracking-tight">{report.subjectName}</p>
-        <p className="text-[10px] text-muted-foreground font-medium opacity-60 uppercase">{report.facultyName}</p>
+      <div className="flex flex-col gap-0.5 min-w-0">
+        <p className="text-sm font-bold text-foreground tracking-tight truncate max-w-[250px]">{report.subjectName}</p>
+        <p className="text-[10px] text-muted-foreground/40 font-black uppercase tracking-tighter truncate max-w-[200px]">By {report.facultyName}</p>
       </div>
     </td>
     <td className="px-6">
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-orange-500/10 text-orange-500 border border-orange-500/20 text-[10px] font-black uppercase tracking-wider">
-        <AlertTriangle className="w-3 h-3" />
+      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-500/10 text-orange-500 border border-orange-500/20 text-[10px] font-black uppercase tracking-wider shadow-sm">
+        <AlertTriangle className="w-3.5 h-3.5" />
         {report.reason.replace('_', ' ')}
       </span>
     </td>
     <td className="px-6">
-      <div className="flex items-center gap-2 text-muted-foreground">
-        <Calendar className="w-3.5 h-3.5 opacity-40" />
-        <span className="text-[11px] font-medium">{formatDate(report.createdAt)}</span>
+      <div className="flex items-center gap-2 text-muted-foreground/60">
+        <Calendar className="w-4 h-4 opacity-40" />
+        <span className="text-[11px] font-black uppercase tracking-widest">{formatDate(report.createdAt)}</span>
       </div>
     </td>
     <td className="px-6">
-      <div className="flex justify-end gap-2">
+      <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
         <Button
           variant="ghost"
           size="icon"
           onClick={() => onView(report)}
           className="w-8 h-8 rounded-lg hover:bg-primary/10 hover:text-primary border border-transparent hover:border-primary/20 transition-all"
         >
-          <Eye className="w-3.5 h-3.5" />
+          <Eye className="w-4 h-4" />
         </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => onResolve(report)}
-          className="w-8 h-8 rounded-lg hover:bg-success/10 hover:text-success border border-transparent hover:border-success/20 transition-all"
-        >
-          <CheckCircle2 className="w-3.5 h-3.5" />
-        </Button>
+        {report.status === 'pending' && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => onResolve(report)}
+            className="w-8 h-8 rounded-lg hover:bg-success/10 hover:text-success border border-transparent hover:border-success/20 transition-all"
+          >
+            <CheckCircle2 className="w-4 h-4" />
+          </Button>
+        )}
       </div>
     </td>
   </tr>
 ));
 
+MobileReportCard.displayName = 'MobileReportCard';
 ReportRow.displayName = 'ReportRow';
 
 // --- Main Component ---
@@ -237,72 +321,95 @@ const ReportsPage: React.FC = () => {
       <div className="space-y-6 animate-fade-in pb-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="space-y-0.5">
-            <h1 className="text-2xl font-black text-foreground flex items-center gap-2.5 tracking-tight">
-              <div className="w-9 h-9 rounded-xl bg-destructive/10 flex items-center justify-center border border-destructive/20 text-destructive">
-                <ShieldAlert className="w-5 h-5" />
+          <div className="space-y-1">
+            <h1 className="text-2xl sm:text-3xl font-black text-foreground flex items-center gap-2.5 tracking-tight">
+              <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center border border-destructive/20 shadow-sm shrink-0">
+                <ShieldAlert className="w-5 h-5 sm:w-6 sm:h-6 text-destructive" />
               </div>
-              System Logs & Integrity
+              <span className="truncate">System Logs</span>
             </h1>
-            <p className="text-[13px] text-muted-foreground ml-1">Vulnerability assessment and automated behavior flags</p>
+            <p className="text-[11px] sm:text-[13px] text-muted-foreground ml-1 font-medium opacity-70">Integrity assessment and behavior monitoring</p>
           </div>
         </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatsCard
-            title="Active Flags"
-            value={stats.pending}
-            icon={AlertTriangle}
-            colorClass="warning"
-            gradientClass="bg-warning/5"
-            iconBgClass="bg-warning/10"
-          />
-          <StatsCard
-            title="Total Logs"
-            value={stats.total}
-            icon={FileText}
-            colorClass="primary"
-            gradientClass="bg-primary/5"
-            iconBgClass="bg-primary/10"
-          />
-          <StatsCard
-            title="Resolved"
-            value={stats.resolved}
-            icon={CheckCircle2}
-            colorClass="success"
-            gradientClass="bg-success/5"
-            iconBgClass="bg-success/10"
-          />
-          <StatsCard
-            title="Recent (7d)"
-            value={stats.recentReports}
-            icon={History}
-            colorClass="accent"
-            gradientClass="bg-accent/5"
-            iconBgClass="bg-accent/10"
-          />
+          <div className="glass-card p-5 rounded-2xl border border-border/30 bg-gradient-to-br from-warning/10 to-transparent group hover:shadow-xl hover:shadow-warning/5 transition-all duration-500 relative overflow-hidden">
+            <div className="absolute -right-4 -top-4 w-24 h-24 bg-warning/10 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+            <div className="flex items-center justify-between relative z-10">
+              <div className="space-y-1">
+                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] opacity-60">Active Flags</p>
+                <p className="text-3xl font-black text-foreground tracking-tighter tabular-nums">{stats.pending}</p>
+                <div className="h-1 w-6 bg-warning rounded-full" />
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-warning/20 flex items-center justify-center border border-warning/20 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-inner text-warning">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+            </div>
+          </div>
+          <div className="glass-card p-5 rounded-2xl border border-border/30 bg-gradient-to-br from-primary/10 to-transparent group hover:shadow-xl hover:shadow-primary/5 transition-all duration-500 relative overflow-hidden">
+            <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/10 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+            <div className="flex items-center justify-between relative z-10">
+              <div className="space-y-1">
+                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] opacity-60">Total Logs</p>
+                <p className="text-3xl font-black text-foreground tracking-tighter tabular-nums">{stats.total}</p>
+                <div className="h-1 w-6 bg-primary rounded-full" />
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center border border-primary/20 group-hover:scale-110 group-hover:-rotate-6 transition-all duration-500 shadow-inner text-primary">
+                <FileText className="w-6 h-6" />
+              </div>
+            </div>
+          </div>
+          <div className="glass-card p-5 rounded-2xl border border-border/30 bg-gradient-to-br from-success/10 to-transparent group hover:shadow-xl hover:shadow-success/5 transition-all duration-500 relative overflow-hidden">
+            <div className="absolute -right-4 -top-4 w-24 h-24 bg-success/10 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+            <div className="flex items-center justify-between relative z-10">
+              <div className="space-y-1">
+                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] opacity-60">Resolved</p>
+                <p className="text-3xl font-black text-foreground tracking-tighter tabular-nums">{stats.resolved}</p>
+                <div className="h-1 w-6 bg-success rounded-full" />
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-success/20 flex items-center justify-center border border-success/20 group-hover:scale-110 transition-all duration-500 shadow-inner text-success">
+                <CheckCircle2 className="w-6 h-6" />
+              </div>
+            </div>
+          </div>
+          <div className="glass-card p-5 rounded-2xl border border-border/30 bg-gradient-to-br from-accent/10 to-transparent group hover:shadow-xl hover:shadow-accent/5 transition-all duration-500 relative overflow-hidden">
+            <div className="absolute -right-4 -top-4 w-24 h-24 bg-accent/10 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+            <div className="flex items-center justify-between relative z-10">
+              <div className="space-y-1">
+                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] opacity-60">Recent (7d)</p>
+                <p className="text-3xl font-black text-foreground tracking-tighter tabular-nums">{stats.recentReports}</p>
+                <div className="h-1 w-6 bg-accent rounded-full" />
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-accent/20 flex items-center justify-center border border-accent/20 group-hover:scale-110 transition-all duration-500 shadow-inner text-accent">
+                <History className="w-6 h-6" />
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Search & Filter */}
-        <div className="flex flex-col md:flex-row gap-4">
+        <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center">
           <div className="relative flex-1 group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
             <Input
-              placeholder="Search by student, ID, or subject module..."
+              placeholder="Filter by student ID or subject module..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-9 bg-secondary/30 border-border/50 rounded-xl text-sm"
+              className="pl-10 h-10 bg-secondary/30 border-border/50 focus:border-primary/50 rounded-xl text-sm transition-all"
             />
           </div>
           <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="w-full md:w-48 h-9 bg-secondary/30 border-border/50 rounded-xl text-xs font-bold uppercase tracking-widest">
-              <SelectValue placeholder="All Status" />
+            <SelectTrigger className="w-full lg:w-48 h-10 bg-secondary/30 border-border/50 focus:border-primary/50 rounded-xl text-[10px] font-black uppercase tracking-[0.15em]">
+              <div className="flex items-center gap-2">
+                <Filter className="w-3 h-3 opacity-40 shrink-0" />
+                <SelectValue placeholder="All Logs" />
+              </div>
             </SelectTrigger>
             <SelectContent className="rounded-xl border-border/50 backdrop-blur-xl">
-              <SelectItem value="all">All Logs</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="resolved">Resolved</SelectItem>
+              <SelectItem value="all" className="text-[10px] font-black uppercase tracking-widest py-2.5 leading-relaxed">All Status Logs</SelectItem>
+              <SelectItem value="pending" className="text-[10px] font-black uppercase tracking-widest py-2.5 leading-relaxed">Pending Review</SelectItem>
+              <SelectItem value="resolved" className="text-[10px] font-black uppercase tracking-widest py-2.5 leading-relaxed">Resolved Flags</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -324,32 +431,55 @@ const ReportsPage: React.FC = () => {
             </p>
           </div>
         ) : (
-          <div className="glass-card overflow-hidden rounded-2xl border-border/50 shadow-xl">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border/50 bg-secondary/20">
-                    <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Flagged Student</th>
-                    <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Course Context</th>
-                    <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Category</th>
-                    <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Timestamp</th>
-                    <th className="text-right py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Resolve</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/30">
-                  {filteredReports.map((report) => (
-                    <ReportRow
-                      key={report.id}
-                      report={report}
-                      onView={(r) => { setSelectedReport(r); setIsDialogOpen(true); }}
-                      onResolve={handleResolve}
-                      formatDate={formatDate}
-                    />
-                  ))}
-                </tbody>
-              </table>
+          <>
+            {/* Desktop View */}
+            <div className="hidden md:block glass-card overflow-hidden rounded-2xl border-border/50 shadow-xl bg-background/50 backdrop-blur-sm">
+              <div className="overflow-x-auto custom-scrollbar">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border/50 bg-secondary/20">
+                      <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 w-[30%]">Flagged Student</th>
+                      <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Module Context</th>
+                      <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 w-[180px]">Category</th>
+                      <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 w-[150px]">Registry Date</th>
+                      <th className="text-right py-4 px-6 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 w-[100px]">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/30">
+                    {filteredReports.map((report) => (
+                      <ReportRow
+                        key={report.id}
+                        report={report}
+                        onView={(r) => { setSelectedReport(r); setIsDialogOpen(true); }}
+                        onResolve={handleResolve}
+                        formatDate={formatDate}
+                      />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="bg-secondary/10 py-3.5 px-6 border-t border-border/50 flex items-center justify-between text-[10px] font-bold text-muted-foreground/40 tracking-[0.25em] uppercase">
+                <span>Integrity System Online</span>
+                <span>{filteredReports.length} Registered Events</span>
+              </div>
             </div>
-          </div>
+
+            {/* Mobile View */}
+            <div className="grid grid-cols-1 gap-4 md:hidden">
+              {filteredReports.map((report) => (
+                <MobileReportCard
+                  key={report.id}
+                  report={report}
+                  onView={(r) => { setSelectedReport(r); setIsDialogOpen(true); }}
+                  onResolve={handleResolve}
+                  formatDate={formatDate}
+                />
+              ))}
+              <div className="py-2 text-center text-[10px] font-bold text-muted-foreground/40 uppercase tracking-[0.2em]">
+                Log Repository Bottom
+              </div>
+            </div>
+          </>
         )}
 
         <div className="pt-2 flex items-center justify-between opacity-50 px-2 border-t border-border/50">

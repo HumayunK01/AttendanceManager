@@ -29,15 +29,15 @@ interface SidebarItem {
 }
 
 const sidebarItems: SidebarItem[] = [
-  { label: 'Dashboard', href: '/admin', icon: <LayoutDashboard className="w-5 h-5" /> },
-  { label: 'Subjects', href: '/admin/subjects', icon: <BookOpen className="w-5 h-5" /> },
-  { label: 'Classes', href: '/admin/classes', icon: <Building className="w-5 h-5" /> },
-  { label: 'Faculty', href: '/admin/faculty', icon: <Users className="w-5 h-5" /> },
-  { label: 'Students', href: '/admin/students', icon: <GraduationCap className="w-5 h-5" /> },
-  { label: 'Mappings', href: '/admin/mappings', icon: <Link2 className="w-5 h-5" /> },
-  { label: 'Timetable', href: '/admin/timetable', icon: <Calendar className="w-5 h-5" /> },
-  { label: 'Gamification', href: '/admin/achievements', icon: <Award className="w-5 h-5" /> },
-  { label: 'Abuse Reports', href: '/admin/reports', icon: <AlertTriangle className="w-5 h-5" /> },
+  { label: 'Dashboard', href: '/admin', icon: <LayoutDashboard className="w-[18px] h-[18px]" /> },
+  { label: 'Subjects', href: '/admin/subjects', icon: <BookOpen className="w-[18px] h-[18px]" /> },
+  { label: 'Classes', href: '/admin/classes', icon: <Building className="w-[18px] h-[18px]" /> },
+  { label: 'Faculty', href: '/admin/faculty', icon: <Users className="w-[18px] h-[18px]" /> },
+  { label: 'Students', href: '/admin/students', icon: <GraduationCap className="w-[18px] h-[18px]" /> },
+  { label: 'Mappings', href: '/admin/mappings', icon: <Link2 className="w-[18px] h-[18px]" /> },
+  { label: 'Timetable', href: '/admin/timetable', icon: <Calendar className="w-[18px] h-[18px]" /> },
+  { label: 'Gamification', href: '/admin/achievements', icon: <Award className="w-[18px] h-[18px]" /> },
+  { label: 'System Logs', href: '/admin/reports', icon: <AlertTriangle className="w-[18px] h-[18px]" /> },
 ];
 
 interface AdminLayoutProps {
@@ -68,62 +68,73 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       {/* Desktop Sidebar */}
       <aside
         className={cn(
-          "hidden lg:flex lg:flex-col border-r border-border bg-sidebar sticky top-0 h-screen transition-all duration-300 ease-in-out",
-          isCollapsed ? "w-20" : "w-64"
+          "hidden lg:flex lg:flex-col border-r border-border/50 bg-sidebar sticky top-0 h-screen transition-all duration-300 ease-in-out z-50",
+          isCollapsed ? "w-[72px]" : "w-64"
         )}
       >
         {/* Logo & Toggle */}
         <div className={cn(
-          "h-16 flex items-center border-b border-sidebar-border overflow-hidden transition-all duration-300",
+          "h-[70px] flex items-center border-b border-border/40 overflow-hidden transition-all duration-300",
           isCollapsed ? "justify-center px-0" : "justify-between px-6"
         )}>
           {!isCollapsed && (
-            <div className="flex items-center gap-2 animate-in fade-in duration-300">
-              <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
-              <span className="font-semibold text-foreground whitespace-nowrap text-xl tracking-tight">Attendly</span>
+            <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2 duration-400">
+              <div className="w-fit h-10 flex items-center justify-center">
+                <img src="/logo.png" alt="Logo" className="w-7 h-7 object-contain" />
+              </div>
+              <span className="font-bold text-foreground whitespace-nowrap text-xl tracking-tight">Attendly</span>
             </div>
           )}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
             className={cn(
-              "p-1.5 rounded-lg hover:bg-sidebar-accent text-sidebar-foreground transition-colors",
-              isCollapsed ? "" : ""
+              "p-2 rounded-xl hover:bg-sidebar-accent text-sidebar-foreground transition-all active:scale-95 group/toggle",
+              isCollapsed ? "hover:scale-110" : ""
             )}
           >
-            {isCollapsed ? <PanelLeft className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
+            {isCollapsed ? <PanelLeft className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />}
           </button>
         </div>
 
         {/* Navigation */}
         <nav className={cn(
-          "flex-1 py-6 px-3 space-y-1 overflow-y-auto overflow-x-hidden custom-scrollbar",
-          isCollapsed && "scrollbar-none"
+          "flex-1 py-8 px-3.5 space-y-1.5 overflow-y-auto overflow-x-hidden custom-scrollbar",
+          isCollapsed && "scrollbar-none px-2"
         )}>
+          {!isCollapsed && (
+            <div className="px-3 mb-4">
+              <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-[0.2em]">Navigation</p>
+            </div>
+          )}
+
           {sidebarItems.map((item) => (
             <Link
               key={item.href}
               to={item.href}
               className={cn(
-                'flex items-center rounded-lg text-sm font-medium transition-all duration-200 group relative',
-                isCollapsed ? "justify-center px-0 h-10 w-10 mx-auto" : "gap-3 px-3 py-2.5",
+                'flex items-center rounded-xl text-[13px] font-bold transition-all duration-200 group relative h-10',
+                isCollapsed ? "justify-center px-0 w-10 mx-auto" : "gap-3 px-3.5",
                 isActive(item.href)
                   ? 'bg-primary/10 text-primary'
-                  : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+                  : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground'
               )}
             >
-              <div className="flex-shrink-0">{item.icon}</div>
+              <div className={cn(
+                "flex-shrink-0 transition-transform group-hover:scale-110",
+                isActive(item.href) ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+              )}>
+                {item.icon}
+              </div>
+
               {!isCollapsed && (
-                <span className="transition-all duration-300 whitespace-nowrap overflow-hidden">
+                <span className="transition-all duration-300 whitespace-nowrap overflow-hidden tracking-tight">
                   {item.label}
                 </span>
-              )}
-              {isActive(item.href) && !isCollapsed && (
-                <ChevronRight className="w-4 h-4 ml-auto" />
               )}
 
               {/* Tooltip for collapsed state */}
               {isCollapsed && (
-                <div className="absolute left-full ml-4 px-2 py-1 bg-popover text-popover-foreground text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-50 border border-border shadow-md">
+                <div className="absolute left-full ml-4 px-3 py-1.5 bg-popover text-popover-foreground text-[11px] font-black uppercase tracking-widest rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-50 border border-border shadow-2xl">
                   {item.label}
                 </div>
               )}
@@ -131,19 +142,21 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           ))}
         </nav>
 
-        {/* User Section */}
-        <div className="p-3 border-t border-sidebar-border">
+        <div className="p-4 border-t border-border/40 bg-sidebar/50 backdrop-blur-sm">
           <div className={cn(
-            "flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 hover:bg-sidebar-accent/50 group/user",
+            "flex items-center gap-3 px-2 py-2.5 rounded-xl transition-all duration-200 group/user",
             isCollapsed && "justify-center px-0"
           )}>
-            <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 border border-primary/20 shadow-sm transition-transform group-hover/user:scale-105">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 border border-primary/20 shadow-inner transition-transform group-hover/user:scale-105">
               <User className="w-5 h-5 text-primary" />
             </div>
             {!isCollapsed && (
-              <div className="flex-1 min-w-0 animate-fade-in">
-                <p className="text-base font-black text-foreground truncate tracking-tight leading-tight">{user?.name}</p>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.15em] opacity-60">Administrator</p>
+              <div className="flex-1 min-w-0 animate-in fade-in slide-in-from-bottom-1 duration-400">
+                <p className="text-[14px] font-black text-foreground truncate tracking-tight leading-tight mb-0.5">{user?.name}</p>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-success" />
+                  <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.1em] opacity-60">Admin Portal</p>
+                </div>
               </div>
             )}
           </div>
@@ -151,15 +164,15 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           <button
             onClick={handleLogout}
             className={cn(
-              "mt-1 w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all group/logout relative",
+              "mt-2 w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest text-muted-foreground/60 hover:bg-destructive/10 hover:text-destructive transition-all group/logout relative",
               isCollapsed && "justify-center px-0"
             )}
           >
             <LogOut className="w-4 h-4 flex-shrink-0 group-hover/logout:-translate-x-0.5 transition-transform" />
-            {!isCollapsed && <span>Sign out</span>}
+            {!isCollapsed && <span className="mt-0.5">Sign out</span>}
 
             {isCollapsed && (
-              <div className="absolute left-full ml-4 px-2.5 py-1.5 bg-destructive text-destructive-foreground text-[11px] font-bold uppercase tracking-wider rounded-lg opacity-0 invisible group-hover/logout:opacity-100 group-hover/logout:visible transition-all whitespace-nowrap z-50 shadow-xl">
+              <div className="absolute left-full ml-4 px-3 py-2 bg-destructive text-destructive-foreground text-[10px] font-black uppercase tracking-widest rounded-lg opacity-0 invisible group-hover/logout:opacity-100 group-hover/logout:visible transition-all whitespace-nowrap z-50 shadow-xl">
                 Sign out
               </div>
             )}
@@ -170,9 +183,9 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       {/* Mobile Header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-background/80 backdrop-blur-lg border-b border-border z-40">
         <div className="flex items-center justify-between h-full px-4">
-          <div className="flex items-center gap-1.5">
-            <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
-            <span className="font-semibold text-foreground text-xl tracking-tight">Attendly</span>
+          <div className="flex items-center gap-2">
+            <img src="/logo.png" alt="Logo" className="w-9 h-9 object-contain" />
+            <span className="font-bold text-foreground text-xl tracking-tight">Attendly</span>
           </div>
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -194,35 +207,46 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       {/* Mobile Menu */}
       <div
         className={cn(
-          'lg:hidden fixed top-16 left-0 bottom-0 w-64 bg-sidebar border-r border-border z-40 transform transition-transform duration-300',
-          isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+          'lg:hidden fixed inset-y-0 left-0 w-72 bg-sidebar border-r border-border/50 z-50 transform transition-transform duration-300 ease-in-out',
+          isMobileMenuOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'
         )}
       >
-        <nav className="py-6 px-3 space-y-1">
+        <div className="h-16 flex items-center px-6 border-b border-border/40">
+          <div className="flex items-center gap-2">
+            <div className="w-fit h-10 flex items-center justify-center">
+              <img src="/logo.png" alt="Logo" className="w-7 h-7 object-contain" />
+            </div>
+            <span className="font-bold text-foreground text-lg tracking-tight">Attendly</span>
+          </div>
+        </div>
+
+        <nav className="py-6 px-4 space-y-1.5 overflow-y-auto">
           {sidebarItems.map((item) => (
             <Link
               key={item.href}
               to={item.href}
               onClick={() => setIsMobileMenuOpen(false)}
               className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200',
+                'flex items-center gap-4 px-4 py-3.5 rounded-xl text-[13px] font-bold transition-all duration-200',
                 isActive(item.href)
                   ? 'bg-primary/10 text-primary'
-                  : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+                  : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground'
               )}
             >
-              {item.icon}
+              <div className={cn(isActive(item.href) ? "text-primary" : "text-muted-foreground")}>
+                {item.icon}
+              </div>
               {item.label}
             </Link>
           ))}
         </nav>
 
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-sidebar-border">
+        <div className="absolute bottom-0 left-0 right-0 p-5 bg-sidebar/80 backdrop-blur-md border-t border-border/40">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-sidebar-accent hover:text-destructive transition-colors"
+            className="w-full flex items-center justify-center gap-3 px-4 py-3.5 rounded-xl text-xs font-black uppercase tracking-[0.2em] text-destructive bg-destructive/5 hover:bg-destructive/10 border border-destructive/20 transition-all active:scale-95"
           >
-            <LogOut className="w-5 h-5" />
+            <LogOut className="w-4 h-4" />
             Sign out
           </button>
         </div>
@@ -230,7 +254,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
       {/* Main Content */}
       <main className="flex-1 lg:pt-0 pt-16 overflow-auto custom-scrollbar">
-        <div className="p-6 lg:p-8">
+        <div className="p-4 sm:p-6 lg:p-8">
           {children}
         </div>
       </main>

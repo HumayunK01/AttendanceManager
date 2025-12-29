@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff, ArrowRight, Loader2, ClipboardCheck, Clock, Users, LucideIcon } from 'lucide-react';
 import { useAuth, UserRole } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -17,12 +17,14 @@ interface StatItemProps {
 }
 
 const StatItem: React.FC<StatItemProps> = ({ icon: Icon, value, label }) => (
-  <div className="space-y-1 group transition-transform hover:scale-105 duration-300">
-    <div className="flex items-center gap-2 text-primary">
-      <Icon className="w-5 h-5" />
-      <span className="text-2xl font-bold text-white tracking-tight">{value}</span>
+  <div className="space-y-0.5 group transition-all duration-500 hover:-translate-y-1">
+    <div className="flex items-center gap-2.5 text-primary">
+      <div className="p-1.5 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors duration-300">
+        <Icon className="w-4 h-4" />
+      </div>
+      <span className="text-2xl font-extrabold text-white tracking-tighter group-hover:text-primary transition-colors duration-300">{value}</span>
     </div>
-    <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold opacity-80">{label}</p>
+    <p className="text-[9px] text-gray-500 uppercase tracking-[0.2em] font-bold ml-10 opacity-60 group-hover:opacity-100 transition-opacity whitespace-nowrap">{label}</p>
   </div>
 );
 
@@ -43,8 +45,8 @@ interface AuthFieldProps {
 const AuthField: React.FC<AuthFieldProps> = ({
   id, label, type, placeholder, value, onChange, disabled, required, showToggle, onToggle, isToggled
 }) => (
-  <div className="grid gap-2 animate-in fade-in slide-in-from-top-2 duration-500">
-    <Label htmlFor={id} className="text-xs font-bold text-gray-500 uppercase tracking-[0.2em] ml-1">
+  <div className="grid gap-1.5 animate-in fade-in slide-in-from-bottom-2 duration-700">
+    <Label htmlFor={id} className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.25em] ml-1 mb-0.5">
       {label}
     </Label>
     <div className="relative group/input">
@@ -54,7 +56,7 @@ const AuthField: React.FC<AuthFieldProps> = ({
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-12 bg-white/[0.03] border-white/5 focus:border-primary/50 transition-all duration-300 text-white rounded-2xl px-5 text-base placeholder:text-gray-600"
+        className="h-11 bg-white/[0.03] border-white/5 focus:border-primary/40 focus:ring-0 transition-all duration-300 text-white rounded-xl px-4 text-sm placeholder:text-gray-700"
         disabled={disabled}
         required={required}
       />
@@ -62,10 +64,10 @@ const AuthField: React.FC<AuthFieldProps> = ({
         <button
           type="button"
           onClick={onToggle}
-          className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors p-1.5 focus:outline-none focus:text-primary"
+          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-600 hover:text-white transition-colors p-1.5 focus:outline-none focus:text-primary"
           aria-label={isToggled ? "Hide password" : "Show password"}
         >
-          {isToggled ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+          {isToggled ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
         </button>
       )}
     </div>
@@ -157,10 +159,10 @@ const Login: React.FC = () => {
     <div className="min-h-screen flex flex-col lg:flex-row bg-[#030712] selection:bg-primary/20 selection:text-primary font-sans antialiased overflow-hidden">
 
       {/* ─── Left Panel: Branding & Impact ─── */}
-      <div className="lg:flex-1 relative overflow-hidden hidden lg:flex flex-col justify-between p-12 border-r border-white/5">
+      <div className="lg:flex-1 relative overflow-hidden hidden lg:flex flex-col justify-between p-12 lg:p-16 xl:p-20 border-r border-white/5">
         {/* Abstract Background Layer */}
         <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-40 mix-blend-screen transition-transform duration-[30s] hover:scale-105 pointer-events-none"
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20 mix-blend-screen scale-110 animate-slow-zoom pointer-events-none"
           style={{ backgroundImage: 'url("/login-bg.png")' }}
         />
 
@@ -169,10 +171,13 @@ const Login: React.FC = () => {
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#030712] pointer-events-none" />
 
         {/* Brand Header */}
-        <header className="relative z-10 animate-in fade-in slide-in-from-left duration-1000 ease-out">
-          <div className="cursor-default flex flex-col items-start">
-            <div className="flex items-center gap-2">
-              <img src="/logo.png" alt="Attendly Logo" className="w-10 h-10 object-contain" />
+        <header className="relative z-10 animate-in fade-in slide-in-from-top-4 duration-1000 ease-out-expo">
+          <div className="cursor-default flex flex-col items-start group">
+            <div className="flex items-center gap-2.5">
+              <div className="relative">
+                <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-0 group-hover:scale-150 transition-transform duration-700" />
+                <img src="/logo.png" alt="Attendly Logo" className="w-9 h-9 object-contain relative z-10 group-hover:rotate-12 transition-transform duration-500" />
+              </div>
               <span className="text-3xl font-extrabold tracking-tighter text-white block">Attendly</span>
             </div>
           </div>
@@ -180,17 +185,17 @@ const Login: React.FC = () => {
 
         {/* Centered Hero Content */}
         <main className="flex-1 flex flex-col justify-center py-20 relative z-10">
-          <div className="max-w-xl animate-in fade-in slide-in-from-left duration-1000 delay-300 ease-out fill-mode-both">
+          <div className="max-w-xl animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300 ease-out-expo fill-mode-both">
             <h1 className="text-5xl xl:text-6xl font-extrabold text-white leading-[1.1] mb-8 tracking-tight whitespace-pre-line">
               Manage your{'\n'}
               <span className="block mt-2 text-gradient">Class Attendance</span>
             </h1>
-            <p className="text-xl text-gray-400 font-light leading-relaxed mb-12 max-w-lg">
+            <p className="text-lg text-gray-400/80 font-medium leading-relaxed mb-12 max-w-lg border-l-2 border-primary/20 pl-6">
               The high-performance tracking suite for modern campuses.
               Precision records, effortless management.
             </p>
 
-            <div className="grid grid-cols-3 gap-10">
+            <div className="grid grid-cols-3 gap-8">
               <StatItem icon={Users} value="500+" label="Students" />
               <StatItem icon={ClipboardCheck} value="Digital" label="Records" />
               <StatItem icon={Clock} value="Live" label="Sync" />
@@ -198,88 +203,103 @@ const Login: React.FC = () => {
           </div>
         </main>
 
-        <footer className="relative z-10 animate-in fade-in slide-in-from-left duration-1000 delay-500 ease-out fill-mode-both">
-          <a
-            href="mailto:attendly.system@gmail.com"
-            className="text-[10px] font-bold uppercase tracking-[0.4em] text-gray-500 hover:text-primary transition-all duration-300 flex items-center gap-2 group opacity-60 hover:opacity-100"
+        <footer className="relative z-10 animate-in fade-in slide-in-from-bottom duration-1000 delay-500 ease-out-expo fill-mode-both">
+          <Link
+            to="/forgot-password"
+            className="text-[9px] font-bold uppercase tracking-[0.4em] text-gray-500 hover:text-primary transition-all duration-300 flex items-center gap-2.5 group opacity-60 hover:opacity-100"
           >
-            <span className="w-1 h-1 rounded-full bg-primary/40 group-hover:bg-primary transition-colors" />
+            <span className="w-1.5 h-1.5 rounded-full bg-primary/40 group-hover:bg-primary transition-all duration-300 group-hover:scale-125" />
             Can't access your account?
-          </a>
+          </Link>
         </footer>
       </div>
 
-      {/* ─── Right Panel: Authentication ─── */}
-      <div className="flex-1 flex flex-col items-center justify-center p-6 lg:p-12 relative overflow-hidden bg-white/[0.01] backdrop-blur-3xl">
-        {/* Ambient Atmosphere Glows */}
-        <div className="absolute top-1/4 -right-20 w-80 h-80 bg-primary/10 blur-[130px] rounded-full pointer-events-none animate-pulse-slow" />
-        <div className="absolute bottom-1/4 -left-20 w-80 h-80 bg-primary/5 blur-[100px] rounded-full pointer-events-none" />
+      <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-12 lg:p-16 xl:p-24 relative overflow-hidden bg-[#030712] lg:bg-transparent">
+        {/* Mobile Background Layer (only visible on small/medium screens) */}
+        <div
+          className="lg:hidden absolute inset-0 bg-cover bg-center bg-no-repeat opacity-15 mix-blend-screen scale-110 animate-slow-zoom pointer-events-none"
+          style={{ backgroundImage: 'url("/login-bg.png")' }}
+        />
 
-        <div className="w-full max-w-md relative z-10 animate-in fade-in zoom-in-95 duration-700 ease-out-expo">
+        {/* Dynamic Mobile Gradients */}
+        <div className="lg:hidden absolute inset-0 bg-gradient-to-tr from-[#030712] via-transparent to-primary/5 pointer-events-none" />
+        <div className="lg:hidden absolute inset-0 bg-gradient-to-b from-transparent via-[#030712]/50 to-[#030712] pointer-events-none" />
+
+        {/* Ambient Atmosphere Glows */}
+        <div className="absolute top-1/4 -right-20 w-80 h-80 bg-primary/5 blur-[130px] rounded-full pointer-events-none animate-pulse-slow" />
+        <div className="absolute bottom-1/4 -left-20 w-80 h-80 bg-primary/10 blur-[130px] rounded-full pointer-events-none" />
+
+        <div className="w-full max-w-[400px] lg:max-w-[420px] relative z-10 animate-in fade-in zoom-in-95 duration-1000 ease-out-expo">
           {/* Mobile-only Branding */}
-          <div className="lg:hidden flex justify-center mb-12 text-center">
-            <div className="group flex flex-col items-center">
-              <div className="flex items-center gap-2">
-                <img src="/logo.png" alt="Attendly Logo" className="w-8 h-8 object-contain" />
+          <div className="lg:hidden flex justify-center mb-10 text-center">
+            <div className="group flex flex-col items-center animate-in fade-in slide-in-from-top-4 duration-700">
+              <div className="flex items-center gap-2.5">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-primary/10 blur-xl rounded-full" />
+                  <img src="/logo.png" alt="Attendly Logo" className="w-9 h-9 object-contain relative z-10" />
+                </div>
                 <span className="text-3xl font-extrabold text-white tracking-tighter">Attendly</span>
               </div>
+              <p className="mt-1.5 text-gray-600 text-[10px] font-bold uppercase tracking-[0.2em] opacity-60">Digital Attendance System</p>
             </div>
           </div>
 
-          <div className="glass-card shadow-3xl">
-            <div className="p-8 sm:p-12">
-              <div className="mb-10 text-center">
-                <h2 className="text-3xl font-bold text-white tracking-tight mb-2">Sign In</h2>
-                <p className="text-gray-400 font-light text-sm">Access your personal campus dashboard.</p>
+          <div className="glass-card shadow-3xl border-white/[0.08]">
+            <div className="p-8 sm:p-11">
+              <div className="mb-10 text-center animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200 fill-mode-both">
+                <h2 className="text-3xl font-bold text-white tracking-tighter mb-2">Sign In</h2>
+                <p className="text-gray-500 font-medium text-xs">Access your personal dashboard.</p>
               </div>
 
               <form onSubmit={handleSubmit} className="grid gap-7">
                 <AuthField
                   id="email"
-                  label="Campus Email"
+                  label="Email"
                   type="email"
-                  placeholder="name@institution.edu"
+                  placeholder="name@institution.com"
                   value={formData.email}
                   onChange={(val) => setFormData(prev => ({ ...prev, email: val }))}
                   disabled={isLoading}
                   required
                 />
 
-                <AuthField
-                  id="password"
-                  label="Password"
-                  type="password"
-                  placeholder="••••••••••••"
-                  value={formData.password}
-                  onChange={(val) => setFormData(prev => ({ ...prev, password: val }))}
-                  disabled={isLoading}
-                  required
-                  showToggle
-                  isToggled={showPassword}
-                  onToggle={() => setShowPassword(!showPassword)}
-                />
-
-                <div className="flex justify-end -mt-4">
-                  <a href="/forgot-password" className="text-xs text-gray-400 hover:text-white transition-colors">
-                    Forgot Password?
-                  </a>
+                <div className="space-y-2">
+                  <AuthField
+                    id="password"
+                    label="Password"
+                    type="password"
+                    placeholder="••••••••••••"
+                    value={formData.password}
+                    onChange={(val) => setFormData(prev => ({ ...prev, password: val }))}
+                    disabled={isLoading}
+                    required
+                    showToggle
+                    isToggled={showPassword}
+                    onToggle={() => setShowPassword(!showPassword)}
+                  />
+                  <div className="flex justify-end pr-0.5 animate-in fade-in duration-1000 delay-500">
+                    <Link to="/forgot-password" className="text-[9px] font-bold uppercase tracking-widest text-gray-600 hover:text-primary transition-all duration-300">
+                      Forgot Password?
+                    </Link>
+                  </div>
                 </div>
 
                 <Button
                   type="submit"
-                  className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-bold transition-all duration-300 active:scale-[0.98] shadow-lg rounded-2xl mt-4 group relative overflow-hidden"
+                  name="signin-button"
+                  className="w-full h-11 bg-primary hover:bg-primary/95 text-primary-foreground font-bold transition-all duration-500 active:scale-[0.97] shadow-[0_0_20px_rgba(16,185,129,0.15)] rounded-xl mt-2 group relative overflow-hidden"
                   disabled={isLoading}
                 >
-                  <span className="relative z-10 flex items-center justify-center gap-2 text-base">
+                  <span className="relative z-10 flex items-center justify-center gap-2.5 text-sm tracking-tight">
                     {isLoading ? (
                       <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        {loadingText}
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span className="animate-pulse">{loadingText}</span>
                       </>
                     ) : (
                       <>
-                        Sign In
-                        <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                        Sign In to Dashboard
+                        <ArrowRight className="w-4 h-4 transition-transform duration-500 group-hover:translate-x-1.5" />
                       </>
                     )}
                   </span>
@@ -289,8 +309,8 @@ const Login: React.FC = () => {
             </div>
           </div>
 
-          <footer className="mt-12 text-center text-gray-600">
-            <p className="text-[10px] uppercase tracking-[0.4em] font-bold opacity-30">
+          <footer className="mt-12 text-center animate-in fade-in duration-1000 delay-1000 fill-mode-both">
+            <p className="text-[9px] uppercase tracking-[0.4em] font-bold text-gray-700/50">
               © 2026 Attendly • Digital Learning System
             </p>
           </footer>
@@ -311,6 +331,11 @@ const Login: React.FC = () => {
           50% { opacity: 0.15; transform: scale(1.05); }
         }
         .animate-pulse-slow { animation: pulse-slow 8s ease-in-out infinite; }
+        @keyframes slow-zoom {
+          0% { transform: scale(1.1); }
+          100% { transform: scale(1.2); }
+        }
+        .animate-slow-zoom { animation: slow-zoom 30s infinite alternate ease-in-out; }
       `}</style>
     </div>
   );
