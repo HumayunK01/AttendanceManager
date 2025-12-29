@@ -262,9 +262,13 @@ const AdminDashboard: React.FC = () => {
   };
 
   const avgAttendance = useMemo(() => {
-    if (studentsData.length === 0) return 0;
-    const total = studentsData.reduce((sum, s) => sum + (s.attendance || 0), 0);
-    return Math.round(total / studentsData.length);
+    if (!studentsData || studentsData.length === 0) return 0;
+    const total = studentsData.reduce((sum, s) => {
+      const attendance = parseFloat(s.attendance);
+      return sum + (isNaN(attendance) ? 0 : attendance);
+    }, 0);
+    const avg = total / studentsData.length;
+    return isNaN(avg) ? 0 : Math.round(avg);
   }, [studentsData]);
 
   const defaultersCount = useMemo(() => {
