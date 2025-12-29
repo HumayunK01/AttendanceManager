@@ -131,6 +131,7 @@ export const exportSessionCSV = async (req, res) => {
         asn.id,
         asn.session_date,
         ts.start_time,
+        ts.end_time,
         s.name as subject_name,
         CONCAT(p.name, ' Y', c.batch_year, CASE WHEN d.name IS NOT NULL THEN '-' || d.name ELSE '' END) as class_name
       FROM attendance_sessions asn
@@ -175,8 +176,14 @@ export const exportSessionCSV = async (req, res) => {
 
     const csv = header + rows;
 
+    // Format filename with date and time range
+    const dateStr = new Date(session.session_date).toLocaleDateString('en-GB').split('/').join('-');
+    const startTimeStr = session.start_time.replace(':', '-');
+    const endTimeStr = session.end_time.replace(':', '-');
+    const filename = `attendance_${dateStr}_${startTimeStr}_${endTimeStr}.csv`;
+
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename=attendance_${sessionId}.csv`);
+    res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
     res.send(csv);
   } catch (error) {
     console.error('Error exporting CSV:', error);
@@ -194,6 +201,7 @@ export const exportSessionPDF = async (req, res) => {
         asn.id,
         asn.session_date,
         ts.start_time,
+        ts.end_time,
         s.name as subject_name,
         CONCAT(p.name, ' Y', c.batch_year, CASE WHEN d.name IS NOT NULL THEN '-' || d.name ELSE '' END) as class_name
       FROM attendance_sessions asn
@@ -227,11 +235,26 @@ export const exportSessionPDF = async (req, res) => {
     const presentCount = records.filter(r => r.status === 'P').length;
     const absentCount = records.filter(r => r.status === 'A').length;
 
+    // Helper function to convert 24-hour time to 12-hour format
+    const formatTime12Hour = (time24) => {
+      const [hours, minutes] = time24.split(':');
+      const hour = parseInt(hours);
+      const ampm = hour >= 12 ? 'PM' : 'AM';
+      const hour12 = hour % 12 || 12;
+      return `${hour12}:${minutes} ${ampm}`;
+    };
+
     // Create PDF using PDFKit
     const doc = new PDFDocument({ margin: 50, size: 'A4' });
 
+    // Format filename with date and time range
+    const dateStr = new Date(sessionInfo.session_date).toLocaleDateString('en-GB').split('/').join('-');
+    const startTimeStr = sessionInfo.start_time.replace(':', '-');
+    const endTimeStr = sessionInfo.end_time.replace(':', '-');
+    const filename = `attendance_${dateStr}_${startTimeStr}_${endTimeStr}.pdf`;
+
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=attendance_${sessionId}.pdf`);
+    res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
 
     doc.pipe(res);
 
@@ -250,9 +273,11 @@ export const exportSessionPDF = async (req, res) => {
       .text('Attendance Report', 50, 45);
 
     // Session Date/Time in Header
+    const startTime12 = formatTime12Hour(sessionInfo.start_time);
+    const endTime12 = formatTime12Hour(sessionInfo.end_time);
     doc.fontSize(12)
       .font('Helvetica')
-      .text(`${new Date(sessionInfo.session_date).toLocaleDateString('en-GB')} • ${sessionInfo.start_time}`, 50, 80);
+      .text(`${new Date(sessionInfo.session_date).toLocaleDateString('en-GB')} • ${startTime12} - ${endTime12}`, 50, 80);
 
     doc.moveDown();
 
@@ -313,9 +338,13 @@ export const exportSessionPDF = async (req, res) => {
     if (records.length === 0) {
       doc.fillColor('#64748b').text('No attendance records found.', 65, yPos + 15);
     } else {
+      const rowHeight = 30;
+      const pageBottomMargin = 80; // Leave space at bottom of page
+
       records.forEach((r, i) => {
-        // Check page break
-        if (yPos > doc.page.height - 50) {
+        // Check if we need a page break BEFORE drawing the row
+        // Ensure we have space for the row (30px) plus margin
+        if (yPos + rowHeight > doc.page.height - pageBottomMargin) {
           doc.addPage();
           yPos = 50;
 
@@ -331,7 +360,7 @@ export const exportSessionPDF = async (req, res) => {
 
         // Zebra striping
         if (i % 2 === 1) {
-          doc.rect(50, yPos, contentWidth, 30).fill('#f8fafc');
+          doc.rect(50, yPos, contentWidth, rowHeight).fill('#f8fafc');
         }
 
         doc.fillColor('#334155');
@@ -347,21 +376,14 @@ export const exportSessionPDF = async (req, res) => {
         doc.text(r.status === 'P' ? 'Present' : 'Absent', 450, textY);
 
         doc.font('Helvetica'); // Reset
-        yPos += 30;
+        yPos += rowHeight;
       });
     }
 
     // Matches the bottom line
     doc.moveTo(50, yPos).lineTo(50 + contentWidth, yPos).strokeColor('#e2e8f0').stroke();
 
-    // Footer with Page Numbers
-    const range = doc.bufferedPageRange(); // { start: 0, count: 2 }
-    for (let i = 0; i < range.count; i++) {
-      doc.switchToPage(i);
-      doc.fontSize(8).fillColor('#94a3b8')
-        .text(`Page ${i + 1} of ${range.count}`, 50, doc.page.height - 50, { align: 'center', width: contentWidth });
-    }
-
+    // End the document
     doc.end();
   } catch (error) {
     console.error('Error exporting PDF:', error);
@@ -383,16 +405,39 @@ export const getLeaderboardStats = async (req, res) => {
     const facultyId = facultyRecord[0].id;
 
     // 2. Determine Scope
-    const { classId, subjectId } = req.query;
+    const { classId, subjectId, type } = req.query;
 
     if (classId && subjectId) {
       // --- Specific Leaderboard ---
+
+      // Filter condition for sessions based on type and student batch
+      const sessionFilter = (type === 'theory')
+        ? sql`AND ts.batch_id IS NULL`
+        : (type === 'practical')
+          ? sql`AND ts.batch_id = s.batch_id`
+          : sql`AND (ts.batch_id IS NULL OR ts.batch_id = s.batch_id)`;
+
+      // Filter for the attended sessions check (Applied inside COUNT to avoid filtering out students)
+      const countConditional = (type === 'theory')
+        ? sql`AND ts_ar.batch_id IS NULL`
+        : (type === 'practical')
+          ? sql`AND ts_ar.batch_id IS NOT NULL`
+          : sql``;
+
       const leaderboardData = await sql`
         SELECT 
           s.id as student_id,
           s.roll_no,
           u.name as student_name,
-          COUNT(DISTINCT ar.session_id) as attended,
+          b.name as batch_name,
+          
+          -- Count attended sessions (filtered by type)
+          COUNT(DISTINCT CASE 
+            WHEN ar.status = 'P' ${countConditional} 
+            THEN ar.session_id 
+          END) as attended,
+
+          -- Calculate total sessions applicable to this student
           (
             SELECT COUNT(DISTINCT asn.id)
             FROM attendance_sessions asn
@@ -402,24 +447,20 @@ export const getLeaderboardStats = async (req, res) => {
               AND fsm.subject_id = ${subjectId}
               AND fsm.faculty_id = ${facultyId}
               AND asn.is_archived = false
+              ${sessionFilter}
           ) as total_sessions
+
         FROM students s
         JOIN users u ON u.id = s.user_id
-        LEFT JOIN attendance_records ar ON ar.student_id = s.id 
-          AND ar.status = 'P'
-          AND ar.session_id IN (
-             SELECT asn.id
-             FROM attendance_sessions asn
-             JOIN timetable_slots ts ON ts.id = asn.timetable_slot_id
-             JOIN faculty_subject_map fsm ON fsm.id = ts.faculty_subject_map_id
-             WHERE fsm.class_id = ${classId} 
-               AND fsm.subject_id = ${subjectId}
-               AND fsm.faculty_id = ${facultyId}
-               AND asn.is_archived = false
-          )
+        LEFT JOIN batches b ON b.id = s.batch_id
+        LEFT JOIN attendance_records ar ON ar.student_id = s.id AND ar.status = 'P'
+        LEFT JOIN attendance_sessions asn_ar ON asn_ar.id = ar.session_id
+        LEFT JOIN timetable_slots ts_ar ON ts_ar.id = asn_ar.timetable_slot_id
+        
         WHERE s.class_id = ${classId} AND s.is_active = true
-        GROUP BY s.id, s.roll_no, u.name
-        ORDER BY attended DESC, s.roll_no ASC
+        
+        GROUP BY s.id, s.roll_no, u.name, s.batch_id, b.name
+        ORDER BY b.name ASC, attended DESC, s.roll_no ASC
       `;
 
       // Enriched process
@@ -431,6 +472,7 @@ export const getLeaderboardStats = async (req, res) => {
           id: s.student_id,
           rollNo: s.roll_no,
           name: s.student_name,
+          batchName: s.batch_name || 'Unassigned',
           attended,
           total,
           percentage: total > 0 ? Math.round((attended / total) * 100) : 0
@@ -475,76 +517,84 @@ export const getAttendanceRecords = async (req, res) => {
     if (!facultyRecord.length) return res.status(404).json({ error: 'Faculty record not found' });
     const facultyId = facultyRecord[0].id;
 
-    const { classId, batchId, subjectId } = req.query;
+    const { classId, batchId, subjectId, type } = req.query;
 
     if (!classId || !subjectId) {
       return res.status(400).json({ error: 'classId and subjectId are required' });
     }
 
-    // 1. Get all locked sessions for this class, subject, and batch (if specified)
-    const sessionsQuery = batchId
-      ? sql`
-          SELECT 
-            asn.id as session_id,
-            asn.session_date,
-            ts.start_time
-          FROM attendance_sessions asn
-          JOIN timetable_slots ts ON ts.id = asn.timetable_slot_id
-          JOIN faculty_subject_map fsm ON fsm.id = ts.faculty_subject_map_id
-          WHERE fsm.faculty_id = ${facultyId}
-            AND fsm.class_id = ${classId}
-            AND fsm.subject_id = ${subjectId}
-            AND (ts.batch_id = ${batchId} OR ts.batch_id IS NULL)
-            AND asn.locked = true
-            AND asn.is_archived = false
-          ORDER BY asn.session_date ASC, ts.start_time ASC
-        `
-      : sql`
-          SELECT 
-            asn.id as session_id,
-            asn.session_date,
-            ts.start_time
-          FROM attendance_sessions asn
-          JOIN timetable_slots ts ON ts.id = asn.timetable_slot_id
-          JOIN faculty_subject_map fsm ON fsm.id = ts.faculty_subject_map_id
-          WHERE fsm.faculty_id = ${facultyId}
-            AND fsm.class_id = ${classId}
-            AND fsm.subject_id = ${subjectId}
-            AND ts.batch_id IS NULL
-            AND asn.locked = true
-            AND asn.is_archived = false
-          ORDER BY asn.session_date ASC, ts.start_time ASC
-        `;
+    // Determine session filter based on type
+    // If type is 'theory', only get NULL batch_id
+    // If type is 'practical', get non-NULL batch_id (and filter by specific batch if provided)
+    // If type is not specified (legacy), keep existing behavior or default to both? Let's default to theory if no batch, both if batch.
 
-    const sessions = await sessionsQuery;
+    let sessionCondition = sql``;
 
-    // 2. Get all students in this class/batch
-    const studentsQuery = batchId
-      ? sql`
-          SELECT 
-            s.id as student_id,
-            s.roll_no,
-            u.name as full_name
-          FROM students s
-          JOIN users u ON u.id = s.user_id
-          WHERE s.class_id = ${classId}
-            AND s.batch_id = ${batchId}
-            AND s.is_active = true
-          ORDER BY s.roll_no ASC
-        `
-      : sql`
-          SELECT 
-            s.id as student_id,
-            s.roll_no,
-            u.name as full_name
-          FROM students s
-          JOIN users u ON u.id = s.user_id
-          WHERE s.class_id = ${classId}
-            AND s.is_active = true
-          ORDER BY s.roll_no ASC
-        `;
+    if (type === 'theory') {
+      sessionCondition = sql`AND ts.batch_id IS NULL`;
+    } else if (type === 'practical') {
+      if (batchId) {
+        sessionCondition = sql`AND ts.batch_id = ${batchId}`;
+      } else {
+        sessionCondition = sql`AND ts.batch_id IS NOT NULL`;
+      }
+    } else {
+      // Fallback/Legacy logic
+      if (batchId) {
+        sessionCondition = sql`AND (ts.batch_id = ${batchId} OR ts.batch_id IS NULL)`;
+      } else {
+        sessionCondition = sql`AND ts.batch_id IS NULL`;
+      }
+    }
 
-    const students = await studentsQuery;
+    // 1. Get all locked sessions
+    const sessions = await sql`
+      SELECT 
+        asn.id as session_id,
+        asn.session_date,
+        ts.start_time,
+        ts.end_time,
+        ts.batch_id,
+        b.name as batch_name
+      FROM attendance_sessions asn
+      JOIN timetable_slots ts ON ts.id = asn.timetable_slot_id
+      JOIN faculty_subject_map fsm ON fsm.id = ts.faculty_subject_map_id
+      LEFT JOIN batches b ON b.id = ts.batch_id
+      WHERE fsm.faculty_id = ${facultyId}
+        AND fsm.class_id = ${classId}
+        AND fsm.subject_id = ${subjectId}
+        ${sessionCondition}
+        AND asn.locked = true
+        AND asn.is_archived = false
+      ORDER BY asn.session_date ASC, ts.start_time ASC
+    `;
+
+    // 2. Get students
+    // If type is practical and batchId is provided, filter students.
+    // Otherwise get all students.
+
+    let studentCondition = sql``;
+    if (type === 'practical' && batchId) {
+      studentCondition = sql`AND s.batch_id = ${batchId}`;
+    } else if (!type && batchId) {
+      // Legacy behavior: if batch provided, filter students?
+      // The original code filtered students if batchId was present.
+      studentCondition = sql`AND s.batch_id = ${batchId}`;
+    }
+
+    const students = await sql`
+      SELECT 
+        s.id as student_id,
+        s.roll_no,
+        u.name as full_name,
+        s.batch_id
+      FROM students s
+      JOIN users u ON u.id = s.user_id
+      WHERE s.class_id = ${classId}
+        AND s.is_active = true
+        ${studentCondition}
+      ORDER BY s.roll_no ASC
+    `;
 
     // 3. Get all attendance records for these sessions
     const sessionIds = sessions.map(s => s.session_id);
@@ -581,17 +631,25 @@ export const getAttendanceRecords = async (req, res) => {
       // Add attendance for each session
       sessions.forEach(session => {
         const key = `${student.student_id}-${session.session_id}`;
-        const dateKey = new Date(session.session_date).toLocaleDateString('en-GB').split('/').join('-');
+        // Include time range and batch name to differentiate sessions
+        let dateKey = `${new Date(session.session_date).toLocaleDateString('en-GB').split('/').join('-')} ${session.start_time}-${session.end_time}`;
+        if (session.batch_name) {
+          dateKey += ` (${session.batch_name})`;
+        }
         record.attendance[dateKey] = attendanceMap[key] || '-';
       });
 
       return record;
     });
 
-    // 5. Build date headers
-    const dateHeaders = sessions.map(session =>
-      new Date(session.session_date).toLocaleDateString('en-GB').split('/').join('-')
-    );
+    // 5. Build date headers with time range and batch name
+    const dateHeaders = sessions.map(session => {
+      let header = `${new Date(session.session_date).toLocaleDateString('en-GB').split('/').join('-')} ${session.start_time}-${session.end_time}`;
+      if (session.batch_name) {
+        header += ` (${session.batch_name})`;
+      }
+      return header;
+    });
 
     res.json({
       dateHeaders,

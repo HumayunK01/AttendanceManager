@@ -113,10 +113,20 @@ const FacultyReports: React.FC = () => {
                 responseType: 'blob',
             });
 
+            // Extract filename from Content-Disposition header
+            const contentDisposition = response.headers['content-disposition'];
+            let filename = `attendance_${sessionId}.csv`; // fallback
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename=(.+)/);
+                if (filenameMatch) {
+                    filename = filenameMatch[1].replace(/["']/g, '');
+                }
+            }
+
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', `attendance_${sessionId}.csv`);
+            link.setAttribute('download', filename);
             document.body.appendChild(link);
             link.click();
             link.remove();
@@ -141,10 +151,20 @@ const FacultyReports: React.FC = () => {
                 responseType: 'blob',
             });
 
+            // Extract filename from Content-Disposition header
+            const contentDisposition = response.headers['content-disposition'];
+            let filename = `attendance_${sessionId}.pdf`; // fallback
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename=(.+)/);
+                if (filenameMatch) {
+                    filename = filenameMatch[1].replace(/["']/g, '');
+                }
+            }
+
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', `attendance_${sessionId}.pdf`);
+            link.setAttribute('download', filename);
             document.body.appendChild(link);
             link.click();
             link.remove();

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Award, Trophy, Medal, Search, Users, Filter, BookOpen, AlertCircle } from 'lucide-react';
+import { Award, Trophy, Medal, Search, Users, Filter, BookOpen, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react';
 import FacultyLayout from '@/layouts/FacultyLayout';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -16,6 +16,7 @@ interface LeaderboardEntry {
     attended: number;
     total: number;
     percentage: number;
+    batchName?: string;
 }
 
 interface ClassSubjectOption {
@@ -28,7 +29,9 @@ interface ClassSubjectOption {
 const FacultyLeaderboard: React.FC = () => {
     const [options, setOptions] = useState<ClassSubjectOption[]>([]);
     const [selectedOption, setSelectedOption] = useState<string>(''); // Combined "classId-subjectId"
+    const [lectureType, setLectureType] = useState<string>('both'); // "both", "theory", "practical"
     const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+    const [expandedBatches, setExpandedBatches] = useState<Record<string, boolean>>({});
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const { toast } = useToast();
@@ -40,9 +43,9 @@ const FacultyLeaderboard: React.FC = () => {
     useEffect(() => {
         if (selectedOption) {
             const [classId, subjectId] = selectedOption.split('-');
-            fetchLeaderboard(classId, subjectId);
+            fetchLeaderboard(classId, subjectId, lectureType);
         }
-    }, [selectedOption]);
+    }, [selectedOption, lectureType]);
 
     const fetchOptions = async () => {
         try {
@@ -66,11 +69,11 @@ const FacultyLeaderboard: React.FC = () => {
         }
     };
 
-    const fetchLeaderboard = async (classId: string, subjectId: string) => {
+    const fetchLeaderboard = async (classId: string, subjectId: string, type: string) => {
         setIsLoading(true);
         try {
             const response = await api.get('/faculty/leaderboard', {
-                params: { classId, subjectId }
+                params: { classId, subjectId, type }
             });
             setLeaderboard(response.data.data);
         } catch (error) {
@@ -106,6 +109,13 @@ const FacultyLeaderboard: React.FC = () => {
 
     const activeStudents = leaderboard.filter(s => s.percentage >= 75).length;
 
+    const toggleBatch = (batchName: string) => {
+        setExpandedBatches(prev => ({
+            ...prev,
+            [batchName]: prev[batchName] === false ? true : false
+        }));
+    };
+
     return (
         <FacultyLayout>
             <div className="space-y-6 animate-fade-in pb-8">
@@ -121,24 +131,40 @@ const FacultyLeaderboard: React.FC = () => {
                         </p>
                     </div>
 
-                    {/* Class Selector */}
-                    <div className="w-full md:w-64">
-                        <Select value={selectedOption} onValueChange={setSelectedOption}>
-                            <SelectTrigger className="h-10 rounded-xl bg-secondary/50 border-border/50">
-                                <div className="flex items-center gap-2 truncate">
-                                    <BookOpen className="w-4 h-4 text-muted-foreground" />
-                                    <SelectValue placeholder="Select Class" />
-                                </div>
-                            </SelectTrigger>
-                            <SelectContent className="bg-background/95 backdrop-blur-xl border-border/50 rounded-xl max-h-[300px]">
-                                {options.map((opt) => (
-                                    <SelectItem key={`${opt.class_id}-${opt.subject_id}`} value={`${opt.class_id}-${opt.subject_id}`}>
-                                        <span className="font-medium">{opt.class_name}</span>
-                                        <span className="text-xs text-muted-foreground ml-2">({opt.subject_name})</span>
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                    <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                        <div className="w-full md:w-40">
+                            <Select value={lectureType} onValueChange={setLectureType}>
+                                <SelectTrigger className="h-10 rounded-xl bg-secondary/50 border-border/50">
+                                    <div className="flex items-center gap-2 truncate">
+                                        <Filter className="w-4 h-4 text-muted-foreground" />
+                                        <SelectValue placeholder="Lecture Type" />
+                                    </div>
+                                </SelectTrigger>
+                                <SelectContent className="bg-background/95 backdrop-blur-xl border-border/50 rounded-xl">
+                                    <SelectItem value="both">Both</SelectItem>
+                                    <SelectItem value="theory">Theory Only</SelectItem>
+                                    <SelectItem value="practical">Practical Only</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="w-full md:w-64">
+                            <Select value={selectedOption} onValueChange={setSelectedOption}>
+                                <SelectTrigger className="h-10 rounded-xl bg-secondary/50 border-border/50">
+                                    <div className="flex items-center gap-2 truncate">
+                                        <BookOpen className="w-4 h-4 text-muted-foreground" />
+                                        <SelectValue placeholder="Select Class" />
+                                    </div>
+                                </SelectTrigger>
+                                <SelectContent className="bg-background/95 backdrop-blur-xl border-border/50 rounded-xl max-h-[300px]">
+                                    {options.map((opt) => (
+                                        <SelectItem key={`${opt.class_id}-${opt.subject_id}`} value={`${opt.class_id}-${opt.subject_id}`}>
+                                            <span className="font-medium">{opt.class_name}</span>
+                                            <span className="text-xs text-muted-foreground ml-2">({opt.subject_name})</span>
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
                 </div>
 
@@ -219,47 +245,129 @@ const FacultyLeaderboard: React.FC = () => {
                                         </td>
                                     </tr>
                                 ) : (
-                                    filteredData.map((student) => (
-                                        <tr key={student.id} className="group hover:bg-secondary/30 transition-colors">
-                                            <td className="px-4 py-3">
-                                                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-secondary/50 font-bold group-hover:bg-background transition-colors">
-                                                    {getRankIcon(student.rank)}
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                <div className="flex flex-col">
-                                                    <span className="font-bold text-foreground">{student.name}</span>
-                                                    <span className="text-[10px] font-mono text-muted-foreground">{student.rollNo}</span>
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-3 text-center">
-                                                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-secondary/50 text-xs font-medium">
-                                                    {student.attended} <span className="text-muted-foreground text-[10px]">/ {student.total}</span>
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-3 text-right">
-                                                <div className="flex items-center justify-end gap-3">
-                                                    <div className="w-24 h-1.5 bg-secondary rounded-full overflow-hidden hidden sm:block">
-                                                        <div
-                                                            className={cn(
-                                                                "h-full rounded-full transition-all duration-500",
-                                                                student.percentage >= 75 ? "bg-success" :
-                                                                    student.percentage >= 60 ? "bg-warning" : "bg-destructive"
-                                                            )}
-                                                            style={{ width: `${student.percentage}%` }}
-                                                        />
-                                                    </div>
-                                                    <span className={cn(
-                                                        "font-black text-sm w-12",
-                                                        student.percentage >= 75 ? "text-success" :
-                                                            student.percentage >= 60 ? "text-warning" : "text-destructive"
-                                                    )}>
-                                                        {student.percentage}%
-                                                    </span>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))
+
+                                    (() => {
+                                        // Group by batch if practical or both
+                                        if (lectureType === 'practical' || lectureType === 'both') {
+                                            const grouped: { [key: string]: LeaderboardEntry[] } = {};
+                                            filteredData.forEach(s => {
+                                                const batch = s.batchName || 'Unassigned';
+                                                if (!grouped[batch]) grouped[batch] = [];
+                                                grouped[batch].push(s);
+                                            });
+
+                                            return Object.entries(grouped).map(([batchName, students]) => {
+                                                const isExpanded = expandedBatches[batchName] !== false; // Default to expanded
+                                                return (
+                                                    <React.Fragment key={batchName}>
+                                                        <tr
+                                                            className="bg-secondary/10 border-y border-border/50 cursor-pointer hover:bg-secondary/20 transition-colors select-none"
+                                                            onClick={() => toggleBatch(batchName)}
+                                                        >
+                                                            <td colSpan={4} className="px-4 py-2">
+                                                                <div className="flex items-center gap-2">
+                                                                    {isExpanded ?
+                                                                        <ChevronDown className="w-4 h-4 text-primary/70" /> :
+                                                                        <ChevronRight className="w-4 h-4 text-primary/70" />
+                                                                    }
+                                                                    <span className="text-xs font-black uppercase tracking-widest text-primary/70">
+                                                                        Batch: {batchName}
+                                                                    </span>
+                                                                    <span className="ml-auto inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold">
+                                                                        {students.length} Students
+                                                                    </span>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                        {isExpanded && students.map((student) => (
+                                                            <tr key={student.id} className="group hover:bg-secondary/30 transition-colors">
+                                                                <td className="px-4 py-3">
+                                                                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-secondary/50 font-bold group-hover:bg-background transition-colors">
+                                                                        {getRankIcon(student.rank)}
+                                                                    </div>
+                                                                </td>
+                                                                <td className="px-4 py-3">
+                                                                    <div className="flex flex-col">
+                                                                        <span className="font-bold text-foreground">{student.name}</span>
+                                                                        <span className="text-[10px] font-mono text-muted-foreground">{student.rollNo}</span>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="px-4 py-3 text-center">
+                                                                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-secondary/50 text-xs font-medium">
+                                                                        {student.attended} <span className="text-muted-foreground text-[10px]">/ {student.total}</span>
+                                                                    </span>
+                                                                </td>
+                                                                <td className="px-4 py-3 text-right">
+                                                                    <div className="flex items-center justify-end gap-3">
+                                                                        <div className="w-24 h-1.5 bg-secondary rounded-full overflow-hidden hidden sm:block">
+                                                                            <div
+                                                                                className={cn(
+                                                                                    "h-full rounded-full transition-all duration-500",
+                                                                                    student.percentage >= 75 ? "bg-success" :
+                                                                                        student.percentage >= 60 ? "bg-warning" : "bg-destructive"
+                                                                                )}
+                                                                                style={{ width: `${student.percentage}%` }}
+                                                                            />
+                                                                        </div>
+                                                                        <span className={cn(
+                                                                            "font-black text-sm w-12",
+                                                                            student.percentage >= 75 ? "text-success" :
+                                                                                student.percentage >= 60 ? "text-warning" : "text-destructive"
+                                                                        )}>
+                                                                            {student.percentage}%
+                                                                        </span>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </React.Fragment>
+                                                )
+                                            });
+                                        } else {
+                                            // Regular list for Theory
+                                            return filteredData.map((student) => (
+                                                <tr key={student.id} className="group hover:bg-secondary/30 transition-colors">
+                                                    <td className="px-4 py-3">
+                                                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-secondary/50 font-bold group-hover:bg-background transition-colors">
+                                                            {getRankIcon(student.rank)}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <div className="flex flex-col">
+                                                            <span className="font-bold text-foreground">{student.name}</span>
+                                                            <span className="text-[10px] font-mono text-muted-foreground">{student.rollNo}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-center">
+                                                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-secondary/50 text-xs font-medium">
+                                                            {student.attended} <span className="text-muted-foreground text-[10px]">/ {student.total}</span>
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right">
+                                                        <div className="flex items-center justify-end gap-3">
+                                                            <div className="w-24 h-1.5 bg-secondary rounded-full overflow-hidden hidden sm:block">
+                                                                <div
+                                                                    className={cn(
+                                                                        "h-full rounded-full transition-all duration-500",
+                                                                        student.percentage >= 75 ? "bg-success" :
+                                                                            student.percentage >= 60 ? "bg-warning" : "bg-destructive"
+                                                                    )}
+                                                                    style={{ width: `${student.percentage}%` }}
+                                                                />
+                                                            </div>
+                                                            <span className={cn(
+                                                                "font-black text-sm w-12",
+                                                                student.percentage >= 75 ? "text-success" :
+                                                                    student.percentage >= 60 ? "text-warning" : "text-destructive"
+                                                            )}>
+                                                                {student.percentage}%
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ));
+                                        }
+                                    })()
                                 )}
                             </tbody>
                         </table>

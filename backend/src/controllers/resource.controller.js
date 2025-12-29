@@ -167,7 +167,9 @@ ts.id,
     CONCAT(p.name, ' Y', c.batch_year, CASE WHEN d.name IS NOT NULL THEN '-' || d.name ELSE '' END) as "className",
     ts.day_of_week as "dayOfWeek",
     ts.start_time as "startTime",
-    ts.end_time as "endTime"
+    ts.end_time as "endTime",
+    ts.batch_id as "batchId",
+    b.name as "batchName"
       FROM timetable_slots ts
       JOIN faculty_subject_map fsm ON fsm.id = ts.faculty_subject_map_id
       JOIN faculty f ON f.id = fsm.faculty_id
@@ -176,6 +178,7 @@ ts.id,
       JOIN classes c ON c.id = fsm.class_id
       JOIN programs p ON p.id = c.program_id
       LEFT JOIN divisions d ON d.id = c.division_id
+      LEFT JOIN batches b ON b.id = ts.batch_id
       ORDER BY ts.day_of_week ASC, ts.start_time ASC
     `
         res.json(slots)

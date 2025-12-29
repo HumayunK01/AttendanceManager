@@ -58,6 +58,8 @@ interface TimetableSlot {
   dayOfWeek: number;
   startTime: string;
   endTime: string;
+  batchId?: string | null;
+  batchName?: string | null;
 }
 
 interface Mapping {
@@ -65,6 +67,12 @@ interface Mapping {
   facultyName: string;
   subjectName: string;
   className: string;
+  classId: string;
+}
+
+interface Batch {
+  id: number;
+  name: string;
 }
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -124,9 +132,21 @@ const TableRow = memo(({
       </div>
     </td>
     <td className="px-6">
-      <span className="inline-flex items-center px-2 py-1 rounded-lg bg-primary/10 text-primary text-[10px] font-black border border-primary/20 uppercase tracking-widest">
-        {slot.className}
-      </span>
+      <div className="inline-flex items-center gap-2">
+        <span className="inline-flex items-center px-2 py-1 rounded-lg bg-primary/10 text-primary text-[10px] font-black border border-primary/20 uppercase tracking-widest whitespace-nowrap">
+          {slot.className}
+        </span>
+        {/* Theory/Practical Badge */}
+        {slot.batchName ? (
+          <span className="inline-flex items-center px-2 py-1 rounded-md bg-purple-500/10 text-purple-600 dark:text-purple-400 text-[9px] font-black border border-purple-500/20 uppercase tracking-wider whitespace-nowrap">
+            Practical • {slot.batchName}
+          </span>
+        ) : (
+          <span className="inline-flex items-center px-2 py-1 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[9px] font-black border border-blue-500/20 uppercase tracking-wider whitespace-nowrap">
+            Theory
+          </span>
+        )}
+      </div>
     </td>
     <td className="px-6">
       <div className="flex items-center justify-end gap-2">
@@ -158,12 +178,13 @@ TableRow.displayName = 'TableRow';
 const TimetablePage: React.FC = () => {
   const [slots, setSlots] = useState<TimetableSlot[]>([]);
   const [mappings, setMappings] = useState<Mapping[]>([]);
+  const [batches, setBatches] = useState<Batch[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedDay, setSelectedDay] = useState(1); // 1=Monday
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<TimetableSlot | null>(null);
-  const [formData, setFormData] = useState({ mappingId: '', dayOfWeek: 1, startTime: '', endTime: '' });
+  const [formData, setFormData] = useState({ mappingId: '', dayOfWeek: 1, startTime: '', endTime: '', batchId: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const { toast } = useToast();
@@ -216,14 +237,36 @@ const TimetablePage: React.FC = () => {
         mappingId: slot.mappingId,
         dayOfWeek: slot.dayOfWeek,
         startTime: slot.startTime,
-        endTime: slot.endTime
+        endTime: slot.endTime,
+        batchId: slot.batchId?.toString() || 'none'
       });
     } else {
       setSelectedSlot(null);
-      setFormData({ mappingId: '', dayOfWeek: selectedDay, startTime: '', endTime: '' });
+      setFormData({ mappingId: '', dayOfWeek: selectedDay, startTime: '', endTime: '', batchId: 'none' });
     }
     setIsDialogOpen(true);
   }, [selectedDay]);
+
+  // Fetch batches when mapping changes
+  useEffect(() => {
+    const fetchBatches = async () => {
+      if (formData.mappingId) {
+        const mapping = mappings.find(m => String(m.id) === formData.mappingId);
+        if (mapping?.classId) {
+          try {
+            const response = await adminAPI.getBatches(mapping.classId);
+            setBatches(response.data);
+          } catch (error) {
+            console.error('Failed to fetch batches:', error);
+            setBatches([]);
+          }
+        }
+      } else {
+        setBatches([]);
+      }
+    };
+    fetchBatches();
+  }, [formData.mappingId, mappings]);
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -233,11 +276,17 @@ const TimetablePage: React.FC = () => {
 
     setIsSubmitting(true);
     try {
+      // Convert 'none' to undefined for Theory lectures
+      const payload = {
+        ...formData,
+        batchId: formData.batchId === 'none' ? undefined : formData.batchId
+      };
+
       if (selectedSlot) {
-        await adminAPI.updateTimetableSlot(selectedSlot.id, formData);
+        await adminAPI.updateTimetableSlot(selectedSlot.id, payload);
         toast({ title: 'Success', description: 'Schedule updated successfully.' });
       } else {
-        await adminAPI.createTimetableSlot(formData);
+        await adminAPI.createTimetableSlot(payload);
         toast({ title: 'Success', description: 'Session added to timetable.' });
       }
       fetchData();
@@ -495,6 +544,56 @@ const TimetablePage: React.FC = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Batch Selector - Theory vs Practical */}
+              <div className="space-y-1.5">
+                <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Lecture Type</Label>
+                <Select value={formData.batchId} onValueChange={v => setFormData(f => ({ ...f, batchId: v }))} disabled={!formData.mappingId}>
+                  <SelectTrigger className="h-10 bg-secondary/50 border-border/50 rounded-xl text-sm">
+                    <SelectValue placeholder="Select mapping first">
+                      {formData.batchId === 'none' ? (
+                        <span className="flex items-center gap-2">
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 text-[9px] font-black border border-blue-500/20">THEORY</span>
+                          All Students
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-2">
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-600 text-[9px] font-black border border-purple-500/20">PRACTICAL</span>
+                          {batches.find(b => b.id.toString() === formData.batchId)?.name}
+                        </span>
+                      )}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-border/50 backdrop-blur-xl">
+                    <SelectItem value="none">
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 text-[9px] font-black border border-blue-500/20">THEORY</span>
+                        <span className="text-sm">All Students</span>
+                      </div>
+                    </SelectItem>
+                    {batches.length > 0 ? (
+                      batches.map((batch) => (
+                        <SelectItem key={batch.id} value={batch.id.toString()}>
+                          <div className="flex items-center gap-2">
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-600 text-[9px] font-black border border-purple-500/20">PRACTICAL</span>
+                            <span className="text-sm">{batch.name}</span>
+                          </div>
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <div className="px-2 py-6 text-center text-xs text-muted-foreground">
+                        {formData.mappingId ? 'No batches available for this class' : 'Select a mapping first'}
+                      </div>
+                    )}
+                  </SelectContent>
+                </Select>
+                {batches.length > 0 && (
+                  <p className="text-[10px] text-muted-foreground italic">
+                    {batches.length} batch{batches.length !== 1 ? 'es' : ''} available for practical lectures
+                  </p>
+                )}
+              </div>
+
 
               <div className="p-3 rounded-xl bg-orange-500/5 border border-orange-500/10 flex items-start gap-3">
                 <AlertCircle className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" />

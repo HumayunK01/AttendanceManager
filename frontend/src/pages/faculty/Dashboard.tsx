@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Calendar, Clock, Users, Play, FileText, Loader2, CheckCircle2, AlertCircle, Layers } from 'lucide-react';
+import { Calendar, Clock, Users, Play, FileText, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import FacultyLayout from '@/layouts/FacultyLayout';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
+// Removed unused imports
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -31,9 +29,7 @@ const FacultyDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
-  const [isBatchDialogOpen, setIsBatchDialogOpen] = useState(false);
-  const [selectedSlotForBatch, setSelectedSlotForBatch] = useState<TimetableSlot | null>(null);
-  const [selectedBatchId, setSelectedBatchId] = useState<string>('');
+
 
   useEffect(() => {
     fetchTodaySchedule();
@@ -59,9 +55,10 @@ const FacultyDashboard: React.FC = () => {
             sessionStatus = 'in_progress';
           }
         } else {
-          // No session yet - always show as not_started so user can click "Start"
-          // We don't use time-based status when there's no session
-          sessionStatus = 'not_started';
+          // No session yet - check if time has completely passed
+          const timeStatus = determineSessionStatus(slot.start_time, slot.end_time);
+          // Only mark as completed if time has passed, otherwise allow starting
+          sessionStatus = timeStatus === 'completed' ? 'completed' : 'not_started';
         }
 
         return {
@@ -106,28 +103,14 @@ const FacultyDashboard: React.FC = () => {
     return 'completed';
   };
 
-  const handleStartSession = async (slot: TimetableSlot, batchId?: string) => {
-    // If slot accepts batches but none selected, and not strictly forced (via argument), check if we need to prompt
-    if (!batchId && !slot.batchName && slot.classBatches && slot.classBatches.length > 0) {
-      setSelectedSlotForBatch(slot);
-      setSelectedBatchId('');
-      setIsBatchDialogOpen(true);
-      return;
-    }
-
+  const handleStartSession = async (slot: TimetableSlot) => {
     try {
-      const payload: any = { timetableSlotId: slot.id };
-      // Only add batchId if it's not 'all' and exists
-      if (batchId && batchId !== 'all') {
-        payload.batchId = parseInt(batchId);
-      }
-
-      const response = await api.post('/attendance/session', payload);
-
+      const response = await api.post('/attendance/session', { timetableSlotId: slot.id });
       const sessionId = response.data?.sessionId;
+
       toast({
         title: 'Session Started',
-        description: batchId === 'all' ? 'Session created for all students.' : batchId ? 'Batch session created.' : 'Attendance session created.',
+        description: 'Attendance session created.',
       });
       navigate(`/faculty/attendance/${sessionId}`);
     } catch (error: any) {
@@ -271,7 +254,19 @@ const FacultyDashboard: React.FC = () => {
 
                   {/* Subject Info */}
                   <div className="flex-1">
-                    <h3 className="text-[15px] font-black text-foreground tracking-tight mb-0.5">{slot.subjectName}</h3>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <h3 className="text-[15px] font-black text-foreground tracking-tight">{slot.subjectName}</h3>
+                      {/* Theory/Practical Badge */}
+                      {slot.batchName ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-600 dark:text-purple-400 text-[9px] font-black border border-purple-500/20 uppercase tracking-wider">
+                          Practical
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[9px] font-black border border-blue-500/20 uppercase tracking-wider">
+                          Theory
+                        </span>
+                      )}
+                    </div>
                     <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground font-medium">
                       <span className="flex items-center gap-1">
                         {slot.className}
@@ -289,19 +284,26 @@ const FacultyDashboard: React.FC = () => {
                   <div className="flex items-center gap-2">
                     {slot.sessionStatus === 'completed' && (
                       <>
-                        <span className="inline-flex items-center px-2 py-1 rounded-lg bg-success/10 text-success text-[9px] font-black border border-success/20 uppercase tracking-wider">
-                          Completed
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => slot.sessionId && navigate(`/faculty/attendance/${slot.sessionId}`)}
-                          disabled={!slot.sessionId}
-                          className="h-9 px-4 rounded-xl text-[11px] font-black uppercase tracking-wider"
-                        >
-                          <FileText className="w-3.5 h-3.5 mr-1.5" />
-                          Report
-                        </Button>
+                        {slot.sessionId ? (
+                          <>
+                            <span className="inline-flex items-center px-2 py-1 rounded-lg bg-success/10 text-success text-[9px] font-black border border-success/20 uppercase tracking-wider">
+                              Completed
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => slot.sessionId && navigate(`/faculty/attendance/${slot.sessionId}`)}
+                              className="h-9 px-4 rounded-xl text-[11px] font-black uppercase tracking-wider"
+                            >
+                              <FileText className="w-3.5 h-3.5 mr-1.5" />
+                              Report
+                            </Button>
+                          </>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-1 rounded-lg bg-muted text-muted-foreground text-[9px] font-black border border-border uppercase tracking-wider">
+                            Missed
+                          </span>
+                        )}
                       </>
                     )}
 
@@ -344,54 +346,7 @@ const FacultyDashboard: React.FC = () => {
           </div>
         )}
       </div>
-      <Dialog open={isBatchDialogOpen} onOpenChange={setIsBatchDialogOpen}>
-        <DialogContent className="bg-background/95 backdrop-blur-xl border-border/50 sm:max-w-sm rounded-2xl p-6">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-black tracking-tight flex items-center gap-2">
-              <Layers className="w-5 h-5 text-primary" />
-              Select Batch
-            </DialogTitle>
-            <DialogDescription className="text-xs">
-              Attendance for <strong>{selectedSlotForBatch?.subjectName}</strong>
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-1.5">
-              <Label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Select Attendance Scope</Label>
-              <Select value={selectedBatchId} onValueChange={setSelectedBatchId}>
-                <SelectTrigger className="h-10 rounded-xl bg-secondary/50 border-border/50">
-                  <SelectValue placeholder="Choose option..." />
-                </SelectTrigger>
-                <SelectContent className="bg-background/95 backdrop-blur-xl border-border/50 rounded-xl">
-                  <SelectItem value="all">All Students (Entire Class)</SelectItem>
-                  {selectedSlotForBatch?.classBatches?.map(b => (
-                    <SelectItem key={b.id} value={b.id.toString()}>{b.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex gap-2 text-[10px] text-muted-foreground font-medium bg-secondary/20 p-2 rounded-lg border border-border/50">
-              <AlertCircle className="w-3.5 h-3.5" />
-              <span>Select 'All Students' for regular lectures or a specific batch for practicals.</span>
-            </div>
-          </div>
-          <DialogFooter className="gap-2 sm:justify-between">
-            <Button variant="ghost" onClick={() => setIsBatchDialogOpen(false)} className="rounded-xl font-bold text-xs h-9">Cancel</Button>
-            <Button
-              onClick={() => {
-                if (selectedSlotForBatch && selectedBatchId) {
-                  handleStartSession(selectedSlotForBatch, selectedBatchId);
-                  setIsBatchDialogOpen(false);
-                }
-              }}
-              disabled={!selectedBatchId}
-              className="rounded-xl font-bold bg-primary text-primary-foreground text-xs h-9 px-6"
-            >
-              Start Session
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+
     </FacultyLayout>
   );
 };

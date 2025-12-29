@@ -174,6 +174,46 @@ const AttendanceSession: React.FC = () => {
     }
   };
 
+  const handleMarkAll = async (status: 'present' | 'absent') => {
+    if (sessionInfo?.isLocked) {
+      toast({
+        title: 'Session Locked',
+        description: 'Cannot modify attendance after session is locked.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      // Mark all students with the given status
+      const promises = students.map(student =>
+        api.post('/attendance/mark', {
+          sessionId: parseInt(sessionId!),
+          studentId: student.id,
+          status: status === 'present' ? 'P' : 'A',
+          editedBy: 1,
+        })
+      );
+
+      await Promise.all(promises);
+
+      // Update all students' status
+      setStudents(students.map(s => ({ ...s, status })));
+
+      toast({
+        title: 'Success',
+        description: `Marked all students as ${status}.`,
+      });
+    } catch (error) {
+      console.error('Failed to mark all:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to mark all students.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const filteredStudents = students.filter(
     (student) =>
       student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -282,15 +322,40 @@ const AttendanceSession: React.FC = () => {
           </div>
         </div>
 
-        {/* Search */}
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-          <Input
-            placeholder="Search students..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 bg-secondary/50"
-          />
+        {/* Search and Bulk Actions */}
+        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+            <Input
+              placeholder="Search students..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 bg-secondary/50"
+            />
+          </div>
+
+          {!sessionInfo?.isLocked && (
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleMarkAll('present')}
+                className="h-9 px-4 rounded-lg text-[11px] font-black uppercase tracking-wider border-success/20 text-success hover:bg-success/10"
+              >
+                <CheckCircle className="w-3.5 h-3.5 mr-1.5" />
+                Mark All Present
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleMarkAll('absent')}
+                className="h-9 px-4 rounded-lg text-[11px] font-black uppercase tracking-wider border-destructive/20 text-destructive hover:bg-destructive/10"
+              >
+                <XCircle className="w-3.5 h-3.5 mr-1.5" />
+                Mark All Absent
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Students List */}

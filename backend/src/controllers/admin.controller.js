@@ -130,7 +130,7 @@ export const mapFacultySubject = async (req, res) => {
 }
 
 export const createTimetableSlot = async (req, res) => {
-  const { mappingId, dayOfWeek, startTime, endTime } = req.body
+  const { mappingId, dayOfWeek, startTime, endTime, batchId } = req.body
 
   if (!mappingId || dayOfWeek === undefined || !startTime || !endTime) {
     return res.status(400).json({ error: 'Missing required fields' })
@@ -151,9 +151,10 @@ export const createTimetableSlot = async (req, res) => {
     return res.status(400).json({ error: 'Timetable slot overlaps existing lecture' })
   }
 
+  // Insert with batch_id (NULL for theory, value for practical)
   await sql`
-    INSERT INTO timetable_slots (faculty_subject_map_id, day_of_week, start_time, end_time)
-    VALUES (${mappingId}, ${dayOfWeek}, ${startTime}, ${endTime})
+    INSERT INTO timetable_slots (faculty_subject_map_id, day_of_week, start_time, end_time, batch_id)
+    VALUES (${mappingId}, ${dayOfWeek}, ${startTime}, ${endTime}, ${batchId || null})
   `
 
   res.json({ success: true })
@@ -161,7 +162,7 @@ export const createTimetableSlot = async (req, res) => {
 
 export const updateTimetableSlot = async (req, res) => {
   const { id } = req.params
-  const { mappingId, dayOfWeek, startTime, endTime } = req.body
+  const { mappingId, dayOfWeek, startTime, endTime, batchId } = req.body
 
   if (!mappingId || dayOfWeek === undefined || !startTime || !endTime) {
     return res.status(400).json({ error: 'Missing required fields' })
@@ -183,12 +184,14 @@ export const updateTimetableSlot = async (req, res) => {
     return res.status(400).json({ error: 'Timetable slot overlaps existing lecture' })
   }
 
+  // Update with batch_id (NULL for theory, value for practical)
   await sql`
     UPDATE timetable_slots
     SET faculty_subject_map_id = ${mappingId},
         day_of_week = ${dayOfWeek},
         start_time = ${startTime},
-        end_time = ${endTime}
+        end_time = ${endTime},
+        batch_id = ${batchId || null}
     WHERE id = ${id}
   `
 
