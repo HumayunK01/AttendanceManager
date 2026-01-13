@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Eye, EyeOff, ArrowRight, Loader2, ClipboardCheck, Clock, Users, LucideIcon } from 'lucide-react';
+import { Eye, EyeOff, ArrowRight, Loader2, ClipboardCheck, Clock, Users, LucideIcon, Smartphone, Download } from 'lucide-react';
 import { useAuth, UserRole } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -156,7 +156,7 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-[#030712] selection:bg-primary/20 selection:text-primary font-sans antialiased overflow-hidden">
+    <div className="h-screen h-[100dvh] w-full flex flex-col lg:flex-row bg-[#030712] selection:bg-primary/20 selection:text-primary font-sans antialiased overflow-hidden relative">
 
       {/* ─── Left Panel: Branding & Impact ─── */}
       <div className="lg:flex-1 relative overflow-hidden hidden lg:flex flex-col justify-between p-12 lg:p-16 xl:p-20 border-r border-white/5">
@@ -309,6 +309,24 @@ const Login: React.FC = () => {
             </div>
           </div>
 
+          <div className="mt-8 flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-[1100ms] fill-mode-both">
+            <a
+              href="/Attendly.apk"
+              download
+              className="flex items-center gap-4 px-5 py-3 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-primary/30 hover:bg-primary/[0.02] transition-all duration-500 group"
+            >
+              <div className="p-2.5 rounded-xl bg-white/[0.03] group-hover:bg-primary/10 text-gray-400 group-hover:text-primary transition-all duration-500">
+                <Smartphone className="w-5 h-5" />
+              </div>
+              <div className="flex flex-col items-start">
+                <p className="text-[9px] font-bold text-gray-500 uppercase tracking-[0.2em] group-hover:text-primary/70 transition-colors">Available for Android</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-white tracking-tight">Download Mobile App</span>
+                </div>
+              </div>
+            </a>
+          </div>
+
           <footer className="mt-12 text-center animate-in fade-in duration-1000 delay-1000 fill-mode-both">
             <p className="text-[9px] uppercase tracking-[0.4em] font-bold text-gray-700/50">
               © 2026 Attendly • Digital Learning System
@@ -336,6 +354,11 @@ const Login: React.FC = () => {
           100% { transform: scale(1.2); }
         }
         .animate-slow-zoom { animation: slow-zoom 30s infinite alternate ease-in-out; }
+        @keyframes bounce-slow {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-3px); }
+        }
+        .animate-bounce-slow { animation: bounce-slow 2s ease-in-out infinite; }
       `}</style>
     </div>
   );
