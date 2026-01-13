@@ -92,6 +92,16 @@
 
     --glass-bg: 220 14% 10% / 0.7;
     --glass-border: 220 14% 25% / 0.3;
+
+    /* Sidebar Dark Mode */
+    --sidebar-background: 220 16% 6%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 162 92% 44%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 14% 14%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 220 14% 18%;
+    --sidebar-ring: 162 92% 44%;
   }
 }
 
